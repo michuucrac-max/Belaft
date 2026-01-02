@@ -1,0 +1,16 @@
+{
+  "class4": [
+    { "name": "Libro Antiguo", "value": 5 },
+    { "name": "Fragmento Oxidado", "value": 10 }
+  ],
+  "class3": [
+    { "name": "Reliquia Menor", "value": 20 },
+    { "name": "Cristal Abismal", "value": 30 }
+  ],
+  "class2": [
+    { "name": "Artefacto Raro", "value": 50 }
+  ],
+  "special": [
+    { "name": "Reliquia Especial", "value": 100 }
+  ]
+}
