@@ -7,11 +7,11 @@ import {
   Routes,
   SlashCommandBuilder,
   ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   ChannelSelectMenuBuilder,
   ChannelType,
   StringSelectMenuBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   UserSelectMenuBuilder
 } from "discord.js";
 import fs from "fs";
@@ -23,11 +23,6 @@ import express from "express";
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const PORT = process.env.PORT || 3000;
-
-if (!TOKEN || !CLIENT_ID) {
-  console.error("Faltan variables de entorno");
-  process.exit(1);
-}
 
 /* =====================
    EXPRESS
@@ -54,7 +49,6 @@ const client = new Client({
 ===================== */
 let config = JSON.parse(fs.readFileSync("config.json", "utf8"));
 const objects = JSON.parse(fs.readFileSync("objects.json", "utf8"));
-
 let users = fs.existsSync("users.json")
   ? JSON.parse(fs.readFileSync("users.json", "utf8"))
   : {};
@@ -71,20 +65,12 @@ const saveConfig = () =>
 ===================== */
 function getUser(id) {
   if (!users[id]) {
-    users[id] = {
-      money: 0,
-      rank: "bell",
-      inventory: {},
-      messages: 0
-    };
+    users[id] = { money: 0, rank: "bell", inventory: {}, messages: 0 };
     saveUsers();
   }
   return users[id];
 }
 
-/* =====================
-   HELPERS
-===================== */
 function isNarehate(member) {
   return member.roles.cache.some(r =>
     r.name.toLowerCase().includes(config.roles.narehate.toLowerCase())
@@ -92,52 +78,38 @@ function isNarehate(member) {
 }
 
 /* =====================
-   DROP SYSTEM
+   DROP SYSTEM (7 CANALES)
 ===================== */
-client.on(Events.MessageCreate, async message => {
+client.on(Events.MessageCreate, message => {
   if (message.author.bot || !message.guild) return;
+  if (!config.channels.find?.includes(message.channel.id)) return;
 
-  const member = message.member;
   const user = getUser(message.author.id);
+  user.messages++;
+  if (user.messages % 5 !== 0) return saveUsers();
 
-  /* RELIQUIAS NORMALES */
-  if (config.channels.find?.includes(message.channel.id)) {
-    user.messages++;
-    if (user.messages % 5 !== 0) return saveUsers();
+  const index = config.channels.find.indexOf(message.channel.id);
+  const pools = [
+    objects.class4,
+    objects.class3,
+    objects.class2,
+    objects.class1,
+    objects.special,
+    objects.special,
+    objects.ilblu
+  ];
 
-    const index = config.channels.find.indexOf(message.channel.id);
+  if (index === 6 && Math.random() > 0.067) return;
 
-    let pool = objects.class4;
-    if (index >= 1) pool = objects.class3;
-    if (index >= 2) pool = objects.class2;
-    if (index >= 3) pool = objects.class1;
-    if (index >= 4) pool = objects.special;
+  const pool = pools[index];
+  if (!pool?.length) return;
 
-    const item = pool[Math.floor(Math.random() * pool.length)];
-    user.inventory[item.name] ??= { item, qty: 0 };
-    user.inventory[item.name].qty++;
+  const item = pool[Math.floor(Math.random() * pool.length)];
+  user.inventory[item.name] ??= { name: item.name, icon: item.icon, qty: 0 };
+  user.inventory[item.name].qty++;
 
-    saveUsers();
-    return message.reply(`🧭 **Belaf murmura:** encontraste **${item.icon} ${item.name}**`);
-  }
-
-  /* ITEMS NAREHATE (+5.6%) */
-  if (
-    config.channels.items &&
-    message.channel.id === config.channels.items &&
-    isNarehate(member)
-  ) {
-    if (Math.random() > 0.056) return;
-
-    const pool = objects.narehate || objects.special;
-    const item = pool[Math.floor(Math.random() * pool.length)];
-
-    user.inventory[item.name] ??= { item, qty: 0 };
-    user.inventory[item.name].qty++;
-
-    saveUsers();
-    return message.reply(`🩸 **El Abismo responde:** obtuviste **${item.icon} ${item.name}**`);
-  }
+  saveUsers();
+  message.reply(`🧭 Encontraste **${item.icon} ${item.name}**`);
 });
 
 /* =====================
@@ -146,69 +118,19 @@ client.on(Events.MessageCreate, async message => {
 const commands = [
   new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
   new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
-  new SlashCommandBuilder().setName("trade").setDescription("Trade con un Narehate"),
-
-  new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Canales de reliquias").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchanneltrade").setDescription("Canal trade").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchannelsell").setDescription("Canal venta").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchanneltops").setDescription("Canal tops").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchannelitems").setDescription("Canal Narehate").setDefaultMemberPermissions(0),
+  new SlashCommandBuilder().setName("trade").setDescription("Tradear con un Narehate"),
+  new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Canales reliquias").setDefaultMemberPermissions(0),
+  new SlashCommandBuilder().setName("setchanneltops").setDescription("Canal tops").setDefaultMemberPermissions(0)
 ];
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
-
-/* =====================
-   TOPS
-===================== */
-function sendTops() {
-  const guild = client.guilds.cache.first();
-  if (!guild) return;
-
-  const channel = guild.channels.cache.get(config.channels.tops);
-  if (!channel) return;
-
-  const members = Object.entries(users).map(([id, data]) => {
-    const member = guild.members.cache.get(id);
-    if (!member) return null;
-
-    let rank = data.rank;
-    if (isNarehate(member)) rank = "narehate";
-
-    return {
-      name: member.user.username,
-      money: data.money,
-      items: Object.values(data.inventory).reduce((a, b) => a + b.qty, 0),
-      rank
-    };
-  }).filter(Boolean);
-
-  const topMoney = [...members].sort((a,b)=>b.money-a.money).slice(0,10);
-  const topItems = [...members].sort((a,b)=>b.items-a.items).slice(0,10);
-  const topRank = [...members].sort((a,b)=>config.ranks.indexOf(b.rank)-config.ranks.indexOf(a.rank)).slice(0,10);
-
-  channel.send({
-    content:
-`@everyone
-🏆 **Tops del Abismo**
-
-💰 **Más dinero**
-${topMoney.map((u,i)=>`${i+1}. ${u.name} — ${u.money}`).join("\n")}
-
-🎒 **Más reliquias**
-${topItems.map((u,i)=>`${i+1}. ${u.name} — ${u.items}`).join("\n")}
-
-🎖️ **Mayor rango**
-${topRank.map((u,i)=>`${i+1}. ${u.name} — ${u.rank}`).join("\n")}`
-  });
-}
 
 /* =====================
    READY
 ===================== */
 client.once(Events.ClientReady, async () => {
   await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-  setInterval(sendTops, 5 * 60 * 1000);
-  console.log("Belaf despierta");
+  console.log("🧭 Belaf despierta");
 });
 
 /* =====================
@@ -216,74 +138,103 @@ client.once(Events.ClientReady, async () => {
 ===================== */
 client.on(Events.InteractionCreate, async interaction => {
 
-  /* ===== SELECT CHANNELS ===== */
-  if (interaction.isChannelSelectMenu()) {
-    if (interaction.customId === "reliquies") config.channels.find = interaction.values;
-    if (interaction.customId === "trade") config.channels.trade = interaction.values[0];
-    if (interaction.customId === "sell") config.channels.sell = interaction.values[0];
-    if (interaction.customId === "tops") config.channels.tops = interaction.values[0];
-    if (interaction.customId === "items") config.channels.items = interaction.values[0];
-
-    saveConfig();
-    return interaction.update({ content: "📜 **Belaf lo ha registrado.**", components: [] });
-  }
-
-  if (!interaction.isChatInputCommand()) return;
-
-  const user = getUser(interaction.user.id);
-
-  /* INVENTORY */
-  if (interaction.commandName === "inventory") {
-    const items = Object.values(user.inventory);
-    if (!items.length)
-      return interaction.reply({ content: "🎒 Vacío", ephemeral: true });
-
-    return interaction.reply({
-      content: items.map(i => `${i.item.icon} **${i.item.name}** x${i.qty}`).join("\n"),
-      ephemeral: true
-    });
-  }
-
-  /* MONEY */
-  if (interaction.commandName === "mymoney") {
-    return interaction.reply({ content: `💰 Tienes **${user.money}** monedas`, ephemeral: true });
-  }
-
-  /* TRADE */
+  /* ===== TRADE ===== */
   if (interaction.commandName === "trade") {
+    const user = getUser(interaction.user.id);
     const items = Object.values(user.inventory);
     if (!items.length)
       return interaction.reply({ content: "🎒 No tienes objetos.", ephemeral: true });
 
-    const menu = new ActionRowBuilder().addComponents(
+    const row1 = new ActionRowBuilder().addComponents(
+      new UserSelectMenuBuilder()
+        .setCustomId("trade_user")
+        .setPlaceholder("Selecciona un Narehate")
+    );
+
+    const row2 = new ActionRowBuilder().addComponents(
       new StringSelectMenuBuilder()
-        .setCustomId("trade_item_self")
+        .setCustomId("trade_item")
         .setPlaceholder("Objeto que ofreces")
         .addOptions(items.map(i => ({
-          label: i.item.name,
-          value: i.item.name,
+          label: i.name,
+          value: i.name,
           description: `x${i.qty}`
         })))
     );
 
     return interaction.reply({
-      content: "🔁 **Selecciona tu objeto**",
-      components: [menu],
+      content: "🔁 **Configura el trade**",
+      components: [row1, row2],
       ephemeral: true
     });
   }
 
-  /* SET CHANNEL CMDS */
-  if (interaction.commandName.startsWith("setchannel")) {
-    const id = interaction.commandName.replace("setchannel", "");
-    const row = new ActionRowBuilder().addComponents(
-      new ChannelSelectMenuBuilder()
-        .setCustomId(id)
-        .setMinValues(1)
-        .setMaxValues(id === "reliquies" ? 5 : 1)
-        .setChannelTypes(ChannelType.GuildText)
+  /* ===== SELECT MENUS ===== */
+  if (interaction.isUserSelectMenu() && interaction.customId === "trade_user") {
+    pendingTrades.set(interaction.user.id, { target: interaction.values[0] });
+    return interaction.update({ content: "🧍‍♂️ Narehate seleccionado", components: interaction.message.components });
+  }
+
+  if (interaction.isStringSelectMenu() && interaction.customId === "trade_item") {
+    const trade = pendingTrades.get(interaction.user.id);
+    trade.offer = interaction.values[0];
+
+    const targetUser = interaction.guild.members.cache.get(trade.target);
+    const targetData = getUser(trade.target);
+
+    const buttons = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId("trade_accept").setLabel("Aceptar").setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId("trade_reject").setLabel("Rechazar").setStyle(ButtonStyle.Danger)
     );
-    return interaction.reply({ content: "🧭 Selecciona canal", components: [row], ephemeral: true });
+
+    await targetUser.send({
+      content:
+`🔁 **Solicitud de trade**
+${interaction.user.username} ofrece **${trade.offer}**
+
+¿Aceptas?`,
+      components: [buttons]
+    });
+
+    return interaction.update({
+      content: "📩 Trade enviado al Narehate",
+      components: []
+    });
+  }
+
+  /* ===== BUTTONS ===== */
+  if (interaction.isButton()) {
+    const trade = [...pendingTrades.entries()].find(([_, v]) =>
+      v.target === interaction.user.id
+    );
+    if (!trade) return;
+
+    const [fromId, data] = trade;
+    const fromUser = getUser(fromId);
+    const toUser = getUser(interaction.user.id);
+
+    if (interaction.customId === "trade_accept") {
+      if (!fromUser.inventory[data.offer]) {
+        return interaction.reply({ content: "❌ Objeto inexistente", ephemeral: true });
+      }
+
+      fromUser.inventory[data.offer].qty--;
+      if (fromUser.inventory[data.offer].qty <= 0)
+        delete fromUser.inventory[data.offer];
+
+      toUser.inventory[data.offer] ??= { name: data.offer, icon: "📦", qty: 0 };
+      toUser.inventory[data.offer].qty++;
+
+      saveUsers();
+      pendingTrades.delete(fromId);
+
+      return interaction.reply("✅ Trade aceptado");
+    }
+
+    if (interaction.customId === "trade_reject") {
+      pendingTrades.delete(fromId);
+      return interaction.reply("❌ Trade rechazado");
+    }
   }
 });
 
