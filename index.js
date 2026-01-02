@@ -7,7 +7,6 @@ import {
   Routes,
   SlashCommandBuilder
 } from "discord.js";
-
 import fs from "fs";
 
 // =====================
@@ -28,7 +27,8 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers
   ],
   partials: [Partials.Channel]
 });
@@ -36,10 +36,11 @@ const client = new Client({
 // =====================
 // LOAD FILES
 // =====================
-const config = JSON.parse(fs.readFileSync("config.json"));
-const objects = JSON.parse(fs.readFileSync("objects.json"));
+const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
+const objects = JSON.parse(fs.readFileSync("objects.json", "utf8"));
+
 let users = fs.existsSync("users.json")
-  ? JSON.parse(fs.readFileSync("users.json"))
+  ? JSON.parse(fs.readFileSync("users.json", "utf8"))
   : {};
 
 const saveUsers = () =>
@@ -67,18 +68,22 @@ client.on(Events.MessageCreate, async message => {
   if (message.author.bot || !message.guild) return;
   if (!config.channels.find.includes(message.channel.id)) return;
 
-  if (Math.random() > 0.1) return; // 10% drop
+  if (Math.random() > 0.1) return; // 10%
 
   const user = getUser(message.author.id);
-  const pool = objects.class4;
-  const item = pool[Math.floor(Math.random() * pool.length)];
 
+  let pool = objects.class4;
+  if (user.rank === "silbato_rojo") pool = objects.class3;
+  if (user.rank === "silbato_azul") pool = objects.class2;
+  if (user.rank === "silbato_lunar") pool = objects.class1;
+  if (user.rank === "silbato_negro") pool = objects.special;
+
+  const item = pool[Math.floor(Math.random() * pool.length)];
   user.inventory.push(item);
   saveUsers();
 
   message.reply(
-    `🧭 **Belaf susurra:**  
-Has encontrado **${item.name}** entre las ruinas del Abismo.`
+    `🧭 **Belaf murmura:**\nHas encontrado **${item.name}**.`
   );
 });
 
@@ -92,18 +97,15 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName("sell")
-    .setDescription("Vender objetos")
-    .addStringOption(o =>
-      o.setName("all").setDescription("Vender todo").setRequired(false)
-    ),
+    .setDescription("Vender todas tus reliquias"),
 
   new SlashCommandBuilder()
     .setName("rankup")
-    .setDescription("Ascender de rango"),
+    .setDescription("Ascender de silbato"),
 
   new SlashCommandBuilder()
     .setName("trade")
-    .setDescription("Intercambiar con un Narehate")
+    .setDescription("Proponer un trueque a un Narehate")
     .addUserOption(o =>
       o.setName("user").setDescription("Narehate").setRequired(true)
     )
@@ -112,10 +114,8 @@ const commands = [
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 client.once(Events.ClientReady, async () => {
-  await rest.put(Routes.applicationCommands(CLIENT_ID), {
-    body: commands
-  });
-  console.log(`Belaf despierta en el Abismo`);
+  await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+  console.log("Belaf observa el Abismo");
 });
 
 // =====================
@@ -128,18 +128,15 @@ client.on(Events.InteractionCreate, async interaction => {
 
   // INVENTORY
   if (interaction.commandName === "inventory") {
-    const list =
+    const text =
       user.inventory.map(i => `• ${i.name}`).join("\n") || "Vacío";
-    return interaction.reply(`🎒 **Inventario:**\n${list}`);
+    return interaction.reply(`🎒 **Inventario:**\n${text}`);
   }
 
   // SELL
   if (interaction.commandName === "sell") {
     if (interaction.channel.id !== config.channels.sell)
-      return interaction.reply({
-        content: "Este lugar no acepta intercambios.",
-        ephemeral: true
-      });
+      return interaction.reply({ content: "Aquí no.", ephemeral: true });
 
     let total = 0;
     user.inventory.forEach(i => (total += i.value));
@@ -148,38 +145,63 @@ client.on(Events.InteractionCreate, async interaction => {
     saveUsers();
 
     return interaction.reply(
-      `💰 Belaf acepta tus reliquias. Obtienes **${total}** monedas.`
+      `💰 **Belaf acepta tus reliquias.**\nObtienes **${total}** monedas.`
     );
   }
 
   // RANKUP
   if (interaction.commandName === "rankup") {
     if (interaction.channel.id !== config.channels.rankup)
-      return interaction.reply({
-        content: "Aquí no puedes ascender.",
-        ephemeral: true
-      });
+      return interaction.reply({ content: "No aquí.", ephemeral: true });
 
     const ranks = config.ranks;
     const idx = ranks.indexOf(user.rank);
+
     if (idx === -1 || idx === ranks.length - 1)
       return interaction.reply("No puedes ascender más.");
 
+    const req = config.rankRequirements[user.rank];
+    if (!req)
+      return interaction.reply("Requisitos no definidos.");
+
+    if (user.money < req.money)
+      return interaction.reply("No tienes suficientes monedas.");
+
+    const itemIndex = user.inventory.findIndex(i => i.name === req.item);
+    if (itemIndex === -1)
+      return interaction.reply(`Belaf exige **${req.item}**.`);
+
+    const guildMember = await interaction.guild.members.fetch(interaction.user.id);
+
+    // quitar rol anterior
+    const oldRoleName = user.rank;
+    const oldRole = interaction.guild.roles.cache.find(
+      r => r.name === oldRoleName
+    );
+    if (oldRole) await guildMember.roles.remove(oldRole);
+
+    // ascenso
+    user.money -= req.money;
+    user.inventory.splice(itemIndex, 1);
     user.rank = ranks[idx + 1];
     saveUsers();
 
+    // agregar nuevo rol
+    const newRoleName = user.rank;
+    const newRole = interaction.guild.roles.cache.find(
+      r => r.name === newRoleName
+    );
+    if (newRole) await guildMember.roles.add(newRole);
+
     return interaction.reply(
-      `🎖️ **Ascenso logrado:** ahora eres **${user.rank}**.`
+      `🎖️ **Belaf proclama:**\nHas ascendido a **${user.rank}**.`
     );
   }
 
   // TRADE
   if (interaction.commandName === "trade") {
     if (interaction.channel.id !== config.channels.trade)
-      return interaction.reply({
-        content: "Los trueques solo ocurren aquí.",
-        ephemeral: true
-      });
+      return interaction.reply({ content: "No aquí.", ephemeral: true });
 
     const target = interaction.options.getUser("user");
     const member = interaction.guild.members.cache.get(target.id);
@@ -193,13 +215,10 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     return interaction.reply(
-      `🔁 **Belaf anuncia:**  
-${interaction.user} desea comerciar con ${target}.`
+      `🔁 **Belaf anuncia:**\n${interaction.user} desea comerciar con ${target}.`
     );
   }
 });
 
-// =====================
-// LOGIN
 // =====================
 client.login(TOKEN);
