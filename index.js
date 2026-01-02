@@ -7,12 +7,10 @@ import {
   Routes,
   SlashCommandBuilder,
   ActionRowBuilder,
-  ChannelSelectMenuBuilder,
-  ChannelType,
   StringSelectMenuBuilder,
+  UserSelectMenuBuilder,
   ButtonBuilder,
-  ButtonStyle,
-  UserSelectMenuBuilder
+  ButtonStyle
 } from "discord.js";
 import fs from "fs";
 import express from "express";
@@ -57,24 +55,28 @@ const pendingTrades = new Map();
 
 const saveUsers = () =>
   fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
-const saveConfig = () =>
-  fs.writeFileSync("config.json", JSON.stringify(config, null, 2));
 
 /* =====================
-   USER INIT
+   USER
 ===================== */
 function getUser(id) {
   if (!users[id]) {
-    users[id] = { money: 0, rank: "bell", inventory: {}, messages: 0 };
+    users[id] = { money: 0, inventory: {}, messages: 0 };
     saveUsers();
   }
   return users[id];
 }
 
+function getRankFromRoles(member) {
+  for (const rank of config.ranks.reverse()) {
+    const roleId = config.roles[rank];
+    if (member.roles.cache.has(roleId)) return rank;
+  }
+  return "bell";
+}
+
 function isNarehate(member) {
-  return member.roles.cache.some(r =>
-    r.name.toLowerCase().includes(config.roles.narehate.toLowerCase())
-  );
+  return member.roles.cache.has(config.roles.narehate);
 }
 
 /* =====================
@@ -82,13 +84,15 @@ function isNarehate(member) {
 ===================== */
 client.on(Events.MessageCreate, message => {
   if (message.author.bot || !message.guild) return;
-  if (!config.channels.find?.includes(message.channel.id)) return;
+  if (!config.channels.find.includes(message.channel.id)) return;
 
   const user = getUser(message.author.id);
   user.messages++;
+
   if (user.messages % 5 !== 0) return saveUsers();
 
   const index = config.channels.find.indexOf(message.channel.id);
+
   const pools = [
     objects.class4,
     objects.class3,
@@ -99,7 +103,13 @@ client.on(Events.MessageCreate, message => {
     objects.ilblu
   ];
 
-  if (index === 6 && Math.random() > 0.067) return;
+  let chance = 1;
+  if (index === 6) chance = 0.067;
+
+  const member = message.guild.members.cache.get(message.author.id);
+  if (isNarehate(member)) chance += 0.067;
+
+  if (Math.random() > chance) return;
 
   const pool = pools[index];
   if (!pool?.length) return;
@@ -116,11 +126,27 @@ client.on(Events.MessageCreate, message => {
    SLASH COMMANDS
 ===================== */
 const commands = [
-  new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
-  new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
-  new SlashCommandBuilder().setName("trade").setDescription("Tradear con un Narehate"),
-  new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Canales reliquias").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchanneltops").setDescription("Canal tops").setDefaultMemberPermissions(0)
+  new SlashCommandBuilder()
+    .setName("inventory")
+    .setDescription("Ver tu inventario"),
+
+  new SlashCommandBuilder()
+    .setName("mymoney")
+    .setDescription("Ver tus monedas"),
+
+  new SlashCommandBuilder()
+    .setName("trade")
+    .setDescription("Intercambiar objetos"),
+
+  new SlashCommandBuilder()
+    .setName("setchannelreliquies")
+    .setDescription("Configurar canales de reliquias")
+    .setDefaultMemberPermissions(0),
+
+  new SlashCommandBuilder()
+    .setName("setchanneltops")
+    .setDescription("Configurar canal de tops")
+    .setDefaultMemberPermissions(0)
 ];
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
@@ -138,12 +164,37 @@ client.once(Events.ClientReady, async () => {
 ===================== */
 client.on(Events.InteractionCreate, async interaction => {
 
-  /* ===== TRADE ===== */
+  /* INVENTORY */
+  if (interaction.commandName === "inventory") {
+    const user = getUser(interaction.user.id);
+    const items = Object.values(user.inventory);
+
+    if (!items.length)
+      return interaction.reply({ content: "🎒 Inventario vacío", ephemeral: true });
+
+    const text = items
+      .map(i => `${i.icon} **${i.name}** x${i.qty}`)
+      .join("\n");
+
+    return interaction.reply({ content: text, ephemeral: true });
+  }
+
+  /* MONEY */
+  if (interaction.commandName === "mymoney") {
+    const user = getUser(interaction.user.id);
+    return interaction.reply({
+      content: `💰 Tienes **${user.money}** monedas`,
+      ephemeral: true
+    });
+  }
+
+  /* TRADE */
   if (interaction.commandName === "trade") {
     const user = getUser(interaction.user.id);
     const items = Object.values(user.inventory);
+
     if (!items.length)
-      return interaction.reply({ content: "🎒 No tienes objetos.", ephemeral: true });
+      return interaction.reply({ content: "🎒 No tienes objetos", ephemeral: true });
 
     const row1 = new ActionRowBuilder().addComponents(
       new UserSelectMenuBuilder()
@@ -154,7 +205,7 @@ client.on(Events.InteractionCreate, async interaction => {
     const row2 = new ActionRowBuilder().addComponents(
       new StringSelectMenuBuilder()
         .setCustomId("trade_item")
-        .setPlaceholder("Objeto que ofreces")
+        .setPlaceholder("Objeto a ofrecer")
         .addOptions(items.map(i => ({
           label: i.name,
           value: i.name,
@@ -163,61 +214,53 @@ client.on(Events.InteractionCreate, async interaction => {
     );
 
     return interaction.reply({
-      content: "🔁 **Configura el trade**",
+      content: "🔁 Configura el trade",
       components: [row1, row2],
       ephemeral: true
     });
   }
 
-  /* ===== SELECT MENUS ===== */
+  /* SELECT MENUS */
   if (interaction.isUserSelectMenu() && interaction.customId === "trade_user") {
     pendingTrades.set(interaction.user.id, { target: interaction.values[0] });
-    return interaction.update({ content: "🧍‍♂️ Narehate seleccionado", components: interaction.message.components });
+    return interaction.update({ content: "👤 Usuario seleccionado", components: interaction.message.components });
   }
 
   if (interaction.isStringSelectMenu() && interaction.customId === "trade_item") {
     const trade = pendingTrades.get(interaction.user.id);
     trade.offer = interaction.values[0];
 
-    const targetUser = interaction.guild.members.cache.get(trade.target);
-    const targetData = getUser(trade.target);
+    const target = await interaction.guild.members.fetch(trade.target);
+
+    if (!isNarehate(target))
+      return interaction.reply({ content: "❌ Solo con Narehates", ephemeral: true });
 
     const buttons = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId("trade_accept").setLabel("Aceptar").setStyle(ButtonStyle.Success),
       new ButtonBuilder().setCustomId("trade_reject").setLabel("Rechazar").setStyle(ButtonStyle.Danger)
     );
 
-    await targetUser.send({
-      content:
-`🔁 **Solicitud de trade**
-${interaction.user.username} ofrece **${trade.offer}**
-
-¿Aceptas?`,
+    await target.send({
+      content: `🔁 **Trade**
+${interaction.user.username} ofrece **${trade.offer}**`,
       components: [buttons]
     });
 
-    return interaction.update({
-      content: "📩 Trade enviado al Narehate",
-      components: []
-    });
+    return interaction.update({ content: "📩 Trade enviado", components: [] });
   }
 
-  /* ===== BUTTONS ===== */
+  /* BUTTONS */
   if (interaction.isButton()) {
-    const trade = [...pendingTrades.entries()].find(([_, v]) =>
+    const tradeEntry = [...pendingTrades.entries()].find(([_, v]) =>
       v.target === interaction.user.id
     );
-    if (!trade) return;
+    if (!tradeEntry) return;
 
-    const [fromId, data] = trade;
+    const [fromId, data] = tradeEntry;
     const fromUser = getUser(fromId);
     const toUser = getUser(interaction.user.id);
 
     if (interaction.customId === "trade_accept") {
-      if (!fromUser.inventory[data.offer]) {
-        return interaction.reply({ content: "❌ Objeto inexistente", ephemeral: true });
-      }
-
       fromUser.inventory[data.offer].qty--;
       if (fromUser.inventory[data.offer].qty <= 0)
         delete fromUser.inventory[data.offer];
