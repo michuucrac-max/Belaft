@@ -72,28 +72,36 @@ function getUser(id) {
 }
 
 // =====================
-// DROP SYSTEM
+// DROP SYSTEM (por canal)
 // =====================
 client.on(Events.MessageCreate, async message => {
   if (message.author.bot || !message.guild) return;
   if (!config.channels.find.includes(message.channel.id)) return;
 
-  if (Math.random() > 0.25) return; // 25%
-
   const user = getUser(message.author.id);
+  user.messages++;
+
+  // drop cada 5 mensajes
+  if (user.messages % 5 !== 0) {
+    saveUsers();
+    return;
+  }
+
+  // pools según orden del canal
+  const index = config.channels.find.indexOf(message.channel.id);
 
   let pool = objects.class4;
-  if (user.rank === "silbato rojo") pool = objects.class3;
-  if (user.rank === "silbato azul") pool = objects.class2;
-  if (user.rank === "silbato lunar") pool = objects.class1;
-  if (user.rank === "silbato negro") pool = objects.special;
+  if (index >= 1) pool = objects.class3;
+  if (index >= 2) pool = objects.class2;
+  if (index >= 3) pool = objects.class1;
+  if (index >= 4) pool = objects.special;
 
   const item = pool[Math.floor(Math.random() * pool.length)];
 
   if (!user.inventory[item.name]) {
     user.inventory[item.name] = { item, qty: 1 };
   } else {
-    user.inventory[item.name].qty += 1;
+    user.inventory[item.name].qty++;
   }
 
   saveUsers();
@@ -135,9 +143,44 @@ const commands = [
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
+// =====================
+// TOPS SYSTEM
+// =====================
+function sendTops(client) {
+  const guild = client.guilds.cache.first();
+  if (!guild) return;
+
+  const channel = guild.channels.cache.get(config.channels.tops);
+  if (!channel) return;
+
+  const sorted = Object.entries(users)
+    .sort((a, b) => b[1].money - a[1].money)
+    .slice(0, 10);
+
+  if (sorted.length === 0) return;
+
+  const text = sorted.map(([id, data], i) => {
+    const member = guild.members.cache.get(id);
+    const name = member ? member.user.username : "Desconocido";
+    return `**${i + 1}.** ${name} — 💰 ${data.money} — 🎖️ ${data.rank}`;
+  }).join("\n");
+
+  channel.send({
+    content: `@everyone\n🏆 **Tops del Abismo**\n\n${text}`
+  });
+}
+
+// =====================
+// READY
+// =====================
 client.once(Events.ClientReady, async () => {
   await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
   console.log("Belaf observa el Abismo");
+
+  // tops cada 5 minutos
+  setInterval(() => {
+    sendTops(client);
+  }, 5 * 60 * 1000);
 });
 
 // =====================
@@ -159,27 +202,23 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     if (type === "trade_accept") {
-      const toUserId = interaction.user.id;
-
       const fromUser = getUser(fromId);
-      const toUser = getUser(toUserId);
+      const toUser = getUser(interaction.user.id);
 
       if (!toUser.inventory[want] || toUser.inventory[want].qty < 1)
         return interaction.reply({ content: "No tienes el objeto solicitado.", ephemeral: true });
 
-      // quitar objetos
-      fromUser.inventory[give].qty -= 1;
+      fromUser.inventory[give].qty--;
       if (fromUser.inventory[give].qty <= 0) delete fromUser.inventory[give];
 
-      toUser.inventory[want].qty -= 1;
+      toUser.inventory[want].qty--;
       if (toUser.inventory[want].qty <= 0) delete toUser.inventory[want];
 
-      // dar objetos
       fromUser.inventory[want] ??= { item: objectsMap[want], qty: 0 };
       toUser.inventory[give] ??= { item: objectsMap[give], qty: 0 };
 
-      fromUser.inventory[want].qty += 1;
-      toUser.inventory[give].qty += 1;
+      fromUser.inventory[want].qty++;
+      toUser.inventory[give].qty++;
 
       saveUsers();
 
@@ -193,33 +232,23 @@ client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isChatInputCommand()) return;
   const user = getUser(interaction.user.id);
 
-  // =================
   // INVENTORY
-  // =================
   if (interaction.commandName === "inventory") {
     const items = Object.values(user.inventory);
+    if (!items.length) return interaction.reply("🎒 Inventario vacío.");
 
-    if (items.length === 0)
-      return interaction.reply("🎒 Inventario vacío.");
-
-    const text = items
-      .map(e => `• ${e.item.name} x${e.qty}`)
-      .join("\n");
-
+    const text = items.map(e => `• ${e.item.name} x${e.qty}`).join("\n");
     return interaction.reply(`🎒 **Inventario:**\n${text}`);
   }
 
-  // =================
   // SELL
-  // =================
   if (interaction.commandName === "sell") {
     if (interaction.channel.id !== config.channels.sell)
       return interaction.reply({ content: "Aquí no.", ephemeral: true });
 
     let total = 0;
-    for (const e of Object.values(user.inventory)) {
+    for (const e of Object.values(user.inventory))
       total += e.item.value * e.qty;
-    }
 
     user.inventory = {};
     user.money += total;
@@ -230,63 +259,55 @@ client.on(Events.InteractionCreate, async interaction => {
     );
   }
 
-  // =================
   // RANKUP
-  // =================
   if (interaction.commandName === "rankup") {
     if (interaction.channel.id !== config.channels.rankup)
       return interaction.reply({ content: "No aquí.", ephemeral: true });
 
+    const member = await interaction.guild.members.fetch(interaction.user.id);
+
+    // 🚫 Narehates no ascienden
+    if (member.roles.cache.some(r =>
+      r.name.toLowerCase().includes(config.roles.narehate.toLowerCase())
+    )) {
+      return interaction.reply(
+        "🩸 **Belaf susurra:** Los Narehates ya no ascienden."
+      );
+    }
+
     const ranks = config.ranks;
     const idx = ranks.indexOf(user.rank);
-
     if (idx === -1 || idx === ranks.length - 1)
       return interaction.reply("No puedes ascender más.");
 
     const nextRank = ranks[idx + 1];
-    const req = config.rankRequirements?.[user.rank];
-
-    if (!req)
-      return interaction.reply("Belaf no ha definido este ascenso.");
+    const req = config.rankRequirements[user.rank];
 
     if (user.money < req.money)
       return interaction.reply(`Belaf exige **${req.money}** monedas.`);
 
     const entry = user.inventory[req.item];
     if (!entry || entry.qty < 1)
-      return interaction.reply(`Belaf exige la reliquia **${req.item}**.`);
+      return interaction.reply(`Belaf exige **${req.item}**.`);
 
-    const member = await interaction.guild.members.fetch(interaction.user.id);
-
-    // quitar rol viejo
-    const oldRole = interaction.guild.roles.cache.find(r =>
-      r.name.toLowerCase().includes(user.rank)
-    );
-    if (oldRole) await member.roles.remove(oldRole);
-
-    // cobrar
     user.money -= req.money;
-    entry.qty -= 1;
+    entry.qty--;
     if (entry.qty <= 0) delete user.inventory[req.item];
 
     user.rank = nextRank;
     saveUsers();
 
-    // nuevo rol
     const newRole = interaction.guild.roles.cache.find(r =>
-      r.name.toLowerCase().includes(nextRank)
+      r.name.toLowerCase().includes(nextRank.replace("_", " "))
     );
     if (newRole) await member.roles.add(newRole);
 
     return interaction.reply(
-      `🎖️ **Belaf proclama:**  
-Has ascendido a **${nextRank}**.`
+      `🎖️ **Belaf proclama:** Has ascendido a **${nextRank}**.`
     );
   }
 
-  // =================
   // TRADE
-  // =================
   if (interaction.commandName === "trade") {
     if (interaction.channel.id !== config.channels.trade)
       return interaction.reply({ content: "No aquí.", ephemeral: true });
@@ -295,12 +316,8 @@ Has ascendido a **${nextRank}**.`
     const give = interaction.options.getString("give");
     const want = interaction.options.getString("want");
 
-    if (!user.inventory[give] || user.inventory[give].qty < 1)
+    if (!user.inventory[give])
       return interaction.reply("No tienes ese objeto.");
-
-    const member = interaction.guild.members.cache.get(target.id);
-    if (!member.roles.cache.some(r => r.name.includes(config.roles.narehate)))
-      return interaction.reply("Ese usuario no es Narehate.");
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
