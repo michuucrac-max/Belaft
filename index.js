@@ -150,54 +150,65 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   // RANKUP
-  if (interaction.commandName === "rankup") {
-    if (interaction.channel.id !== config.channels.rankup)
-      return interaction.reply({ content: "No aquí.", ephemeral: true });
+if (interaction.commandName === "rankup") {
+  if (interaction.channel.id !== config.channels.rankup)
+    return interaction.reply({ content: "No aquí.", ephemeral: true });
 
-    const ranks = config.ranks;
-    const idx = ranks.indexOf(user.rank);
+  const ranks = config.ranks;
+  const idx = ranks.indexOf(user.rank);
 
-    if (idx === -1 || idx === ranks.length - 1)
-      return interaction.reply("No puedes ascender más.");
+  if (idx === -1 || idx === ranks.length - 1)
+    return interaction.reply("No puedes ascender más.");
 
-    const req = config.rankRequirements[user.rank];
-    if (!req)
-      return interaction.reply("Requisitos no definidos.");
+  const nextRank = ranks[idx + 1];
+  const req = config.rankRequirements[user.rank];
 
-    if (user.money < req.money)
-      return interaction.reply("No tienes suficientes monedas.");
+  if (!req)
+    return interaction.reply("Belaf no ha definido este ascenso.");
 
-    const itemIndex = user.inventory.findIndex(i => i.name === req.item);
-    if (itemIndex === -1)
-      return interaction.reply(`Belaf exige **${req.item}**.`);
-
-    const guildMember = await interaction.guild.members.fetch(interaction.user.id);
-
-    // quitar rol anterior
-    const oldRoleName = user.rank;
-    const oldRole = interaction.guild.roles.cache.find(
-      r => r.name === oldRoleName
-    );
-    if (oldRole) await guildMember.roles.remove(oldRole);
-
-    // ascenso
-    user.money -= req.money;
-    user.inventory.splice(itemIndex, 1);
-    user.rank = ranks[idx + 1];
-    saveUsers();
-
-    // agregar nuevo rol
-    const newRoleName = user.rank;
-    const newRole = interaction.guild.roles.cache.find(
-      r => r.name === newRoleName
-    );
-    if (newRole) await guildMember.roles.add(newRole);
-
+  // 💰 dinero
+  if (user.money < req.money)
     return interaction.reply(
-      `🎖️ **Belaf proclama:**\nHas ascendido a **${user.rank}**.`
+      `Belaf exige **${req.money}** monedas.`
     );
-  }
 
+  // 📦 objeto
+  const itemIndex = user.inventory.findIndex(
+    i => i.name === req.item
+  );
+  if (itemIndex === -1)
+    return interaction.reply(
+      `Belaf exige la reliquia **${req.item}**.`
+    );
+
+  const member = await interaction.guild.members.fetch(interaction.user.id);
+
+  // quitar rol anterior (por nombre flexible)
+  const oldRole = interaction.guild.roles.cache.find(r =>
+    r.name.toLowerCase().includes(user.rank.replace("_", " "))
+  );
+  if (oldRole) await member.roles.remove(oldRole);
+
+  // cobrar
+  user.money -= req.money;
+  user.inventory.splice(itemIndex, 1);
+
+  // ascenso
+  user.rank = nextRank;
+  saveUsers();
+
+  // agregar nuevo rol
+  const newRole = interaction.guild.roles.cache.find(r =>
+    r.name.toLowerCase().includes(nextRank.replace("_", " "))
+  );
+  if (newRole) await member.roles.add(newRole);
+
+  return interaction.reply(
+    `🎖️ **Belaf proclama:**  
+Has ascendido a **${nextRank.replace("_", " ")}**.`
+  );
+}
+  
   // TRADE
   if (interaction.commandName === "trade") {
     if (interaction.channel.id !== config.channels.trade)
