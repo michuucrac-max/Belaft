@@ -68,7 +68,7 @@ client.on(Events.MessageCreate, async message => {
   if (message.author.bot || !message.guild) return;
   if (!config.channels.find.includes(message.channel.id)) return;
 
-  if (Math.random() > 0.4) return; // 40%
+  if (Math.random() > 0.25) return; // 25%
 
   const user = getUser(message.author.id);
 
