@@ -15,15 +15,37 @@
   },
 
   "roles": {
+    "bell": "ID_ROL_BELL",
+    "silbato_rojo": "ID_ROL_ROJO",
+    "silbato_azul": "ID_ROL_AZUL",
+    "silbato_lunar": "ID_ROL_LUNAR",
+    "silbato_negro": "ID_ROL_NEGRO",
+    "silbato_blanco": "ID_ROL_BLANCO",
     "narehate": "Narehate"
   },
 
-  "ranks": [
-    "bell",
-    "silbato rojo",
-    "silbato azul",
-    "silbato lunar",
-    "silbato negro",
-    "silbato blanco"
-  ]
+  "ranks": ["bell", "silbato_rojo", "silbato_azul", "silbato_lunar", "silbato_negro", "silbato_blanco"],
+
+  "rankRequirements": {
+    "bell": {
+      "money": 50,
+      "item": "Libro Antiguo"
+    },
+    "silbato_rojo": {
+      "money": 150,
+      "item": "Reliquia Menor"
+    },
+    "silbato_azul": {
+      "money": 300,
+      "item": "Artefacto Clase 4"
+    },
+    "silbato_lunar": {
+      "money": 600,
+      "item": "Artefacto Raro"
+    },
+    "silbato_negro": {
+      "money": 1000,
+      "item": "Artefacto Especial"
+    }
+  }
 }
