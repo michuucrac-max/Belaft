@@ -141,11 +141,25 @@ function sendTops() {
     const member = guild.members.cache.get(id);
     if (!member) return null;
 
-    const roleRank = config.ranks.find(r =>
+    let roleRank = data.rank;
+
+// 🩸 PRIORIDAD NAREHATE
+if (member.roles.cache.some(r =>
+  r.name.toLowerCase().includes(config.roles.narehate.toLowerCase())
+)) {
+  roleRank = "narehate";
+} else {
+  // buscar el rango MÁS ALTO que tenga
+  const found = [...config.ranks]
+    .reverse()
+    .find(r =>
       member.roles.cache.some(role =>
         role.name.toLowerCase().includes(r)
       )
-    ) || data.rank;
+    );
+
+  if (found) roleRank = found;
+}
 
     return {
       name: member.user.username,
