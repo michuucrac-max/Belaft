@@ -22,7 +22,7 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const PORT = process.env.PORT || 3000;
 
 /* =====================
-   EXPRESS
+   EXPRESS (24/7)
 ===================== */
 const app = express();
 app.get("/", (_, res) => res.send("Belaf observa el Abismo 🧭"));
@@ -72,11 +72,17 @@ function isNarehate(member) {
   return member.roles.cache.has(config.roles.narehate);
 }
 
-function getRankFromRoles(member) {
-  for (const r of config.ranks) {
+function getRealRank(member) {
+  for (let i = config.ranks.length - 1; i >= 0; i--) {
+    const r = config.ranks[i];
     if (member.roles.cache.has(config.roles[r])) return r;
   }
   return "bell";
+}
+
+function getNextRank(rank) {
+  const i = config.ranks.indexOf(rank);
+  return config.ranks[i + 1] || null;
 }
 
 /* =====================
@@ -121,8 +127,8 @@ client.on(Events.MessageCreate, message => {
 
   message.reply(
     index === 6
-      ? `🏛️ **Ilblu susurra:** ${item.icon} **${item.name}**`
-      : `🧭 **Belaf murmura:** ${item.icon} **${item.name}**`
+      ? `🏛️ **Ilblu concede:** ${item.icon} **${item.name}**`
+      : `🧭 **Belaf observa:** ${item.icon} **${item.name}**`
   );
 });
 
@@ -133,13 +139,10 @@ const commands = [
   new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
   new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
   new SlashCommandBuilder().setName("rankup").setDescription("Subir de rango"),
-  new SlashCommandBuilder().setName("trade").setDescription("Intercambiar"),
 
-  new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Canales de reliquias").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchannellevelup").setDescription("Canal de rankup").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchanneltops").setDescription("Canal tops").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchanneltrade").setDescription("Canal trade").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchannelsell").setDescription("Canal ventas").setDefaultMemberPermissions(0)
+  new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Canales drops").setDefaultMemberPermissions(0),
+  new SlashCommandBuilder().setName("setchannellevelup").setDescription("Canal rankup").setDefaultMemberPermissions(0),
+  new SlashCommandBuilder().setName("setchanneltops").setDescription("Canal tops").setDefaultMemberPermissions(0)
 ];
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
@@ -149,7 +152,7 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 ===================== */
 client.once(Events.ClientReady, async () => {
   await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-  setInterval(sendTops, 5 * 60 * 1000);
+  setInterval(sendTops, 2 * 60 * 1000);
   console.log("🧭 Belaf despierta");
 });
 
@@ -169,15 +172,15 @@ function sendTops() {
     return {
       name: m.user.username,
       money: u.money,
-      items: Object.values(u.inventory).reduce((a,b)=>a+b.qty,0)
+      rank: getRealRank(m)
     };
   }).filter(Boolean);
 
   const top = list.sort((a,b)=>b.money-a.money).slice(0,5);
 
   channel.send(
-    "🏆 **Tops del Abismo**\n" +
-    top.map((u,i)=>`${i+1}. ${u.name} — 💰 ${u.money}`).join("\n")
+    "@everyone\n🏆 **Tops del Abismo**\n" +
+    top.map((u,i)=>`${i+1}. **${u.name}** [${u.rank}] — 💰 ${u.money}`).join("\n")
   );
 }
 
@@ -199,7 +202,7 @@ client.on(Events.InteractionCreate, async interaction => {
       .addChannelTypes(ChannelType.GuildText);
 
     return interaction.reply({
-      content: "Selecciona canal",
+      content: "Selecciona canal(es)",
       components: [new ActionRowBuilder().addComponents(menu)],
       ephemeral: true
     });
@@ -207,41 +210,71 @@ client.on(Events.InteractionCreate, async interaction => {
 
   if (interaction.isChannelSelectMenu()) {
     const key = interaction.customId.replace("set_", "");
-    config.channels[key] = interaction.values.length > 1
-      ? interaction.values
-      : interaction.values[0];
-
+    config.channels[key] =
+      interaction.values.length > 1 ? interaction.values : interaction.values[0];
     saveConfig();
-    return interaction.reply({ content: "✅ Canal guardado", ephemeral: true });
+    return interaction.reply({ content: "✅ Guardado", ephemeral: true });
   }
 
   if (!interaction.isChatInputCommand()) return;
 
   const user = getUser(interaction.user.id);
 
+  /* INVENTORY */
   if (interaction.commandName === "inventory") {
     return interaction.reply({
-      content: Object.values(user.inventory).map(i=>`${i.icon} ${i.name} x${i.qty}`).join("\n") || "Vacío",
+      content:
+        Object.values(user.inventory)
+          .map(i => `${i.icon} ${i.name} x${i.qty}`)
+          .join("\n") || "Vacío",
       ephemeral: true
     });
   }
 
+  /* MONEY */
   if (interaction.commandName === "mymoney") {
     return interaction.reply({ content: `💰 ${user.money}`, ephemeral: true });
   }
 
+  /* RANKUP REAL */
   if (interaction.commandName === "rankup") {
+
     if (isNarehate(interaction.member))
-      return interaction.reply({ content: "🧬 Los Narehate no suben de rango.", ephemeral: true });
+      return interaction.reply({ content: "🧬 Los Narehate no pueden ascender.", ephemeral: true });
 
     if (interaction.channelId !== config.channels.levelup)
       return interaction.reply({ content: "🚫 Canal incorrecto.", ephemeral: true });
 
-    return interaction.reply("🎖️ Sistema de rankup funcionando.");
-  }
+    const current = getRealRank(interaction.member);
+    const next = getNextRank(current);
+    if (!next)
+      return interaction.reply({ content: "🎖️ Ya estás en el rango máximo.", ephemeral: true });
 
-  if (interaction.commandName === "trade") {
-    return interaction.reply({ content: "🔁 Trade base listo.", ephemeral: true });
+    const req = config.rankRequirements[next];
+    if (!req)
+      return interaction.reply({ content: "❌ Requisitos no definidos.", ephemeral: true });
+
+    if (user.money < req.money)
+      return interaction.reply({ content: `💰 Necesitas ${req.money} monedas.`, ephemeral: true });
+
+    if (!user.inventory[req.item] || user.inventory[req.item].qty < 1)
+      return interaction.reply({ content: `📦 Necesitas **${req.item}**.`, ephemeral: true });
+
+    /* PAGO */
+    user.money -= req.money;
+    user.inventory[req.item].qty--;
+    if (user.inventory[req.item].qty <= 0)
+      delete user.inventory[req.item];
+
+    /* ROLES */
+    await interaction.member.roles.remove(config.roles[current]);
+    await interaction.member.roles.add(config.roles[next]);
+
+    saveUsers();
+
+    return interaction.reply(
+      `🎖️ **Ascenso completado**\nAhora eres **${next}**`
+    );
   }
 });
 
