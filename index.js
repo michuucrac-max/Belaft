@@ -3,6 +3,9 @@ import {
   GatewayIntentBits,
   Partials,
   Events,
+  REST,
+  Routes,
+  SlashCommandBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle
@@ -14,12 +17,11 @@ import express from "express";
 /* =====================
    LOAD FILES
 ===================== */
-const config = JSON.parse(fs.readFileSync("config.json"));
-const items = JSON.parse(fs.readFileSync("items.json"));
-const casino = JSON.parse(fs.readFileSync("casino.json"));
+const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
+const items = JSON.parse(fs.readFileSync("items.json", "utf8"));
 
 let users = fs.existsSync("users.json")
-  ? JSON.parse(fs.readFileSync("users.json"))
+  ? JSON.parse(fs.readFileSync("users.json", "utf8"))
   : {};
 
 const saveUsers = () =>
@@ -53,16 +55,11 @@ function getUser(id) {
     users[id] = {
       money: 0,
       inventory: {},
-      messages: 0,
-      isNarehate: false
+      messages: 0
     };
     saveUsers();
   }
   return users[id];
-}
-
-function hasRole(member, role) {
-  return member.roles.cache.has(config.roles[role]);
 }
 
 function isNarehate(member) {
@@ -76,7 +73,7 @@ function isHuman(member) {
 function getRank(member) {
   if (isNarehate(member)) return "narehate";
   for (const r of config.ranks) {
-    if (hasRole(member, r)) return r;
+    if (member.roles.cache.has(config.roles[r])) return r;
   }
   return "bell";
 }
@@ -96,11 +93,13 @@ client.on(Events.MessageCreate, msg => {
     return;
   }
 
+  // 🔮 LEGENDARIO
   if (Math.random() < items.legendary.chance) {
-    user.inventory[items.legendary.name] = {
+    user.inventory[items.legendary.name] ??= {
       ...items.legendary,
-      qty: 1
+      qty: 0
     };
+    user.inventory[items.legendary.name].qty++;
     saveUsers();
 
     return msg.channel.send(
@@ -114,13 +113,13 @@ client.on(Events.MessageCreate, msg => {
 
   user.inventory[item.name] ??= { ...item, qty: 0 };
   user.inventory[item.name].qty++;
-
   saveUsers();
+
   msg.reply(`🧭 Encontraste ${item.icon} **${item.name}**`);
 });
 
 /* =====================
-   TOPS
+   TOPS (cada 2 min)
 ===================== */
 async function sendTops() {
   const guild = client.guilds.cache.first();
@@ -161,9 +160,37 @@ ${list.sort((a,b)=>config.ranks.indexOf(b.rank)-config.ranks.indexOf(a.rank)).sl
 }
 
 /* =====================
+   SLASH COMMANDS REGISTRO
+===================== */
+const commands = [
+  new SlashCommandBuilder()
+    .setName("trade")
+    .setDescription("Intercambia objetos con un Narehate")
+    .addUserOption(o =>
+      o.setName("usuario")
+       .setDescription("Narehate con quien comerciar")
+       .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
+    .setName("rankup")
+    .setDescription("Subir de rango")
+].map(c => c.toJSON());
+
+const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
+
+/* =====================
    READY
 ===================== */
-client.once(Events.ClientReady, () => {
+client.once(Events.ClientReady, async () => {
+  await rest.put(
+    Routes.applicationGuildCommands(
+      config.clientId,
+      config.guildId
+    ),
+    { body: commands }
+  );
+
   setInterval(sendTops, 2 * 60 * 1000);
   console.log("🧭 Belaf despierta");
 });
@@ -173,105 +200,67 @@ client.once(Events.ClientReady, () => {
 ===================== */
 client.on(Events.InteractionCreate, async i => {
 
-  /* -------- SLASH COMMANDS -------- */
-  if (i.isChatInputCommand()) {
-    if (i.commandName === "trade") {
-      const target = i.options.getUser("usuario");
-      if (!target || target.id === i.user.id) {
-        return i.reply({ content: "❌ Trade inválido.", ephemeral: true });
-      }
+  if (!i.isChatInputCommand()) return;
 
-      const memberA = i.member;
-      const memberB = await i.guild.members.fetch(target.id);
-
-      if (!(isHuman(memberA) && isNarehate(memberB))) {
-        return i.reply({
-          content: "🚫 Solo humanos pueden comerciar con Narehates.",
-          ephemeral: true
-        });
-      }
-
-      const userA = getUser(memberA.id);
-      const userB = getUser(memberB.id);
-
-      const itemsA = Object.values(userA.inventory).filter(i=>!i.soulbound)
-        .map(i=>`${i.icon} ${i.name} x${i.qty}`).join("\n") || "— Vacío —";
-
-      const itemsB = Object.values(userB.inventory).filter(i=>!i.soulbound)
-        .map(i=>`${i.icon} ${i.name} x${i.qty}`).join("\n") || "— Vacío —";
-
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId(`trade_accept_${memberA.id}_${memberB.id}`)
-          .setLabel("Aceptar")
-          .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-          .setCustomId(`trade_cancel_${memberA.id}_${memberB.id}`)
-          .setLabel("Cancelar")
-          .setStyle(ButtonStyle.Danger)
-      );
-
+  /* -------- RANKUP -------- */
+  if (i.commandName === "rankup") {
+    if (isNarehate(i.member)) {
       return i.reply({
         content:
-`🔁 **Intercambio del Abismo**
-👤 Humano: ${memberA.user.username}
-🧬 Narehate: ${memberB.user.username}
-
-🎒 Humano
-${itemsA}
-
-🎒 Narehate
-${itemsB}`,
-        components: [row]
+        "🧬 Ya has llegado al final del camino.\n" +
+        "No necesitas subir de rango… eso requiere humanidad.",
+        ephemeral: true
       });
     }
+
+    return i.reply("🎖️ Sistema de rankup listo (costos luego).");
   }
 
-  /* -------- BOTONES -------- */
-  if (i.isButton() && i.customId.startsWith("trade_")) {
-    const [ , action, humanId, nareId ] = i.customId.split("_");
-
-    if (![humanId, nareId].includes(i.user.id)) {
-      return i.reply({ content: "🚫 No eres parte del trade.", ephemeral: true });
+  /* -------- TRADE -------- */
+  if (i.commandName === "trade") {
+    const target = i.options.getUser("usuario");
+    if (!target || target.id === i.user.id) {
+      return i.reply({ content: "❌ Trade inválido.", ephemeral: true });
     }
 
-    if (action === "cancel") {
-      return i.update({ content: "❌ Trade cancelado.", components: [] });
-    }
+    const human = i.member;
+    const nare = await i.guild.members.fetch(target.id);
 
-    if (action === "accept") {
-      const human = getUser(humanId);
-      const nare = getUser(nareId);
-
-      const hItem = Object.values(human.inventory).find(i=>!i.soulbound);
-      const nItem = Object.values(nare.inventory).find(i=>!i.soulbound);
-
-      if (!hItem || !nItem) {
-        return i.update({ content: "❌ No hay objetos intercambiables.", components: [] });
-      }
-
-      human.inventory[hItem.name].qty--;
-      nare.inventory[nItem.name].qty--;
-
-      if (human.inventory[hItem.name].qty <= 0) delete human.inventory[hItem.name];
-      if (nare.inventory[nItem.name].qty <= 0) delete nare.inventory[nItem.name];
-
-      human.inventory[nItem.name] ??= { ...nItem, qty: 0 };
-      nare.inventory[hItem.name] ??= { ...hItem, qty: 0 };
-
-      human.inventory[nItem.name].qty++;
-      nare.inventory[hItem.name].qty++;
-
-      saveUsers();
-
-      return i.update({
+    if (!(isHuman(human) && isNarehate(nare))) {
+      return i.reply({
         content:
-`✅ **Intercambio completado**
-👤 Humano recibió: ${nItem.icon} ${nItem.name}
-🧬 Narehate recibió: ${hItem.icon} ${hItem.name}`,
-        components: []
+        "🚫 **Regla del Abismo**\n" +
+        "Solo humanos pueden comerciar con Narehates.",
+        ephemeral: true
       });
     }
+
+    const hUser = getUser(human.id);
+    const nUser = getUser(nare.id);
+
+    const hItem = Object.values(hUser.inventory).find(i=>!i.soulbound);
+    const nItem = Object.values(nUser.inventory).find(i=>!i.soulbound);
+
+    if (!hItem || !nItem) {
+      return i.reply({ content: "❌ Uno no tiene objetos intercambiables.", ephemeral: true });
+    }
+
+    hUser.inventory[hItem.name].qty--;
+    nUser.inventory[nItem.name].qty--;
+
+    hUser.inventory[nItem.name] ??= { ...nItem, qty: 0 };
+    nUser.inventory[hItem.name] ??= { ...hItem, qty: 0 };
+
+    hUser.inventory[nItem.name].qty++;
+    nUser.inventory[hItem.name].qty++;
+
+    saveUsers();
+
+    return i.reply(
+`✅ **Intercambio completado**
+👤 Humano recibió: ${nItem.icon} ${nItem.name}
+🧬 Narehate recibió: ${hItem.icon} ${hItem.name}`
+    );
   }
 });
 
