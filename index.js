@@ -81,9 +81,9 @@ function getUser(id) {
 }
 
 /* =====================
+/* =====================
 DROP SYSTEM
 ===================== */
-client.on(Events.MessageCreate, message => {
 client.on(Events.MessageCreate, message => {
   if (message.author.bot || !message.guild) return;
   if (!Array.isArray(config.channels?.reliquies)) return;
