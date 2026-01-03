@@ -272,6 +272,7 @@ if (interaction.commandName === "rankup") {
   return interaction.reply({
     content: `🎖️ Has ascendido a **${nextRank.replace("_", " ").toUpperCase()}**`
   });
-}
+)
+}):
 
 client.login(TOKEN);
