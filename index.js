@@ -10,6 +10,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ChannelSelectMenuBuilder,
+  StringSelectMenuBuilder,
   ChannelType
 } from "discord.js";
 
@@ -65,6 +66,11 @@ const saveConfig = () =>
   fs.writeFileSync("config.json", JSON.stringify(config, null, 2));
 
 /* =====================
+TRADE MEMORY
+===================== */
+const pendingTrades = {};
+
+/* =====================
 USER INIT
 ===================== */
 function getUser(id) {
@@ -81,7 +87,7 @@ function getUser(id) {
 }
 
 /* =====================
-DROP SYSTEM (6 CANALES ARREGLADO)
+DROP SYSTEM (6 CANALES)
 ===================== */
 client.on(Events.MessageCreate, async message => {
   if (message.author.bot || !message.guild) return;
@@ -97,33 +103,28 @@ client.on(Events.MessageCreate, async message => {
 
   const index = config.channels.reliquies.indexOf(message.channel.id);
 
-  // 🔥 6 CANALES = 6 POOLS
   const pools = [
-    objects.class4,   // 0 bell
-    objects.class3,   // 1 rojo
-    objects.class2,   // 2 azul
-    objects.class1,   // 3 lunar
-    objects.special, // 4 negro
-    objects.special  // 5 blanco / ultra
+    objects.class4,
+    objects.class3,
+    objects.class2,
+    objects.class1,
+    objects.special,
+    objects.special
   ];
 
   const pool = pools[index] || objects.class4;
   let item;
 
-// 🌌 PROBABILIDAD ULTRA RARA 0.0001%
-if (Math.random() <= 0.000001) {
-  item = objects.ultra[0];
+  if (Math.random() <= 0.000001) {
+    item = objects.ultra[0];
+    message.channel.send(
+      `@everyone 🌑 **EL ABISMO HA RESPONDIDO** 🌑\n` +
+      `**${message.author.username}** obtuvo ${item.icon} **${item.name}**`
+    );
+  } else {
+    item = pool[Math.floor(Math.random() * pool.length)];
+  }
 
-  const guild = message.guild;
-  const channel = message.channel;
-
-  channel.send(
-    `@everyone 🌑 **EL ABISMO HA RESPONDIDO** 🌑\n` +
-    `**${message.author.username}** ha obtenido la **${item.icon} ${item.name}**`
-  );
-} else {
-  item = pool[Math.floor(Math.random() * pool.length)];
-}
   user.inventory[item.name] ??= {
     name: item.name,
     icon: item.icon,
@@ -134,7 +135,7 @@ if (Math.random() <= 0.000001) {
   saveUsers();
 
   message.reply(
-    `🧭 **Belaf murmura:** encontraste **${item.icon} ${item.name}**`
+    `🧭 **Belaf murmura:** encontraste ${item.icon} **${item.name}**`
   );
 });
 
@@ -146,20 +147,29 @@ const commands = [
   new SlashCommandBuilder().setName("mymoney").setDescription("Ver tus monedas"),
   new SlashCommandBuilder().setName("rankup").setDescription("Ascender de rango"),
 
+  new SlashCommandBuilder()
+    .setName("trade")
+    .setDescription("Intercambiar reliquias con un Narehate")
+    .addUserOption(o =>
+      o.setName("usuario")
+        .setDescription("Narehate con quien comerciar")
+        .setRequired(true)
+    ),
+
   new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Canales de reliquias").setDefaultMemberPermissions(0),
   new SlashCommandBuilder().setName("setchanneltrade").setDescription("Canal de trade").setDefaultMemberPermissions(0),
   new SlashCommandBuilder().setName("setchannelsell").setDescription("Canal de venta").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchanneltops").setDescription("Canal de tops").setDefaultMemberPermissions(0),
+  new SlashCommandBuilder().setName("setchanneltops").setDescription("Canal de tops").setDefaultMemberPermissions(0)
 ];
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 /* =====================
-TOPS (CADA 2 MIN)
+TOPS
 ===================== */
 function sendTops() {
   const guild = client.guilds.cache.first();
-  if (!guild || !config.channels?.tops) return;
+  if (!guild || !config.channels.tops) return;
 
   const channel = guild.channels.cache.get(config.channels.tops);
   if (!channel) return;
@@ -169,19 +179,15 @@ function sendTops() {
       const member = guild.members.cache.get(id);
       if (!member) return null;
 
-      let rankDisplay = data.rank;
-
-      if (member.roles.cache.some(r =>
+      const isNare = member.roles.cache.some(r =>
         r.name.toLowerCase().includes("narehate")
-      )) {
-        rankDisplay = "narehate";
-      }
+      );
 
       return {
         name: member.user.username,
         money: data.money,
-        items: Object.values(data.inventory || {}).reduce((a, b) => a + b.qty, 0),
-        rank: rankDisplay
+        items: Object.values(data.inventory).reduce((a, b) => a + b.qty, 0),
+        rank: isNare ? "Narehate" : data.rank
       };
     })
     .filter(Boolean);
@@ -191,8 +197,7 @@ function sendTops() {
   const topMoney = [...members].sort((a,b)=>b.money-a.money).slice(0,5);
   const topItems = [...members].sort((a,b)=>b.items-a.items).slice(0,5);
 
-  channel.send({
-    content:
+  channel.send(
 `@everyone
 🏆 **Tops del Abismo**
 
@@ -202,7 +207,7 @@ ${topMoney.map((u,i)=>`${i+1}. ${u.name} — ${u.money}`).join("\n")}
 🎒 **Más reliquias**
 ${topItems.map((u,i)=>`${i+1}. ${u.name} — ${u.items}`).join("\n")}
 `
-  });
+  );
 }
 
 /* =====================
@@ -219,7 +224,7 @@ INTERACTIONS
 ===================== */
 client.on(Events.InteractionCreate, async interaction => {
 
-  /* ===== SELECT MENUS ===== */
+  /* ===== SELECT MENUS (CONFIG) ===== */
   if (interaction.isChannelSelectMenu()) {
 
     if (interaction.customId === "reliquies")
@@ -239,6 +244,7 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (!interaction.isChatInputCommand()) return;
+
   const user = getUser(interaction.user.id);
 
   /* ===== INVENTORY ===== */
@@ -247,11 +253,11 @@ client.on(Events.InteractionCreate, async interaction => {
     if (!items.length)
       return interaction.reply({ content: "🎒 Vacío", ephemeral: true });
 
-    const text = items.map(e =>
-      `${e.icon} **${e.name}** x${e.qty}`
-    ).join("\n");
-
-    return interaction.reply({ content: `🎒 **Inventario**\n${text}`, ephemeral: true });
+    return interaction.reply({
+      content: "🎒 **Inventario**\n" +
+        items.map(i => `${i.icon} **${i.name}** x${i.qty}`).join("\n"),
+      ephemeral: true
+    });
   }
 
   /* ===== MONEY ===== */
@@ -270,7 +276,7 @@ client.on(Events.InteractionCreate, async interaction => {
       r.name.toLowerCase().includes("narehate")
     )) {
       return interaction.reply({
-        content: "🩸 **Ya has llegado al final del camino.**\nEso requiere humanidad.",
+        content: "🩸 **Ya has llegado al final del camino.**\nEso necesita humanidad.",
         ephemeral: true
       });
     }
@@ -281,7 +287,6 @@ client.on(Events.InteractionCreate, async interaction => {
       return interaction.reply({ content: "🏔️ Ya no puedes subir más.", ephemeral: true });
 
     const req = config.rankRequirements[nextRank];
-
     if (user.money < req.money)
       return interaction.reply({ content: `💰 Necesitas ${req.money} monedas.`, ephemeral: true });
 
@@ -292,54 +297,124 @@ client.on(Events.InteractionCreate, async interaction => {
     user.money -= req.money;
     item.qty--;
     if (item.qty <= 0) delete user.inventory[req.item];
-
     user.rank = nextRank;
     saveUsers();
 
     return interaction.reply(`🎖️ Has ascendido a **${nextRank}**`);
   }
 
-  /* ===== SET CHANNELS ===== */
-  if (interaction.commandName === "setchannelreliquies") {
-    const row = new ActionRowBuilder().addComponents(
-      new ChannelSelectMenuBuilder()
-        .setCustomId("reliquies")
-        .setMinValues(1)
-        .setMaxValues(6)
-        .setChannelTypes(ChannelType.GuildText)
-        .setPlaceholder("Selecciona los 6 canales del Abismo")
-    );
-    return interaction.reply({ content: "🧭 Canales de reliquias", components: [row], ephemeral: true });
+  /* ===== TRADE ===== */
+  if (interaction.commandName === "trade") {
+
+    if (interaction.channel.id !== config.channels.trade)
+      return interaction.reply({ content: "🚫 Canal incorrecto.", ephemeral: true });
+
+    const target = interaction.options.getUser("usuario");
+    if (!target || target.id === interaction.user.id)
+      return interaction.reply({ content: "❌ Trade inválido.", ephemeral: true });
+
+    const guild = interaction.guild;
+    const humanMember = interaction.member;
+    const nareMember = await guild.members.fetch(target.id);
+
+    const isHuman = !humanMember.roles.cache.some(r => r.name.toLowerCase().includes("narehate"));
+    const isNare = nareMember.roles.cache.some(r => r.name.toLowerCase().includes("narehate"));
+
+    if (!isHuman || !isNare)
+      return interaction.reply({ content: "🩸 Solo Humano ↔ Narehate.", ephemeral: true });
+
+    const human = getUser(humanMember.id);
+    const nare = getUser(nareMember.id);
+
+    const humanItems = Object.values(human.inventory).filter(i => i.qty > 0);
+    const nareItems = Object.values(nare.inventory).filter(i => i.qty > 0);
+
+    const key = `${humanMember.id}_${nareMember.id}`;
+    pendingTrades[key] = {};
+
+    return interaction.reply({
+      content: "🔁 **Intercambio del Abismo**",
+      components: [
+        new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId(`trade_human_${key}`)
+            .setPlaceholder("Tu reliquia")
+            .addOptions(humanItems.map(i => ({
+              label: i.name,
+              value: i.name,
+              emoji: i.icon
+            })))
+        ,
+        new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId(`trade_nare_${key}`)
+            .setPlaceholder("Reliquia del Narehate")
+            .addOptions(nareItems.map(i => ({
+              label: i.name,
+              value: i.name,
+              emoji: i.icon
+            })))
+        ]
+      ]
+    });
   }
 
-  if (interaction.commandName === "setchanneltrade") {
-    const row = new ActionRowBuilder().addComponents(
-      new ChannelSelectMenuBuilder()
-        .setCustomId("trade")
-        .setMinValues(1).setMaxValues(1)
-        .setChannelTypes(ChannelType.GuildText)
-    );
-    return interaction.reply({ content: "🔁 Canal de trade", components: [row], ephemeral: true });
+  /* ===== TRADE SELECT ===== */
+  if (interaction.isStringSelectMenu() && interaction.customId.startsWith("trade_")) {
+
+    const [, side, humanId, nareId] = interaction.customId.split("_");
+    const key = `${humanId}_${nareId}`;
+    pendingTrades[key][side] = interaction.values[0];
+
+    if (!pendingTrades[key].human || !pendingTrades[key].nare)
+      return interaction.reply({ content: "📦 Seleccionado.", ephemeral: true });
+
+    return interaction.followUp({
+      content: "⚠️ Confirmar intercambio",
+      components: [
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId(`trade_accept_${key}`).setLabel("Confirmar").setStyle(ButtonStyle.Success),
+          new ButtonBuilder().setCustomId(`trade_cancel_${key}`).setLabel("Cancelar").setStyle(ButtonStyle.Danger)
+        )
+      ]
+    });
   }
 
-  if (interaction.commandName === "setchannelsell") {
-    const row = new ActionRowBuilder().addComponents(
-      new ChannelSelectMenuBuilder()
-        .setCustomId("sell")
-        .setMinValues(1).setMaxValues(1)
-        .setChannelTypes(ChannelType.GuildText)
-    );
-    return interaction.reply({ content: "💰 Canal de venta", components: [row], ephemeral: true });
-  }
+  /* ===== TRADE BUTTONS ===== */
+  if (interaction.isButton() && interaction.customId.startsWith("trade_")) {
 
-  if (interaction.commandName === "setchanneltops") {
-    const row = new ActionRowBuilder().addComponents(
-      new ChannelSelectMenuBuilder()
-        .setCustomId("tops")
-        .setMinValues(1).setMaxValues(1)
-        .setChannelTypes(ChannelType.GuildText)
-    );
-    return interaction.reply({ content: "🏆 Canal de tops", components: [row], ephemeral: true });
+    const [, action, humanId, nareId] = interaction.customId.split("_");
+    const key = `${humanId}_${nareId}`;
+    const trade = pendingTrades[key];
+    if (!trade) return;
+
+    if (action === "cancel") {
+      delete pendingTrades[key];
+      return interaction.update({ content: "❌ Cancelado.", components: [] });
+    }
+
+    const human = getUser(humanId);
+    const nare = getUser(nareId);
+
+    const hItem = human.inventory[trade.human];
+    const nItem = nare.inventory[trade.nare];
+
+    hItem.qty--;
+    nItem.qty--;
+
+    if (hItem.qty <= 0) delete human.inventory[trade.human];
+    if (nItem.qty <= 0) delete nare.inventory[trade.nare];
+
+    human.inventory[trade.nare] ??= { ...nItem, qty: 0 };
+    nare.inventory[trade.human] ??= { ...hItem, qty: 0 };
+
+    human.inventory[trade.nare].qty++;
+    nare.inventory[trade.human].qty++;
+
+    saveUsers();
+    delete pendingTrades[key];
+
+    return interaction.update({ content: "✅ **Intercambio completado.**", components: [] });
   }
 });
 
