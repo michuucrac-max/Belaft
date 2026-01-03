@@ -1,16 +1,61 @@
 {
   "class4": [
-    { "name": "Libro Antiguo", "value": 5 },
-    { "name": "Fragmento Oxidado", "value": 10 }
+    {
+      "name": "Libro Antiguo",
+      "icon": "📕",
+      "value": 5
+    },
+    {
+      "name": "Fragmento Oxidado",
+      "icon": "🪨",
+      "value": 10
+    }
   ],
+
   "class3": [
-    { "name": "Reliquia Menor", "value": 20 },
-    { "name": "Cristal Abismal", "value": 30 }
+    {
+      "name": "Reliquia Menor",
+      "icon": "🧿",
+      "value": 20
+    },
+    {
+      "name": "Cristal Abisal",
+      "icon": "🔷",
+      "value": 30
+    }
   ],
+
   "class2": [
-    { "name": "Artefacto Raro", "value": 50 }
+    {
+      "name": "Artefacto Raro",
+      "icon": "⚙️",
+      "value": 50
+    }
   ],
+
+  "class1": [
+    {
+      "name": "Artefacto Antiguo",
+      "icon": "🏺",
+      "value": 75
+    }
+  ],
+
   "special": [
-    { "name": "Reliquia Especial", "value": 100 }
+    {
+      "name": "Reliquia Especial",
+      "icon": "✨",
+      "value": 100,
+      "soulbound": false
+    }
+  ],
+
+  "ultra": [
+    {
+      "name": "corazon abisal",
+      "icon": "🌑",
+      "value": 100000,
+      "soulbound": true
+    }
   ]
 }
