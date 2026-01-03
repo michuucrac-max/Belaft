@@ -108,8 +108,22 @@ client.on(Events.MessageCreate, async message => {
   ];
 
   const pool = pools[index] || objects.class4;
-  const item = pool[Math.floor(Math.random() * pool.length)];
+  let item;
 
+// 🌌 PROBABILIDAD ULTRA RARA 0.0001%
+if (Math.random() <= 0.000001) {
+  item = objects.ultra[0];
+
+  const guild = message.guild;
+  const channel = message.channel;
+
+  channel.send(
+    `@everyone 🌑 **EL ABISMO HA RESPONDIDO** 🌑\n` +
+    `**${message.author.username}** ha obtenido la **${item.icon} ${item.name}**`
+  );
+} else {
+  item = pool[Math.floor(Math.random() * pool.length)];
+}
   user.inventory[item.name] ??= {
     name: item.name,
     icon: item.icon,
