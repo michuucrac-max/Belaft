@@ -165,7 +165,9 @@ client.once(Events.ClientReady, async () => {
 ===================== */
 client.on(Events.InteractionCreate, async interaction => {
 
-  /* ===== SET CHANNELS ===== */
+  /* =====================
+     SET CHANNELS
+  ===================== */
   if (interaction.isChatInputCommand() &&
       interaction.commandName.startsWith("setchannel")) {
 
@@ -189,7 +191,6 @@ client.on(Events.InteractionCreate, async interaction => {
     });
   }
 
-  /* ===== CHANNEL SELECT ===== */
   if (interaction.isChannelSelectMenu()) {
     const key = interaction.customId.replace("set_", "");
 
@@ -207,58 +208,112 @@ client.on(Events.InteractionCreate, async interaction => {
     });
   }
 
-  /* ===== RANKUP ===== */
   if (!interaction.isChatInputCommand()) return;
-  if (interaction.commandName !== "rankup") return;
 
   const user = getUser(interaction.user.id);
   const member = interaction.member;
 
-  if (isNarehate(member)) {
+  /* =====================
+     INVENTORY
+  ===================== */
+  if (interaction.commandName === "inventory") {
+    const items = Object.values(user.inventory);
+
+    if (!items.length) {
+      return interaction.reply({
+        content: "🎒 Tu inventario está vacío.",
+        ephemeral: true
+      });
+    }
+
     return interaction.reply({
-      content: "🧬 Como **Narehate**, ya no puedes subir de silbato.",
+      content:
+        "🎒 **Tu inventario**\n" +
+        items.map(i => `${i.icon} ${i.name} x${i.qty}`).join("\n"),
       ephemeral: true
     });
   }
 
-  const current = getRankFromRoles(member);
-  const next = config.ranks[config.ranks.indexOf(current) + 1];
-
-  if (!next) {
+  /* =====================
+     MY MONEY
+  ===================== */
+  if (interaction.commandName === "mymoney") {
     return interaction.reply({
-      content: "❌ Ya estás en el rango máximo.",
+      content: `💰 Tienes **${user.money} monedas**.`,
       ephemeral: true
     });
   }
 
-  const req = config.rankRequirements[next];
+  /* =====================
+     RANKUP
+  ===================== */
+  if (interaction.commandName === "rankup") {
 
-  if (user.money < req.money) {
+    if (interaction.channelId !== config.channels.rankup) {
+      return interaction.reply({
+        content: "🚫 Solo puedes subir de rango en el canal designado.",
+        ephemeral: true
+      });
+    }
+
+    if (isNarehate(member)) {
+      return interaction.reply({
+        content: "🧬 Como **Narehate**, no puedes subir de rango.",
+        ephemeral: true
+      });
+    }
+
+    const current = getRankFromRoles(member);
+    const next = config.ranks[config.ranks.indexOf(current) + 1];
+
+    if (!next) {
+      return interaction.reply({
+        content: "❌ Ya estás en el rango máximo.",
+        ephemeral: true
+      });
+    }
+
+    const req = config.rankRequirements[next];
+
+    if (user.money < req.money) {
+      return interaction.reply({
+        content: `💰 Necesitas **${req.money} monedas**.`,
+        ephemeral: true
+      });
+    }
+
+    if (!user.inventory[req.item]) {
+      return interaction.reply({
+        content: `🎒 Necesitas **${req.item}**.`,
+        ephemeral: true
+      });
+    }
+
+    user.money -= req.money;
+    user.inventory[req.item].qty--;
+    if (user.inventory[req.item].qty <= 0) {
+      delete user.inventory[req.item];
+    }
+
+    await member.roles.remove(config.roles[current]);
+    await member.roles.add(config.roles[next]);
+
+    saveUsers();
+
     return interaction.reply({
-      content: `💰 Necesitas **${req.money} monedas**.`,
-      ephemeral: true
+      content: `🎖️ Has ascendido a **${next.replace("_", " ").toUpperCase()}**`
     });
   }
 
-  if (!user.inventory[req.item]) {
+  /* =====================
+     TRADE (BASE)
+  ===================== */
+  if (interaction.commandName === "trade") {
     return interaction.reply({
-      content: `🎒 Necesitas **${req.item}**.`,
+      content: "🔁 Sistema de trade activo (en construcción).",
       ephemeral: true
     });
   }
-
-  user.money -= req.money;
-  user.inventory[req.item].qty--;
-  if (user.inventory[req.item].qty <= 0) delete user.inventory[req.item];
-
-  await member.roles.remove(config.roles[current]);
-  await member.roles.add(config.roles[next]);
-
-  saveUsers();
-
-  interaction.reply({
-    content: `🎖️ Has ascendido a **${next.toUpperCase()}**`
-  });
 });
 
 client.login(TOKEN);
