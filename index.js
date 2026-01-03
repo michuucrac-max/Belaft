@@ -8,11 +8,7 @@ import {
   SlashCommandBuilder,
   ActionRowBuilder,
   ChannelSelectMenuBuilder,
-  ChannelType,
-  StringSelectMenuBuilder,
-  UserSelectMenuBuilder,
-  ButtonBuilder,
-  ButtonStyle
+  ChannelType
 } from "discord.js";
 
 import fs from "fs";
@@ -26,7 +22,7 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const PORT = process.env.PORT || 3000;
 
 /* =====================
-   EXPRESS
+   EXPRESS (keep alive)
 ===================== */
 const app = express();
 app.get("/", (_, res) => res.send("Belaf observa el Abismo 🧭"));
@@ -55,8 +51,6 @@ let users = fs.existsSync("users.json")
   ? JSON.parse(fs.readFileSync("users.json", "utf8"))
   : {};
 
-const pendingTrades = new Map();
-
 const saveUsers = () =>
   fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
 
@@ -79,8 +73,11 @@ function isNarehate(member) {
 }
 
 function getRankFromRoles(member) {
-  for (const [rank, roleId] of Object.entries(config.roles)) {
-    if (member.roles.cache.has(roleId)) return rank;
+  for (const rank of config.ranks) {
+    const roleId = config.roles[rank];
+    if (roleId && member.roles.cache.has(roleId)) {
+      return rank;
+    }
   }
   return "bell";
 }
@@ -111,8 +108,9 @@ client.on(Events.MessageCreate, message => {
 
   let chance = index === 6 ? 0.067 : 1;
 
-  const member = message.member;
-  if (isNarehate(member)) chance += 0.067;
+  if (isNarehate(message.member)) {
+    chance += index === 6 ? 0.067 : 0.056;
+  }
 
   if (Math.random() > chance) return;
 
@@ -120,20 +118,20 @@ client.on(Events.MessageCreate, message => {
   if (!pool?.length) return;
 
   const raw = pool[Math.floor(Math.random() * pool.length)];
-  const item = {
-    name: raw.name ?? "Artefacto desconocido",
-    icon: raw.icon ?? "❓"
+
+  user.inventory[raw.name] ??= {
+    name: raw.name,
+    icon: raw.icon,
+    qty: 0
   };
 
-  user.inventory[item.name] ??= { ...item, qty: 0 };
-  user.inventory[item.name].qty++;
-
+  user.inventory[raw.name].qty++;
   saveUsers();
 
   message.reply(
     index === 6
-      ? `🏛️ **Ilblu susurra:** obtuviste **${item.icon} ${item.name}**`
-      : `🧭 **Belaf murmura:** encontraste **${item.icon} ${item.name}**`
+      ? `🏛️ **Ilblu susurra:** obtuviste ${raw.icon} **${raw.name}**`
+      : `🧭 **Belaf murmura:** encontraste ${raw.icon} **${raw.name}**`
   );
 });
 
@@ -143,65 +141,22 @@ client.on(Events.MessageCreate, message => {
 const commands = [
   new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
   new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
-  new SlashCommandBuilder().setName("trade").setDescription("Trade con un Narehate"),
+  new SlashCommandBuilder().setName("trade").setDescription("Intercambiar"),
   new SlashCommandBuilder().setName("rankup").setDescription("Subir de rango"),
 
-  new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Canales reliquias").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchanneltops").setDescription("Canal tops").setDefaultMemberPermissions(0),
+  new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Canales de reliquias").setDefaultMemberPermissions(0),
+  new SlashCommandBuilder().setName("setchannelsell").setDescription("Canal ventas").setDefaultMemberPermissions(0),
   new SlashCommandBuilder().setName("setchanneltrade").setDescription("Canal trade").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchannelsell").setDescription("Canal ventas").setDefaultMemberPermissions(0)
+  new SlashCommandBuilder().setName("setchanneltops").setDescription("Canal tops").setDefaultMemberPermissions(0)
 ];
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
-
-/* =====================
-   TOPS (cada 5 min)
-===================== */
-function sendTops() {
-  const guild = client.guilds.cache.first();
-  if (!guild) return;
-
-  const channel = guild.channels.cache.get(config.channels.tops);
-  if (!channel) return;
-
-  const members = guild.members.cache
-    .filter(m => !m.user.bot)
-    .map(m => {
-      const u = users[m.id];
-      if (!u) return null;
-      return {
-        name: m.user.username,
-        money: u.money,
-        items: Object.values(u.inventory).reduce((a,b)=>a+b.qty,0),
-        rank: getRankFromRoles(m)
-      };
-    })
-    .filter(Boolean);
-
-  if (!members.length) return;
-
-  const topMoney = [...members].sort((a,b)=>b.money-a.money).slice(0,10);
-  const topItems = [...members].sort((a,b)=>b.items-a.items).slice(0,10);
-
-  channel.send({
-    content:
-`@everyone
-🏆 **Tops del Abismo**
-
-💰 **Dinero**
-${topMoney.map((u,i)=>`${i+1}. ${u.name} — ${u.money}`).join("\n")}
-
-🎒 **Reliquias**
-${topItems.map((u,i)=>`${i+1}. ${u.name} — ${u.items}`).join("\n")}`
-  });
-}
 
 /* =====================
    READY
 ===================== */
 client.once(Events.ClientReady, async () => {
   await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-  setInterval(sendTops, 5 * 60 * 1000);
   console.log("🧭 Belaf despierta");
 });
 
@@ -210,77 +165,100 @@ client.once(Events.ClientReady, async () => {
 ===================== */
 client.on(Events.InteractionCreate, async interaction => {
 
+  /* ===== SET CHANNELS ===== */
+  if (interaction.isChatInputCommand() &&
+      interaction.commandName.startsWith("setchannel")) {
+
+    const key = interaction.commandName
+      .replace("setchannel", "")
+      .replace("reliquies", "find");
+
+    const multi = key === "find";
+
+    const menu = new ChannelSelectMenuBuilder()
+      .setCustomId(`set_${key}`)
+      .setPlaceholder("Selecciona canal(es)")
+      .setMinValues(1)
+      .setMaxValues(multi ? 7 : 1)
+      .addChannelTypes(ChannelType.GuildText);
+
+    return interaction.reply({
+      content: "🧭 Selecciona el canal",
+      components: [new ActionRowBuilder().addComponents(menu)],
+      ephemeral: true
+    });
+  }
+
+  /* ===== CHANNEL SELECT ===== */
+  if (interaction.isChannelSelectMenu()) {
+    const key = interaction.customId.replace("set_", "");
+
+    if (key === "find") {
+      config.channels.find = interaction.values;
+    } else {
+      config.channels[key] = interaction.values[0];
+    }
+
+    saveConfig();
+
+    return interaction.reply({
+      content: `✅ Canal configurado para **${key}**`,
+      ephemeral: true
+    });
+  }
+
+  /* ===== RANKUP ===== */
   if (!interaction.isChatInputCommand()) return;
+  if (interaction.commandName !== "rankup") return;
 
   const user = getUser(interaction.user.id);
   const member = interaction.member;
 
-  /* ===== RANKUP ===== */
-  if (interaction.commandName === "rankup") {
-
-    // 🚫 Bloqueo total para Narehates
-    if (isNarehate(member)) {
-      return interaction.reply({
-        content: "🧬 Como **Narehate**, ya no puedes ascender de silbato.",
-        ephemeral: true
-      });
-    }
-
-    const current = getRankFromRoles(member);
-
-    const nextIndex = config.ranks.indexOf(current) + 1;
-    const nextRank = config.ranks[nextIndex];
-
-    if (!nextRank) {
-      return interaction.reply({
-        content: "❌ Ya estás en el rango máximo.",
-        ephemeral: true
-      });
-    }
-
-    const req = config.rankRequirements[nextRank];
-    if (!req) {
-      return interaction.reply({
-        content: "⚠️ Requisitos no configurados para este rango.",
-        ephemeral: true
-      });
-    }
-
-    if (user.money < req.money) {
-      return interaction.reply({
-        content: `💰 Necesitas **${req.money} monedas**.`,
-        ephemeral: true
-      });
-    }
-
-    if (!user.inventory[req.item]) {
-      return interaction.reply({
-        content: `🎒 Necesitas el objeto **${req.item}**.`,
-        ephemeral: true
-      });
-    }
-
-    // 🔻 Pago
-    user.money -= req.money;
-    user.inventory[req.item].qty--;
-    if (user.inventory[req.item].qty <= 0) {
-      delete user.inventory[req.item];
-    }
-
-    // 🎖️ Cambio de rol
-    const oldRole = config.roles[current];
-    const newRole = config.roles[nextRank];
-
-    if (oldRole) await member.roles.remove(oldRole);
-    if (newRole) await member.roles.add(newRole);
-
-    saveUsers();
-
+  if (isNarehate(member)) {
     return interaction.reply({
-      content: `🎖️ Has ascendido a **${nextRank.replace("_", " ").toUpperCase()}**`
+      content: "🧬 Como **Narehate**, ya no puedes subir de silbato.",
+      ephemeral: true
     });
   }
 
+  const current = getRankFromRoles(member);
+  const next = config.ranks[config.ranks.indexOf(current) + 1];
+
+  if (!next) {
+    return interaction.reply({
+      content: "❌ Ya estás en el rango máximo.",
+      ephemeral: true
+    });
+  }
+
+  const req = config.rankRequirements[next];
+
+  if (user.money < req.money) {
+    return interaction.reply({
+      content: `💰 Necesitas **${req.money} monedas**.`,
+      ephemeral: true
+    });
+  }
+
+  if (!user.inventory[req.item]) {
+    return interaction.reply({
+      content: `🎒 Necesitas **${req.item}**.`,
+      ephemeral: true
+    });
+  }
+
+  user.money -= req.money;
+  user.inventory[req.item].qty--;
+  if (user.inventory[req.item].qty <= 0) delete user.inventory[req.item];
+
+  await member.roles.remove(config.roles[current]);
+  await member.roles.add(config.roles[next]);
+
+  saveUsers();
+
+  interaction.reply({
+    content: `🎖️ Has ascendido a **${next.toUpperCase()}**`
+  });
 });
 
 client.login(TOKEN);
