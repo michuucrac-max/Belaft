@@ -25,26 +25,13 @@
     "narehate": "NAREHATE"
   },
 
-  "rankRequirements": {
-    "bell": {
-      "money": 50,
-      "item": "Libro Antiguo"
-    },
-    "silbato_rojo": {
-      "money": 150,
-      "item": "Reliquia Menor"
-    },
-    "silbato_azul": {
-      "money": 300,
-      "item": "Artefacto Clase 4"
-    },
-    "silbato_lunar": {
-      "money": 600,
-      "item": "Artefacto Raro"
-    },
-    "silbato_negro": {
-      "money": 1000,
-      "item": "Artefacto Especial"
-    }
+{
+  "ranks": ["bell", "sibato_rojo", "silbato_azul", "silbato_lunar", "silbato_negro", "silbato_blanco", "narehate"],
+  "rankCosts": {
+    "silbato_rojo": 100,
+    "silbato_azul": 300,
+    "silbato_lunar": 700,
+    "silbato_negro": 1500,
+    "silbato_blanco": 3000
   }
 }
