@@ -128,9 +128,7 @@ client.on(Events.MessageCreate, message => {
   user.inventory[item.name].qty++;
   saveUsers();
 
-  message.reply(
-    `🧭 **Belaf murmura:** encontraste **${item.icon} ${item.name}**`
-  );
+  message.reply(`🧭 **Belaf murmura:** encontraste **${item.icon} ${item.name}**`);
 });
 
 /* =====================
@@ -156,48 +154,10 @@ const commands = [
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 /* =====================
-TOPS
-===================== */
-function sendTops() {
-  const guild = client.guilds.cache.first();
-  if (!guild || !config.channels?.tops) return;
-
-  const channel = guild.channels.cache.get(config.channels.tops);
-  if (!channel) return;
-
-  const members = Object.entries(users)
-    .map(([id, data]) => {
-      const member = guild.members.cache.get(id);
-      if (!member) return null;
-
-      return {
-        name: member.user.username,
-        money: data.money,
-        items: Object.values(data.inventory).reduce((a, b) => a + b.qty, 0)
-      };
-    })
-    .filter(Boolean);
-
-  const topMoney = [...members].sort((a,b)=>b.money-a.money).slice(0,5);
-  const topItems = [...members].sort((a,b)=>b.items-a.items).slice(0,5);
-
-  channel.send(
-`🏆 **Tops del Abismo**
-
-💰 **Más dinero**
-${topMoney.map((u,i)=>`${i+1}. ${u.name} — ${u.money}`).join("\n")}
-
-🎒 **Más reliquias**
-${topItems.map((u,i)=>`${i+1}. ${u.name} — ${u.items}`).join("\n")}
-`);
-}
-
-/* =====================
 READY
 ===================== */
 client.once(Events.ClientReady, async () => {
   await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-  setInterval(sendTops, 2 * 60 * 1000);
   console.log("🧭 Belaf despierta");
 });
 
@@ -206,6 +166,7 @@ INTERACTIONS
 ===================== */
 client.on(Events.InteractionCreate, async interaction => {
 
+  /* ===== CHANNEL SELECT ===== */
   if (interaction.isChannelSelectMenu()) {
     if (interaction.customId === "reliquies") config.channels.reliquies = interaction.values;
     if (interaction.customId === "trade") config.channels.trade = interaction.values[0];
@@ -215,130 +176,65 @@ client.on(Events.InteractionCreate, async interaction => {
     return interaction.update({ content: "📜 Registrado.", components: [] });
   }
 
+  /* ===== SLASH COMMANDS ===== */
   if (interaction.isChatInputCommand()) {
+    const user = getUser(interaction.user.id);
 
-  /* =====================
-  SET CHANNELS
-  ===================== */
+    if (interaction.commandName === "inventory") {
+      const items = Object.values(user.inventory);
+      if (!items.length)
+        return interaction.reply({ content: "🎒 Vacío", ephemeral: true });
 
-  if (interaction.commandName === "setchanneltrade") {
-    const row = new ActionRowBuilder().addComponents(
-      new ChannelSelectMenuBuilder()
-        .setCustomId("trade")
-        .setPlaceholder("Selecciona el canal de trade")
-        .addChannelTypes(ChannelType.GuildText)
-    );
+      return interaction.reply({
+        content: items.map(i => `${i.icon} **${i.name}** x${i.qty}`).join("\n"),
+        ephemeral: true
+      });
+    }
 
-    return interaction.reply({
-      content: "🔁 Selecciona el canal para **trade**",
-      components: [row],
-      ephemeral: true
-    });
+    if (interaction.commandName === "mymoney") {
+      return interaction.reply({ content: `💰 ${user.money} monedas`, ephemeral: true });
+    }
+
+    if (interaction.commandName === "trade") {
+      if (interaction.channelId !== config.channels.trade)
+        return interaction.reply({ content: "❌ No es el canal de trade.", ephemeral: true });
+
+      const target = interaction.options.getUser("user");
+      const itemName = interaction.options.getString("item");
+
+      if (!user.inventory[itemName] || user.inventory[itemName].qty < 1)
+        return interaction.reply({ content: "🎒 No tienes ese objeto.", ephemeral: true });
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`trade_accept_${interaction.user.id}_${target.id}_${itemName}`)
+          .setLabel("Aceptar trade")
+          .setStyle(ButtonStyle.Success)
+      );
+
+      return interaction.reply({
+        content: `🔁 **${target.username}**, ${interaction.user.username} te ofrece **${itemName}**`,
+        components: [row]
+      });
+    }
   }
 
-  if (interaction.commandName === "setchannelsell") {
-    const row = new ActionRowBuilder().addComponents(
-      new ChannelSelectMenuBuilder()
-        .setCustomId("sell")
-        .setPlaceholder("Selecciona el canal de venta")
-        .addChannelTypes(ChannelType.GuildText)
-    );
-
-    return interaction.reply({
-      content: "💰 Selecciona el canal para **ventas**",
-      components: [row],
-      ephemeral: true
-    });
-  }
-
-  if (interaction.commandName === "setchanneltops") {
-    const row = new ActionRowBuilder().addComponents(
-      new ChannelSelectMenuBuilder()
-        .setCustomId("tops")
-        .setPlaceholder("Selecciona el canal de tops")
-        .addChannelTypes(ChannelType.GuildText)
-    );
-
-    return interaction.reply({
-      content: "🏆 Selecciona el canal para **tops**",
-      components: [row],
-      ephemeral: true
-    });
-  }
-
-  if (interaction.commandName === "setchannelreliquies") {
-    const row = new ActionRowBuilder().addComponents(
-      new ChannelSelectMenuBuilder()
-        .setCustomId("reliquies")
-        .setPlaceholder("Selecciona los canales de reliquias")
-        .addChannelTypes(ChannelType.GuildText)
-        .setMinValues(1)
-        .setMaxValues(6)
-    );
-
-    return interaction.reply({
-      content: "🧭 Selecciona **hasta 6 canales** de reliquias",
-      components: [row],
-      ephemeral: true
-    });
-  }
-  }
-  const user = getUser(interaction.user.id);
-
-  /* INVENTORY */
-  if (interaction.commandName === "inventory") {
-    const items = Object.values(user.inventory);
-    if (!items.length) return interaction.reply({ content: "🎒 Vacío", ephemeral: true });
-
-    return interaction.reply({
-      content: items.map(i => `${i.icon} **${i.name}** x${i.qty}`).join("\n"),
-      ephemeral: true
-    });
-  }
-
-  /* MONEY */
-  if (interaction.commandName === "mymoney") {
-    return interaction.reply({ content: `💰 ${user.money} monedas`, ephemeral: true });
-  }
-
-  /* TRADE */
-  if (interaction.commandName === "trade") {
-    if (interaction.channelId !== config.channels.trade)
-      return interaction.reply({ content: "❌ No es el canal de trade.", ephemeral: true });
-
-    const target = interaction.options.getUser("user");
-    const itemName = interaction.options.getString("item");
-
-    if (!user.inventory[itemName] || user.inventory[itemName].qty < 1)
-      return interaction.reply({ content: "🎒 No tienes ese objeto.", ephemeral: true });
-
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`trade_accept_${interaction.user.id}_${target.id}_${itemName}`)
-        .setLabel("Aceptar trade")
-        .setStyle(ButtonStyle.Success)
-    );
-
-    return interaction.reply({
-      content: `🔁 **${target.username}**, ${interaction.user.username} te ofrece **${itemName}**`,
-      components: [row]
-    });
-  }
-
-  /* BUTTONS */
+  /* ===== BUTTONS ===== */
   if (interaction.isButton()) {
     const [_, from, to, item] = interaction.customId.split("_");
-    if (interaction.user.id !== to) return interaction.reply({ content: "❌ No es para ti.", ephemeral: true });
+    if (interaction.user.id !== to)
+      return interaction.reply({ content: "❌ No es para ti.", ephemeral: true });
 
     const giver = getUser(from);
     const receiver = getUser(to);
 
-    if (!giver.inventory[item]) return interaction.reply({ content: "❌ Trade inválido.", ephemeral: true });
+    if (!giver.inventory[item])
+      return interaction.reply({ content: "❌ Trade inválido.", ephemeral: true });
 
     giver.inventory[item].qty--;
     if (giver.inventory[item].qty <= 0) delete giver.inventory[item];
 
-    receiver.inventory[item] ??= { name: item, icon: giver.inventory[item]?.icon || "📦", qty: 0 };
+    receiver.inventory[item] ??= { name: item, icon: "📦", qty: 0 };
     receiver.inventory[item].qty++;
 
     saveUsers();
