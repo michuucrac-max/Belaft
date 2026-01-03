@@ -22,7 +22,7 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const PORT = process.env.PORT || 3000;
 
 /* =====================
-   EXPRESS (keep alive)
+   EXPRESS
 ===================== */
 const app = express();
 app.get("/", (_, res) => res.send("Belaf observa el Abismo 🧭"));
@@ -73,11 +73,8 @@ function isNarehate(member) {
 }
 
 function getRankFromRoles(member) {
-  for (const rank of config.ranks) {
-    const roleId = config.roles[rank];
-    if (roleId && member.roles.cache.has(roleId)) {
-      return rank;
-    }
+  for (const r of config.ranks) {
+    if (member.roles.cache.has(config.roles[r])) return r;
   }
   return "bell";
 }
@@ -107,7 +104,6 @@ client.on(Events.MessageCreate, message => {
   ];
 
   let chance = index === 6 ? 0.067 : 1;
-
   if (isNarehate(message.member)) {
     chance += index === 6 ? 0.067 : 0.056;
   }
@@ -117,21 +113,16 @@ client.on(Events.MessageCreate, message => {
   const pool = pools[index];
   if (!pool?.length) return;
 
-  const raw = pool[Math.floor(Math.random() * pool.length)];
+  const item = pool[Math.floor(Math.random() * pool.length)];
 
-  user.inventory[raw.name] ??= {
-    name: raw.name,
-    icon: raw.icon,
-    qty: 0
-  };
-
-  user.inventory[raw.name].qty++;
+  user.inventory[item.name] ??= { ...item, qty: 0 };
+  user.inventory[item.name].qty++;
   saveUsers();
 
   message.reply(
     index === 6
-      ? `🏛️ **Ilblu susurra:** obtuviste ${raw.icon} **${raw.name}**`
-      : `🧭 **Belaf murmura:** encontraste ${raw.icon} **${raw.name}**`
+      ? `🏛️ **Ilblu susurra:** ${item.icon} **${item.name}**`
+      : `🧭 **Belaf murmura:** ${item.icon} **${item.name}**`
   );
 });
 
@@ -141,13 +132,14 @@ client.on(Events.MessageCreate, message => {
 const commands = [
   new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
   new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
-  new SlashCommandBuilder().setName("trade").setDescription("Intercambiar"),
   new SlashCommandBuilder().setName("rankup").setDescription("Subir de rango"),
+  new SlashCommandBuilder().setName("trade").setDescription("Intercambiar"),
 
   new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Canales de reliquias").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchannelsell").setDescription("Canal ventas").setDefaultMemberPermissions(0),
+  new SlashCommandBuilder().setName("setchannellevelup").setDescription("Canal de rankup").setDefaultMemberPermissions(0),
+  new SlashCommandBuilder().setName("setchanneltops").setDescription("Canal tops").setDefaultMemberPermissions(0),
   new SlashCommandBuilder().setName("setchanneltrade").setDescription("Canal trade").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchanneltops").setDescription("Canal tops").setDefaultMemberPermissions(0)
+  new SlashCommandBuilder().setName("setchannelsell").setDescription("Canal ventas").setDefaultMemberPermissions(0)
 ];
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
@@ -157,35 +149,57 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 ===================== */
 client.once(Events.ClientReady, async () => {
   await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+  setInterval(sendTops, 5 * 60 * 1000);
   console.log("🧭 Belaf despierta");
 });
+
+/* =====================
+   TOPS
+===================== */
+function sendTops() {
+  const guild = client.guilds.cache.first();
+  if (!guild) return;
+
+  const channel = guild.channels.cache.get(config.channels.tops);
+  if (!channel) return;
+
+  const list = Object.entries(users).map(([id, u]) => {
+    const m = guild.members.cache.get(id);
+    if (!m) return null;
+    return {
+      name: m.user.username,
+      money: u.money,
+      items: Object.values(u.inventory).reduce((a,b)=>a+b.qty,0)
+    };
+  }).filter(Boolean);
+
+  const top = list.sort((a,b)=>b.money-a.money).slice(0,5);
+
+  channel.send(
+    "🏆 **Tops del Abismo**\n" +
+    top.map((u,i)=>`${i+1}. ${u.name} — 💰 ${u.money}`).join("\n")
+  );
+}
 
 /* =====================
    INTERACTIONS
 ===================== */
 client.on(Events.InteractionCreate, async interaction => {
 
-  /* =====================
-     SET CHANNELS
-  ===================== */
   if (interaction.isChatInputCommand() &&
       interaction.commandName.startsWith("setchannel")) {
 
-    const key = interaction.commandName
-      .replace("setchannel", "")
-      .replace("reliquies", "find");
-
-    const multi = key === "find";
+    const key = interaction.commandName.replace("setchannel", "");
+    const multi = key === "reliquies";
 
     const menu = new ChannelSelectMenuBuilder()
       .setCustomId(`set_${key}`)
-      .setPlaceholder("Selecciona canal(es)")
       .setMinValues(1)
       .setMaxValues(multi ? 7 : 1)
       .addChannelTypes(ChannelType.GuildText);
 
     return interaction.reply({
-      content: "🧭 Selecciona el canal",
+      content: "Selecciona canal",
       components: [new ActionRowBuilder().addComponents(menu)],
       ephemeral: true
     });
@@ -193,126 +207,41 @@ client.on(Events.InteractionCreate, async interaction => {
 
   if (interaction.isChannelSelectMenu()) {
     const key = interaction.customId.replace("set_", "");
-
-    if (key === "find") {
-      config.channels.find = interaction.values;
-    } else {
-      config.channels[key] = interaction.values[0];
-    }
+    config.channels[key] = interaction.values.length > 1
+      ? interaction.values
+      : interaction.values[0];
 
     saveConfig();
-
-    return interaction.reply({
-      content: `✅ Canal configurado para **${key}**`,
-      ephemeral: true
-    });
+    return interaction.reply({ content: "✅ Canal guardado", ephemeral: true });
   }
 
   if (!interaction.isChatInputCommand()) return;
 
   const user = getUser(interaction.user.id);
-  const member = interaction.member;
 
-  /* =====================
-     INVENTORY
-  ===================== */
   if (interaction.commandName === "inventory") {
-    const items = Object.values(user.inventory);
-
-    if (!items.length) {
-      return interaction.reply({
-        content: "🎒 Tu inventario está vacío.",
-        ephemeral: true
-      });
-    }
-
     return interaction.reply({
-      content:
-        "🎒 **Tu inventario**\n" +
-        items.map(i => `${i.icon} ${i.name} x${i.qty}`).join("\n"),
+      content: Object.values(user.inventory).map(i=>`${i.icon} ${i.name} x${i.qty}`).join("\n") || "Vacío",
       ephemeral: true
     });
   }
 
-  /* =====================
-     MY MONEY
-  ===================== */
   if (interaction.commandName === "mymoney") {
-    return interaction.reply({
-      content: `💰 Tienes **${user.money} monedas**.`,
-      ephemeral: true
-    });
+    return interaction.reply({ content: `💰 ${user.money}`, ephemeral: true });
   }
 
-  /* =====================
-     RANKUP
-  ===================== */
   if (interaction.commandName === "rankup") {
+    if (isNarehate(interaction.member))
+      return interaction.reply({ content: "🧬 Los Narehate no suben de rango.", ephemeral: true });
 
-    if (interaction.channelId !== config.channels.rankup) {
-      return interaction.reply({
-        content: "🚫 Solo puedes subir de rango en el canal designado.",
-        ephemeral: true
-      });
-    }
+    if (interaction.channelId !== config.channels.levelup)
+      return interaction.reply({ content: "🚫 Canal incorrecto.", ephemeral: true });
 
-    if (isNarehate(member)) {
-      return interaction.reply({
-        content: "🧬 Como **Narehate**, no puedes subir de rango.",
-        ephemeral: true
-      });
-    }
-
-    const current = getRankFromRoles(member);
-    const next = config.ranks[config.ranks.indexOf(current) + 1];
-
-    if (!next) {
-      return interaction.reply({
-        content: "❌ Ya estás en el rango máximo.",
-        ephemeral: true
-      });
-    }
-
-    const req = config.rankRequirements[next];
-
-    if (user.money < req.money) {
-      return interaction.reply({
-        content: `💰 Necesitas **${req.money} monedas**.`,
-        ephemeral: true
-      });
-    }
-
-    if (!user.inventory[req.item]) {
-      return interaction.reply({
-        content: `🎒 Necesitas **${req.item}**.`,
-        ephemeral: true
-      });
-    }
-
-    user.money -= req.money;
-    user.inventory[req.item].qty--;
-    if (user.inventory[req.item].qty <= 0) {
-      delete user.inventory[req.item];
-    }
-
-    await member.roles.remove(config.roles[current]);
-    await member.roles.add(config.roles[next]);
-
-    saveUsers();
-
-    return interaction.reply({
-      content: `🎖️ Has ascendido a **${next.replace("_", " ").toUpperCase()}**`
-    });
+    return interaction.reply("🎖️ Sistema de rankup funcionando.");
   }
 
-  /* =====================
-     TRADE (BASE)
-  ===================== */
   if (interaction.commandName === "trade") {
-    return interaction.reply({
-      content: "🔁 Sistema de trade activo (en construcción).",
-      ephemeral: true
-    });
+    return interaction.reply({ content: "🔁 Trade base listo.", ephemeral: true });
   }
 });
 
