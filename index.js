@@ -51,7 +51,17 @@ const client = new Client({
 /* =====================
 FILES
 ===================== */
-let config = JSON.parse(fs.readFileSync("config.json", "utf8"));
+let config = fs.existsSync("config.json")
+  ? JSON.parse(fs.readFileSync("config.json", "utf8"))
+  : {
+      channels: {
+        reliquies: [],
+        trade: null,
+        sell: null,
+        tops: null
+      }
+    };
+
 const objects = JSON.parse(fs.readFileSync("objects.json", "utf8"));
 
 let users = fs.existsSync("users.json")
@@ -81,12 +91,11 @@ function getUser(id) {
 }
 
 /* =====================
-/* =====================
 DROP SYSTEM
 ===================== */
 client.on(Events.MessageCreate, message => {
   if (message.author.bot || !message.guild) return;
-  if (!Array.isArray(config.channels?.reliquies)) return;
+  if (!Array.isArray(config.channels.reliquies)) return;
 
   const channelIndex = config.channels.reliquies.indexOf(message.channel.id);
   if (channelIndex === -1) return;
@@ -151,10 +160,10 @@ const commands = [
     .addUserOption(o => o.setName("user").setDescription("Usuario").setRequired(true))
     .addStringOption(o => o.setName("item").setDescription("Objeto").setRequired(true)),
 
-  new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Canales reliquias").setDefaultMemberPermissions(0),
+  new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Canales de reliquias").setDefaultMemberPermissions(0),
   new SlashCommandBuilder().setName("setchanneltrade").setDescription("Canal trade").setDefaultMemberPermissions(0),
   new SlashCommandBuilder().setName("setchannelsell").setDescription("Canal venta").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchanneltops").setDescription("Canal tops").setDefaultMemberPermissions(0),
+  new SlashCommandBuilder().setName("setchanneltops").setDescription("Canal tops").setDefaultMemberPermissions(0)
 ];
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
@@ -172,17 +181,8 @@ INTERACTIONS
 ===================== */
 client.on(Events.InteractionCreate, async interaction => {
 
-  /* =====================
-  CHANNEL SELECT MENU
-  ===================== */
+  /* ===== CHANNEL SELECT ===== */
   if (interaction.isChannelSelectMenu()) {
-    config.channels ??= {
-      reliquies: [],
-      trade: null,
-      sell: null,
-      tops: null
-    };
-
     if (interaction.customId === "reliquies")
       config.channels.reliquies = interaction.values;
 
@@ -203,9 +203,6 @@ client.on(Events.InteractionCreate, async interaction => {
     });
   }
 
-  /* =====================
-  SLASH COMMANDS
-  ===================== */
   if (!interaction.isChatInputCommand()) return;
 
   const user = getUser(interaction.user.id);
@@ -233,19 +230,13 @@ client.on(Events.InteractionCreate, async interaction => {
   /* ===== TRADE ===== */
   if (interaction.commandName === "trade") {
     if (interaction.channelId !== config.channels.trade)
-      return interaction.reply({
-        content: "❌ Este no es el canal de trade.",
-        ephemeral: true
-      });
+      return interaction.reply({ content: "❌ No es el canal de trade.", ephemeral: true });
 
     const target = interaction.options.getUser("user");
     const itemName = interaction.options.getString("item");
 
-    if (!user.inventory[itemName] || user.inventory[itemName].qty < 1)
-      return interaction.reply({
-        content: "🎒 No tienes ese objeto.",
-        ephemeral: true
-      });
+    if (!user.inventory[itemName])
+      return interaction.reply({ content: "🎒 No tienes ese objeto.", ephemeral: true });
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -260,28 +251,48 @@ client.on(Events.InteractionCreate, async interaction => {
     });
   }
 
-  /* =====================
-  SET CHANNEL COMMANDS
-  ===================== */
-  if (
-    interaction.commandName.startsWith("setchannel")
-  ) {
-    await interaction.deferReply({ ephemeral: true });
-
+  /* ===== SET CHANNELS ===== */
+  if (interaction.commandName === "setchannelreliquies") {
     const row = new ActionRowBuilder().addComponents(
       new ChannelSelectMenuBuilder()
-        .setCustomId(
-          interaction.commandName.replace("setchannel", "")
-        )
-        .setPlaceholder("Selecciona el canal")
+        .setCustomId("reliquies")
+        .setPlaceholder("Selecciona hasta 6 canales")
+        .setMinValues(1)
+        .setMaxValues(6)
         .addChannelTypes(ChannelType.GuildText)
     );
 
-    return interaction.editReply({
-      content: "📜 Selecciona el canal:",
-      components: [row]
+    return interaction.reply({
+      content: "📜 Selecciona los canales de reliquias:",
+      components: [row],
+      ephemeral: true
     });
   }
+
+  const singleChannel = async (id, text) => {
+    const row = new ActionRowBuilder().addComponents(
+      new ChannelSelectMenuBuilder()
+        .setCustomId(id)
+        .setMinValues(1)
+        .setMaxValues(1)
+        .addChannelTypes(ChannelType.GuildText)
+    );
+
+    return interaction.reply({
+      content: text,
+      components: [row],
+      ephemeral: true
+    });
+  };
+
+  if (interaction.commandName === "setchanneltrade")
+    return singleChannel("trade", "📜 Selecciona el canal de trade");
+
+  if (interaction.commandName === "setchannelsell")
+    return singleChannel("sell", "📜 Selecciona el canal de venta");
+
+  if (interaction.commandName === "setchanneltops")
+    return singleChannel("tops", "📜 Selecciona el canal de tops");
 });
 
 client.login(TOKEN);
