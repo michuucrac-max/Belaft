@@ -1,0 +1,8 @@
+{
+  "minBet": 10,
+  "games": {
+    "dice": true,
+    "coinflip": true,
+    "allin": true
+  }
+}
