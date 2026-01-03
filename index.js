@@ -113,7 +113,7 @@ client.on(Events.MessageCreate, message => {
 });
 
 /* =====================
-SLASH COMMANDS (REALES)
+SLASH COMMANDS
 ===================== */
 const commands = [
 
@@ -142,10 +142,6 @@ const commands = [
     ),
 
   new SlashCommandBuilder()
-    .setName("tops")
-    .setDescription("Top exploradores"),
-
-  new SlashCommandBuilder()
     .setName("setchannelreliquies")
     .setDescription("Canales de drops")
     .setDefaultMemberPermissions(0),
@@ -162,7 +158,7 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName("setchanneltops")
-    .setDescription("Canal de tops")
+    .setDescription("Canal automático de tops")
     .setDefaultMemberPermissions(0)
 ];
 
@@ -171,6 +167,46 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 client.once(Events.ClientReady, async () => {
   await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
   console.log("🧭 Belaf despierta");
+
+  /* =====================
+  AUTO TOPS CADA 2 MIN
+  ===================== */
+  setInterval(async () => {
+    if (!config.channels.tops) return;
+
+    const channel = await client.channels.fetch(config.channels.tops).catch(() => null);
+    if (!channel) return;
+
+    const topMoney = Object.entries(users)
+      .sort((a, b) => b[1].money - a[1].money)
+      .slice(0, 5)
+      .map(([id, u], i) => `${i + 1}. <@${id}> — 💰 ${u.money}`)
+      .join("\n");
+
+    const topRelics = Object.entries(users)
+      .map(([id, u]) => {
+        const count = Object.values(u.inventory)
+          .reduce((a, b) => a + b.qty, 0);
+        return { id, count };
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5)
+      .map((u, i) => `${i + 1}. <@${u.id}> — 🧭 ${u.count}`)
+      .join("\n");
+
+    channel.send({
+      content:
+`@everyone
+🏆 **TOPS DEL ABISMO**
+
+💰 **Top Dinero**
+${topMoney || "Sin datos"}
+
+🧭 **Top Reliquias**
+${topRelics || "Sin datos"}`
+    });
+
+  }, 2 * 60 * 1000);
 });
 
 /* =====================
@@ -209,7 +245,7 @@ client.on(Events.InteractionCreate, async interaction => {
       config.channels.tops = interaction.values[0];
 
     saveConfig();
-    return interaction.update({ content: "📜 Configurado.", components: [] });
+    return interaction.update({ content: "📜 Canal configurado.", components: [] });
   }
 
   /* ===== SLASH ===== */
@@ -300,16 +336,6 @@ client.on(Events.InteractionCreate, async interaction => {
       ephemeral: true,
       components: [new ActionRowBuilder().addComponents(menu)]
     });
-  }
-
-  if (interaction.commandName === "tops") {
-    const top = Object.entries(users)
-      .sort((a,b) => b[1].money - a[1].money)
-      .slice(0,10)
-      .map(([id,u],i) => `${i+1}. <@${id}> — 💰 ${u.money}`)
-      .join("\n");
-
-    return interaction.reply({ content: top || "Sin datos" });
   }
 });
 
