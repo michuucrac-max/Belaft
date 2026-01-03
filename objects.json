@@ -1,60 +1,31 @@
 {
   "class4": [
-    {
-      "name": "Libro Antiguo",
-      "icon": "📕",
-      "value": 5
-    },
-    {
-      "name": "Fragmento Oxidado",
-      "icon": "🪨",
-      "value": 10
-    }
+    { "name": "Libro Antiguo", "icon": "📕", "value": 5 },
+    { "name": "Fragmento Oxidado", "icon": "🪨", "value": 10 }
   ],
 
   "class3": [
-    {
-      "name": "Reliquia Menor",
-      "icon": "🧿",
-      "value": 20
-    },
-    {
-      "name": "Cristal Abisal",
-      "icon": "🔷",
-      "value": 30
-    }
+    { "name": "Reliquia Menor", "icon": "🗿", "value": 20 },
+    { "name": "Cristal Abismal", "icon": "🔮", "value": 30 }
   ],
 
   "class2": [
-    {
-      "name": "Artefacto Raro",
-      "icon": "⚙️",
-      "value": 50
-    }
+    { "name": "Artefacto Raro", "icon": "⚙️", "value": 50 }
   ],
 
   "class1": [
-    {
-      "name": "Artefacto Antiguo",
-      "icon": "🏺",
-      "value": 75
-    }
+    { "name": "Tesoro Antiguo", "icon": "💠", "value": 75 }
   ],
 
   "special": [
-    {
-      "name": "Reliquia Especial",
-      "icon": "✨",
-      "value": 100,
-      "soulbound": false
-    }
+    { "name": "Reliquia Especial", "icon": "✨", "value": 100 }
   ],
 
   "ultra": [
     {
-      "name": "corazon abisal",
+      "name": "Reliquia Primordial del Abismo",
       "icon": "🌑",
-      "value": 100000,
+      "price": 100000,
       "soulbound": true
     }
   ]
