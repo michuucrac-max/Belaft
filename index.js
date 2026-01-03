@@ -84,8 +84,12 @@ function getUser(id) {
 DROP SYSTEM
 ===================== */
 client.on(Events.MessageCreate, message => {
+client.on(Events.MessageCreate, message => {
   if (message.author.bot || !message.guild) return;
-  if (!config.channels?.reliquies?.includes(message.channel.id)) return;
+  if (!Array.isArray(config.channels?.reliquies)) return;
+
+  const channelIndex = config.channels.reliquies.indexOf(message.channel.id);
+  if (channelIndex === -1) return;
 
   const user = getUser(message.author.id);
   user.messages++;
@@ -95,27 +99,27 @@ client.on(Events.MessageCreate, message => {
     return;
   }
 
-  const index = config.channels.reliquies.indexOf(message.channel.id);
-
-  const pools = [
-    objects.class4,
-    objects.class3,
-    objects.class2,
-    objects.class1,
-    objects.special,
-    objects.special
+  const poolsByDepth = [
+    objects.class4,   // Bell
+    objects.class3,   // Silbato rojo
+    objects.class2,   // Silbato azul
+    objects.class1,   // Silbato lunar
+    objects.special,  // Silbato negro
+    objects.special   // Silbato blanco
   ];
 
   let item;
 
-  if (Math.random() <= 0.000001) {
+  // Ultra reliquia SOLO en el canal más profundo
+  if (channelIndex === 5 && Math.random() <= 0.000001) {
     item = objects.ultra[0];
+
     message.channel.send(
       `@everyone 🌑 **EL ABISMO HA RESPONDIDO** 🌑\n` +
       `**${message.author.username}** obtuvo **${item.icon} ${item.name}**`
     );
   } else {
-    const pool = pools[index] || objects.class4;
+    const pool = poolsByDepth[channelIndex] || objects.class4;
     item = pool[Math.floor(Math.random() * pool.length)];
   }
 
@@ -128,7 +132,9 @@ client.on(Events.MessageCreate, message => {
   user.inventory[item.name].qty++;
   saveUsers();
 
-  message.reply(`🧭 **Belaf murmura:** encontraste **${item.icon} ${item.name}**`);
+  message.reply(
+    `🧭 **Belaf murmura:** encontraste **${item.icon} ${item.name}**`
+  );
 });
 
 /* =====================
