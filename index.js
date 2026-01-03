@@ -215,7 +215,74 @@ client.on(Events.InteractionCreate, async interaction => {
     return interaction.update({ content: "📜 Registrado.", components: [] });
   }
 
-  if (!interaction.isChatInputCommand()) return;
+  if (interaction.isChatInputCommand()) {
+
+  /* =====================
+  SET CHANNELS
+  ===================== */
+
+  if (interaction.commandName === "setchanneltrade") {
+    const row = new ActionRowBuilder().addComponents(
+      new ChannelSelectMenuBuilder()
+        .setCustomId("trade")
+        .setPlaceholder("Selecciona el canal de trade")
+        .addChannelTypes(ChannelType.GuildText)
+    );
+
+    return interaction.reply({
+      content: "🔁 Selecciona el canal para **trade**",
+      components: [row],
+      ephemeral: true
+    });
+  }
+
+  if (interaction.commandName === "setchannelsell") {
+    const row = new ActionRowBuilder().addComponents(
+      new ChannelSelectMenuBuilder()
+        .setCustomId("sell")
+        .setPlaceholder("Selecciona el canal de venta")
+        .addChannelTypes(ChannelType.GuildText)
+    );
+
+    return interaction.reply({
+      content: "💰 Selecciona el canal para **ventas**",
+      components: [row],
+      ephemeral: true
+    });
+  }
+
+  if (interaction.commandName === "setchanneltops") {
+    const row = new ActionRowBuilder().addComponents(
+      new ChannelSelectMenuBuilder()
+        .setCustomId("tops")
+        .setPlaceholder("Selecciona el canal de tops")
+        .addChannelTypes(ChannelType.GuildText)
+    );
+
+    return interaction.reply({
+      content: "🏆 Selecciona el canal para **tops**",
+      components: [row],
+      ephemeral: true
+    });
+  }
+
+  if (interaction.commandName === "setchannelreliquies") {
+    const row = new ActionRowBuilder().addComponents(
+      new ChannelSelectMenuBuilder()
+        .setCustomId("reliquies")
+        .setPlaceholder("Selecciona los canales de reliquias")
+        .addChannelTypes(ChannelType.GuildText)
+        .setMinValues(1)
+        .setMaxValues(6)
+    );
+
+    return interaction.reply({
+      content: "🧭 Selecciona **hasta 6 canales** de reliquias",
+      components: [row],
+      ephemeral: true
+    });
+  }
+        }
   const user = getUser(interaction.user.id);
 
   /* INVENTORY */
