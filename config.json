@@ -12,7 +12,8 @@
     "silbato_azul",
     "silbato_lunar",
     "silbato_negro",
-    "silbato_blanco"
+    "silbato_blanco",
+    "narehate"
   ],
 
   "roles": {
@@ -25,8 +26,6 @@
     "narehate": "NAREHATE"
   },
 
-{
-  "ranks": ["bell", "sibato_rojo", "silbato_azul", "silbato_lunar", "silbato_negro", "silbato_blanco", "narehate"],
   "rankCosts": {
     "silbato_rojo": 100,
     "silbato_azul": 300,
