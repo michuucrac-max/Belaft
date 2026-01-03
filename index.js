@@ -211,16 +211,11 @@ client.once(Events.ClientReady, async () => {
 client.on(Events.InteractionCreate, async interaction => {
 
   if (!interaction.isChatInputCommand()) return;
-  const user = getUser(interaction.user.id);
-  const member = interaction.member;
-
-client.on(Events.InteractionCreate, async interaction => {
-
-  if (!interaction.isChatInputCommand()) return;
 
   const user = getUser(interaction.user.id);
   const member = interaction.member;
 
+  /* ===== RANKUP ===== */
   if (interaction.commandName === "rankup") {
 
     // 🚫 Bloqueo total para Narehates
@@ -233,39 +228,44 @@ client.on(Events.InteractionCreate, async interaction => {
 
     const current = getRankFromRoles(member);
 
-    const nextRankIndex = config.ranks.indexOf(current) + 1;
-    const nextRank = config.ranks[nextRankIndex];
+    const nextIndex = config.ranks.indexOf(current) + 1;
+    const nextRank = config.ranks[nextIndex];
 
-    if (!nextRank)
+    if (!nextRank) {
       return interaction.reply({
         content: "❌ Ya estás en el rango máximo.",
         ephemeral: true
       });
+    }
 
     const req = config.rankRequirements[nextRank];
-    if (!req)
+    if (!req) {
       return interaction.reply({
         content: "⚠️ Requisitos no configurados para este rango.",
         ephemeral: true
       });
+    }
 
-    if (user.money < req.money)
+    if (user.money < req.money) {
       return interaction.reply({
         content: `💰 Necesitas **${req.money} monedas**.`,
         ephemeral: true
       });
+    }
 
-    if (!user.inventory[req.item])
+    if (!user.inventory[req.item]) {
       return interaction.reply({
         content: `🎒 Necesitas el objeto **${req.item}**.`,
         ephemeral: true
       });
+    }
 
     // 🔻 Pago
     user.money -= req.money;
     user.inventory[req.item].qty--;
-    if (user.inventory[req.item].qty <= 0)
+    if (user.inventory[req.item].qty <= 0) {
       delete user.inventory[req.item];
+    }
 
     // 🎖️ Cambio de rol
     const oldRole = config.roles[current];
@@ -280,6 +280,7 @@ client.on(Events.InteractionCreate, async interaction => {
       content: `🎖️ Has ascendido a **${nextRank.replace("_", " ").toUpperCase()}**`
     });
   }
+
 });
 
 client.login(TOKEN);
