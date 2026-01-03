@@ -166,79 +166,115 @@ INTERACTIONS
 ===================== */
 client.on(Events.InteractionCreate, async interaction => {
 
-  /* ===== CHANNEL SELECT ===== */
+  /* =====================
+  CHANNEL SELECT MENU
+  ===================== */
   if (interaction.isChannelSelectMenu()) {
-    if (interaction.customId === "reliquies") config.channels.reliquies = interaction.values;
-    if (interaction.customId === "trade") config.channels.trade = interaction.values[0];
-    if (interaction.customId === "sell") config.channels.sell = interaction.values[0];
-    if (interaction.customId === "tops") config.channels.tops = interaction.values[0];
+    config.channels ??= {
+      reliquies: [],
+      trade: null,
+      sell: null,
+      tops: null
+    };
+
+    if (interaction.customId === "reliquies")
+      config.channels.reliquies = interaction.values;
+
+    if (interaction.customId === "trade")
+      config.channels.trade = interaction.values[0];
+
+    if (interaction.customId === "sell")
+      config.channels.sell = interaction.values[0];
+
+    if (interaction.customId === "tops")
+      config.channels.tops = interaction.values[0];
+
     saveConfig();
-    return interaction.update({ content: "📜 Registrado.", components: [] });
+
+    return interaction.update({
+      content: "📜 Canal registrado correctamente.",
+      components: []
+    });
   }
 
-  /* ===== SLASH COMMANDS ===== */
-  if (interaction.isChatInputCommand()) {
-    const user = getUser(interaction.user.id);
+  /* =====================
+  SLASH COMMANDS
+  ===================== */
+  if (!interaction.isChatInputCommand()) return;
 
-    if (interaction.commandName === "inventory") {
-      const items = Object.values(user.inventory);
-      if (!items.length)
-        return interaction.reply({ content: "🎒 Vacío", ephemeral: true });
+  const user = getUser(interaction.user.id);
 
+  /* ===== INVENTORY ===== */
+  if (interaction.commandName === "inventory") {
+    const items = Object.values(user.inventory);
+    if (!items.length)
+      return interaction.reply({ content: "🎒 Inventario vacío.", ephemeral: true });
+
+    return interaction.reply({
+      content: items.map(i => `${i.icon} **${i.name}** x${i.qty}`).join("\n"),
+      ephemeral: true
+    });
+  }
+
+  /* ===== MONEY ===== */
+  if (interaction.commandName === "mymoney") {
+    return interaction.reply({
+      content: `💰 Tienes **${user.money}** monedas`,
+      ephemeral: true
+    });
+  }
+
+  /* ===== TRADE ===== */
+  if (interaction.commandName === "trade") {
+    if (interaction.channelId !== config.channels.trade)
       return interaction.reply({
-        content: items.map(i => `${i.icon} **${i.name}** x${i.qty}`).join("\n"),
+        content: "❌ Este no es el canal de trade.",
         ephemeral: true
       });
-    }
 
-    if (interaction.commandName === "mymoney") {
-      return interaction.reply({ content: `💰 ${user.money} monedas`, ephemeral: true });
-    }
+    const target = interaction.options.getUser("user");
+    const itemName = interaction.options.getString("item");
 
-    if (interaction.commandName === "trade") {
-      if (interaction.channelId !== config.channels.trade)
-        return interaction.reply({ content: "❌ No es el canal de trade.", ephemeral: true });
-
-      const target = interaction.options.getUser("user");
-      const itemName = interaction.options.getString("item");
-
-      if (!user.inventory[itemName] || user.inventory[itemName].qty < 1)
-        return interaction.reply({ content: "🎒 No tienes ese objeto.", ephemeral: true });
-
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId(`trade_accept_${interaction.user.id}_${target.id}_${itemName}`)
-          .setLabel("Aceptar trade")
-          .setStyle(ButtonStyle.Success)
-      );
-
+    if (!user.inventory[itemName] || user.inventory[itemName].qty < 1)
       return interaction.reply({
-        content: `🔁 **${target.username}**, ${interaction.user.username} te ofrece **${itemName}**`,
-        components: [row]
+        content: "🎒 No tienes ese objeto.",
+        ephemeral: true
       });
-    }
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`trade_accept_${interaction.user.id}_${target.id}_${itemName}`)
+        .setLabel("Aceptar trade")
+        .setStyle(ButtonStyle.Success)
+    );
+
+    return interaction.reply({
+      content: `🔁 **${target.username}**, ${interaction.user.username} te ofrece **${itemName}**`,
+      components: [row]
+    });
   }
 
-  /* ===== BUTTONS ===== */
-  if (interaction.isButton()) {
-    const [_, from, to, item] = interaction.customId.split("_");
-    if (interaction.user.id !== to)
-      return interaction.reply({ content: "❌ No es para ti.", ephemeral: true });
+  /* =====================
+  SET CHANNEL COMMANDS
+  ===================== */
+  if (
+    interaction.commandName.startsWith("setchannel")
+  ) {
+    await interaction.deferReply({ ephemeral: true });
 
-    const giver = getUser(from);
-    const receiver = getUser(to);
+    const row = new ActionRowBuilder().addComponents(
+      new ChannelSelectMenuBuilder()
+        .setCustomId(
+          interaction.commandName.replace("setchannel", "")
+        )
+        .setPlaceholder("Selecciona el canal")
+        .addChannelTypes(ChannelType.GuildText)
+    );
 
-    if (!giver.inventory[item])
-      return interaction.reply({ content: "❌ Trade inválido.", ephemeral: true });
-
-    giver.inventory[item].qty--;
-    if (giver.inventory[item].qty <= 0) delete giver.inventory[item];
-
-    receiver.inventory[item] ??= { name: item, icon: "📦", qty: 0 };
-    receiver.inventory[item].qty++;
-
-    saveUsers();
-    return interaction.update({ content: "✅ **Trade completado.**", components: [] });
+    return interaction.editReply({
+      content: "📜 Selecciona el canal:",
+      components: [row]
+    });
   }
 });
 
