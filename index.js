@@ -1,267 +1,289 @@
 import {
-  Client,
-  GatewayIntentBits,
-  Partials,
-  Events,
-  REST,
-  Routes,
-  SlashCommandBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle
+Client,
+GatewayIntentBits,
+Partials,
+Events,
+REST,
+Routes,
+SlashCommandBuilder,
+ActionRowBuilder,
+ButtonBuilder,
+ButtonStyle,
+ChannelSelectMenuBuilder,
+ChannelType
 } from "discord.js";
-
 import fs from "fs";
 import express from "express";
 
 /* =====================
-   LOAD FILES
+ENV
 ===================== */
-const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
-const items = JSON.parse(fs.readFileSync("items.json", "utf8"));
+const TOKEN = process.env.TOKEN;
+const CLIENT_ID = process.env.CLIENT_ID;
+const PORT = process.env.PORT || 3000;
 
-let users = fs.existsSync("users.json")
-  ? JSON.parse(fs.readFileSync("users.json", "utf8"))
-  : {};
-
-const saveUsers = () =>
-  fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
+if (!TOKEN || !CLIENT_ID) {
+console.error("Faltan variables de entorno");
+process.exit(1);
+}
 
 /* =====================
-   EXPRESS
+EXPRESS 24/7
 ===================== */
 const app = express();
 app.get("/", (_, res) => res.send("Belaf observa el Abismo 🧭"));
-app.listen(process.env.PORT || 3000);
+app.listen(PORT);
 
 /* =====================
-   CLIENT
+CLIENT
 ===================== */
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMembers
-  ],
-  partials: [Partials.Channel]
+intents: [
+GatewayIntentBits.Guilds,
+GatewayIntentBits.GuildMessages,
+GatewayIntentBits.MessageContent,
+GatewayIntentBits.GuildMembers
+],
+partials: [Partials.Channel]
 });
 
 /* =====================
-   HELPERS
+FILES
+===================== */
+let config = JSON.parse(fs.readFileSync("config.json", "utf8"));
+const objects = JSON.parse(fs.readFileSync("objects.json", "utf8"));
+
+let users = fs.existsSync("users.json")
+? JSON.parse(fs.readFileSync("users.json", "utf8"))
+: {};
+
+const saveUsers = () =>
+fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
+
+const saveConfig = () =>
+fs.writeFileSync("config.json", JSON.stringify(config, null, 2));
+
+/* =====================
+USER INIT
 ===================== */
 function getUser(id) {
-  if (!users[id]) {
-    users[id] = {
-      money: 0,
-      inventory: {},
-      messages: 0
-    };
-    saveUsers();
-  }
-  return users[id];
+if (!users[id]) {
+users[id] = {
+money: 0,
+rank: "bell",
+inventory: {},
+messages: 0
+};
+saveUsers();
 }
-
-function isNarehate(member) {
-  return member.roles.cache.has(config.roles.narehate);
-}
-
-function isHuman(member) {
-  return !isNarehate(member);
-}
-
-function getRank(member) {
-  if (isNarehate(member)) return "narehate";
-  for (const r of config.ranks) {
-    if (member.roles.cache.has(config.roles[r])) return r;
-  }
-  return "bell";
+return users[id];
 }
 
 /* =====================
-   DROP SYSTEM
+DROP SYSTEM
 ===================== */
-client.on(Events.MessageCreate, msg => {
-  if (msg.author.bot || !msg.guild) return;
-  if (!config.channels.find.includes(msg.channel.id)) return;
+client.on(Events.MessageCreate, async message => {
+if (message.author.bot || !message.guild) return;
+if (!config.channels.reliquies?.includes(message.channel.id)) return;
 
-  const user = getUser(msg.author.id);
-  user.messages++;
+const user = getUser(message.author.id);
+user.messages++;
 
-  if (user.messages % 5 !== 0) {
-    saveUsers();
-    return;
-  }
+if (user.messages % 5 !== 0) {
+saveUsers();
+return;
+}
 
-  // 🔮 LEGENDARIO
-  if (Math.random() < items.legendary.chance) {
-    user.inventory[items.legendary.name] ??= {
-      ...items.legendary,
-      qty: 0
-    };
-    user.inventory[items.legendary.name].qty++;
-    saveUsers();
+const index = config.channels.reliquies.indexOf(message.channel.id);
 
-    return msg.channel.send(
-      `@everyone 💎 **MILAGRO DEL ABISMO** 💎\n` +
-      `**${msg.author.username}** obtuvo **${items.legendary.icon} ${items.legendary.name}**`
-    );
-  }
+let pool = objects.class4;
+if (index >= 1) pool = objects.class3;
+if (index >= 2) pool = objects.class2;
+if (index >= 3) pool = objects.class1;
+if (index >= 4) pool = objects.special;
 
-  const pool = [...items.normal, ...items.special];
-  const item = pool[Math.floor(Math.random() * pool.length)];
+const item = pool[Math.floor(Math.random() * pool.length)];
 
-  user.inventory[item.name] ??= { ...item, qty: 0 };
-  user.inventory[item.name].qty++;
-  saveUsers();
+user.inventory[item.name] ??= { item, qty: 0 };
+user.inventory[item.name].qty++;
 
-  msg.reply(`🧭 Encontraste ${item.icon} **${item.name}**`);
+saveUsers();
+
+message.reply(🧭 **Belaf murmura:** encontraste **${item.icon} ${item.name}**);
 });
 
 /* =====================
-   TOPS (cada 2 min)
-===================== */
-async function sendTops() {
-  const guild = client.guilds.cache.first();
-  if (!guild) return;
-
-  await guild.members.fetch();
-
-  const list = Object.entries(users)
-    .map(([id, u]) => {
-      const m = guild.members.cache.get(id);
-      if (!m) return null;
-      return {
-        name: m.user.username,
-        money: u.money,
-        items: Object.values(u.inventory).reduce((a, b) => a + b.qty, 0),
-        rank: getRank(m)
-      };
-    })
-    .filter(Boolean);
-
-  const channel = guild.channels.cache.get(config.channels.tops);
-  if (!channel) return;
-
-  channel.send(
-`@everyone
-🏆 **Tops del Abismo**
-
-💰 **Dinero**
-${list.sort((a,b)=>b.money-a.money).slice(0,5).map((u,i)=>`${i+1}. ${u.name} — ${u.money}`).join("\n")}
-
-📦 **Objetos**
-${list.sort((a,b)=>b.items-a.items).slice(0,5).map((u,i)=>`${i+1}. ${u.name} — ${u.items}`).join("\n")}
-
-🎖️ **Rango**
-${list.sort((a,b)=>config.ranks.indexOf(b.rank)-config.ranks.indexOf(a.rank)).slice(0,5).map((u,i)=>`${i+1}. ${u.name} — ${u.rank}`).join("\n")}
-`
-  );
-}
-
-/* =====================
-   SLASH COMMANDS REGISTRO
+SLASH COMMANDS
 ===================== */
 const commands = [
-  new SlashCommandBuilder()
-    .setName("trade")
-    .setDescription("Intercambia objetos con un Narehate")
-    .addUserOption(o =>
-      o.setName("usuario")
-       .setDescription("Narehate con quien comerciar")
-       .setRequired(true)
-    ),
+new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
+new SlashCommandBuilder().setName("mymoney").setDescription("Ver tus monedas"),
 
-  new SlashCommandBuilder()
-    .setName("rankup")
-    .setDescription("Subir de rango")
-].map(c => c.toJSON());
+new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Canales de reliquias").setDefaultMemberPermissions(0),
+new SlashCommandBuilder().setName("setchanneltrade").setDescription("Canal de trade").setDefaultMemberPermissions(0),
+new SlashCommandBuilder().setName("setchannelsell").setDescription("Canal de venta").setDefaultMemberPermissions(0),
+new SlashCommandBuilder().setName("setchanneltops").setDescription("Canal de tops").setDefaultMemberPermissions(0),
+];
 
-const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
+const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 /* =====================
-   READY
+TOPS
+===================== */
+function sendTops() {
+const guild = client.guilds.cache.first();
+if (!guild) return;
+
+const channel = guild.channels.cache.get(config.channels.tops);
+if (!channel) return;
+
+const members = Object.entries(users).map(([id, data]) => {
+const member = guild.members.cache.get(id);
+if (!member) return null;
+
+let roleRank = data.rank;
+
+// 🩸 PRIORIDAD NAREHATE
+if (member.roles.cache.some(r =>
+r.name.toLowerCase().includes(config.roles.narehate.toLowerCase())
+)) {
+roleRank = "narehate";
+} else {
+// buscar el rango MÁS ALTO que tenga
+const found = [...config.ranks]
+.reverse()
+.find(r =>
+member.roles.cache.some(role =>
+role.name.toLowerCase().includes(r)
+)
+);
+
+if (found) roleRank = found;
+}
+
+return {  
+  name: member.user.username,  
+  money: data.money,  
+  items: Object.values(data.inventory).reduce((a, b) => a + b.qty, 0),  
+  rank: roleRank  
+};
+
+}).filter(Boolean);
+
+const topMoney = [...members].sort((a,b)=>b.money-a.money).slice(0,10);
+const topItems = [...members].sort((a,b)=>b.items-a.items).slice(0,10);
+const topRank = [...members].sort((a,b)=>config.ranks.indexOf(b.rank)-config.ranks.indexOf(a.rank)).slice(0,10);
+
+channel.send({
+content:
+`@everyone
+🏆 Tops del Abismo
+
+💰 Más dinero
+${topMoney.map((u,i)=>${i+1}. ${u.name} — ${u.money}).join("\n")}
+
+🎒 Más reliquias
+${topItems.map((u,i)=>${i+1}. ${u.name} — ${u.items}).join("\n")}
+
+🎖️ Mayor rango
+${topRank.map((u,i)=>${i+1}. ${u.name} — ${u.rank}).join("\n")}`
+});
+}
+
+/* =====================
+READY
 ===================== */
 client.once(Events.ClientReady, async () => {
-  await rest.put(
-    Routes.applicationGuildCommands(
-      config.clientId,
-      config.guildId
-    ),
-    { body: commands }
-  );
-
-  setInterval(sendTops, 2 * 60 * 1000);
-  console.log("🧭 Belaf despierta");
+await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+setInterval(sendTops, 5 * 60 * 1000);
+console.log("Belaf despierta");
 });
 
 /* =====================
-   INTERACTIONS
+INTERACTIONS
 ===================== */
-client.on(Events.InteractionCreate, async i => {
+client.on(Events.InteractionCreate, async interaction => {
 
-  if (!i.isChatInputCommand()) return;
+/* ===== SELECT MENUS ===== */
+if (interaction.isChannelSelectMenu()) {
+if (interaction.customId === "reliquies")
+config.channels.reliquies = interaction.values;
 
-  /* -------- RANKUP -------- */
-  if (i.commandName === "rankup") {
-    if (isNarehate(i.member)) {
-      return i.reply({
-        content:
-        "🧬 Ya has llegado al final del camino.\n" +
-        "No necesitas subir de rango… eso requiere humanidad.",
-        ephemeral: true
-      });
-    }
+if (interaction.customId === "trade")  
+  config.channels.trade = interaction.values[0];  
 
-    return i.reply("🎖️ Sistema de rankup listo (costos luego).");
-  }
+if (interaction.customId === "sell")  
+  config.channels.sell = interaction.values[0];  
 
-  /* -------- TRADE -------- */
-  if (i.commandName === "trade") {
-    const target = i.options.getUser("usuario");
-    if (!target || target.id === i.user.id) {
-      return i.reply({ content: "❌ Trade inválido.", ephemeral: true });
-    }
+if (interaction.customId === "tops")  
+  config.channels.tops = interaction.values[0];  
 
-    const human = i.member;
-    const nare = await i.guild.members.fetch(target.id);
+saveConfig();  
 
-    if (!(isHuman(human) && isNarehate(nare))) {
-      return i.reply({
-        content:
-        "🚫 **Regla del Abismo**\n" +
-        "Solo humanos pueden comerciar con Narehates.",
-        ephemeral: true
-      });
-    }
+return interaction.update({ content: "📜 **Belaf lo ha registrado.**", components: [] });
 
-    const hUser = getUser(human.id);
-    const nUser = getUser(nare.id);
+}
 
-    const hItem = Object.values(hUser.inventory).find(i=>!i.soulbound);
-    const nItem = Object.values(nUser.inventory).find(i=>!i.soulbound);
+if (!interaction.isChatInputCommand()) return;
+const user = getUser(interaction.user.id);
 
-    if (!hItem || !nItem) {
-      return i.reply({ content: "❌ Uno no tiene objetos intercambiables.", ephemeral: true });
-    }
+/* ===== INVENTORY ===== */
+if (interaction.commandName === "inventory") {
+const items = Object.values(user.inventory);
+if (!items.length) return interaction.reply({ content: "🎒 Vacío", ephemeral: true });
 
-    hUser.inventory[hItem.name].qty--;
-    nUser.inventory[nItem.name].qty--;
+const text = items.map(e => `${e.item.icon} **${e.item.name}** x${e.qty}`).join("\n");  
+return interaction.reply({ content: `🎒 **Inventario**\n${text}`, ephemeral: true });
 
-    hUser.inventory[nItem.name] ??= { ...nItem, qty: 0 };
-    nUser.inventory[hItem.name] ??= { ...hItem, qty: 0 };
+}
 
-    hUser.inventory[nItem.name].qty++;
-    nUser.inventory[hItem.name].qty++;
+/* ===== MY MONEY ===== */
+if (interaction.commandName === "mymoney") {
+return interaction.reply({ content: 💰 Tienes **${user.money}** monedas, ephemeral: true });
+}
 
-    saveUsers();
+/* ===== SET CHANNELS ===== */
+if (interaction.commandName === "setchannelreliquies") {
+const row = new ActionRowBuilder().addComponents(
+new ChannelSelectMenuBuilder()
+.setCustomId("reliquies")
+.setMinValues(1)
+.setMaxValues(5)
+.setChannelTypes(ChannelType.GuildText)
+.setPlaceholder("Canales por clase (bell → especial)")
+);
+return interaction.reply({ content: "🧭 Canales de reliquias", components: [row], ephemeral: true });
+}
 
-    return i.reply(
-`✅ **Intercambio completado**
-👤 Humano recibió: ${nItem.icon} ${nItem.name}
-🧬 Narehate recibió: ${hItem.icon} ${hItem.name}`
-    );
-  }
+if (interaction.commandName === "setchanneltrade") {
+const row = new ActionRowBuilder().addComponents(
+new ChannelSelectMenuBuilder()
+.setCustomId("trade")
+.setMinValues(1).setMaxValues(1)
+.setChannelTypes(ChannelType.GuildText)
+);
+return interaction.reply({ content: "🔁 Canal de trueques", components: [row], ephemeral: true });
+}
+
+if (interaction.commandName === "setchannelsell") {
+const row = new ActionRowBuilder().addComponents(
+new ChannelSelectMenuBuilder()
+.setCustomId("sell")
+.setMinValues(1).setMaxValues(1)
+.setChannelTypes(ChannelType.GuildText)
+);
+return interaction.reply({ content: "💰 Canal de venta", components: [row], ephemeral: true });
+}
+
+if (interaction.commandName === "setchanneltops") {
+const row = new ActionRowBuilder().addComponents(
+new ChannelSelectMenuBuilder()
+.setCustomId("tops")
+.setMinValues(1).setMaxValues(1)
+.setChannelTypes(ChannelType.GuildText)
+);
+return interaction.reply({ content: "🏆 Canal de tops", components: [row], ephemeral: true });
+}
 });
 
-client.login(process.env.TOKEN);
+client.login(TOKEN);
