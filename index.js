@@ -273,26 +273,5 @@ if (interaction.commandName === "rankup") {
     content: `🎖️ Has ascendido a **${nextRank.replace("_", " ").toUpperCase()}**`
   });
 }
-    if (!next)
-      return interaction.reply({ content: "❌ No puedes subir más", ephemeral: true });
-
-    if (user.money < next.cost)
-      return interaction.reply({ content: "💰 No tienes suficientes monedas", ephemeral: true });
-
-    if (!user.inventory[next.item])
-      return interaction.reply({ content: "🎒 No tienes el artefacto requerido", ephemeral: true });
-
-    user.money -= next.cost;
-    user.inventory[next.item].qty--;
-    if (user.inventory[next.item].qty <= 0)
-      delete user.inventory[next.item];
-
-    await member.roles.remove(config.roles[current]);
-    await member.roles.add(config.roles[next.role]);
-
-    saveUsers();
-    return interaction.reply(`🎖️ Has ascendido a **${next.role}**`);
-  }
-});
 
 client.login(TOKEN);
