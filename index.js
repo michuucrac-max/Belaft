@@ -51,10 +51,7 @@ const client = new Client({
 /* =====================
 FILES
 ===================== */
-let config = fs.existsSync("config.json")
-  ? JSON.parse(fs.readFileSync("config.json", "utf8"))
-  : { channels: {}, ranks: [], rankRequirements: {} };
-
+let config = JSON.parse(fs.readFileSync("config.json", "utf8"));
 const objects = JSON.parse(fs.readFileSync("objects.json", "utf8"));
 
 let users = fs.existsSync("users.json")
@@ -84,11 +81,11 @@ function getUser(id) {
 }
 
 /* =====================
-DROP SYSTEM (6 CANALES)
+DROP SYSTEM
 ===================== */
-client.on(Events.MessageCreate, async message => {
+client.on(Events.MessageCreate, message => {
   if (message.author.bot || !message.guild) return;
-  if (!config.channels.reliquies?.includes(message.channel.id)) return;
+  if (!config.channels?.reliquies?.includes(message.channel.id)) return;
 
   const user = getUser(message.author.id);
   user.messages++;
@@ -110,7 +107,6 @@ client.on(Events.MessageCreate, async message => {
   ];
 
   let item;
-  const pool = pools[index] || objects.class4;
 
   if (Math.random() <= 0.000001) {
     item = objects.ultra[0];
@@ -119,12 +115,17 @@ client.on(Events.MessageCreate, async message => {
       `**${message.author.username}** obtuvo **${item.icon} ${item.name}**`
     );
   } else {
+    const pool = pools[index] || objects.class4;
     item = pool[Math.floor(Math.random() * pool.length)];
   }
 
-  user.inventory[item.name] ??= { name: item.name, icon: item.icon, qty: 0 };
-  user.inventory[item.name].qty++;
+  user.inventory[item.name] ??= {
+    name: item.name,
+    icon: item.icon,
+    qty: 0
+  };
 
+  user.inventory[item.name].qty++;
   saveUsers();
 
   message.reply(
@@ -137,100 +138,145 @@ SLASH COMMANDS
 ===================== */
 const commands = [
   new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
-  new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
+  new SlashCommandBuilder().setName("mymoney").setDescription("Ver tus monedas"),
+  new SlashCommandBuilder().setName("rankup").setDescription("Ascender de rango"),
 
   new SlashCommandBuilder()
     .setName("trade")
-    .setDescription("Intercambiar ítems")
+    .setDescription("Intercambiar reliquias")
     .addUserOption(o => o.setName("user").setDescription("Usuario").setRequired(true))
-    .addStringOption(o => o.setName("item").setDescription("Ítem exacto").setRequired(true))
-    .addIntegerOption(o => o.setName("cantidad").setDescription("Cantidad").setRequired(true)),
+    .addStringOption(o => o.setName("item").setDescription("Objeto").setRequired(true)),
 
-  new SlashCommandBuilder().setName("setchanneltrade").setDescription("Canal de trade").setDefaultMemberPermissions(0),
+  new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Canales reliquias").setDefaultMemberPermissions(0),
+  new SlashCommandBuilder().setName("setchanneltrade").setDescription("Canal trade").setDefaultMemberPermissions(0),
+  new SlashCommandBuilder().setName("setchannelsell").setDescription("Canal venta").setDefaultMemberPermissions(0),
+  new SlashCommandBuilder().setName("setchanneltops").setDescription("Canal tops").setDefaultMemberPermissions(0),
 ];
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 /* =====================
-TRADE SYSTEM
+TOPS
 ===================== */
-const pendingTrades = new Map();
+function sendTops() {
+  const guild = client.guilds.cache.first();
+  if (!guild || !config.channels?.tops) return;
 
-client.on(Events.InteractionCreate, async interaction => {
+  const channel = guild.channels.cache.get(config.channels.tops);
+  if (!channel) return;
 
-  if (interaction.isChatInputCommand()) {
-    const user = getUser(interaction.user.id);
+  const members = Object.entries(users)
+    .map(([id, data]) => {
+      const member = guild.members.cache.get(id);
+      if (!member) return null;
 
-    if (interaction.commandName === "trade") {
-      if (interaction.channel.id !== config.channels.trade)
-        return interaction.reply({ content: "❌ Este no es el canal de trade.", ephemeral: true });
+      return {
+        name: member.user.username,
+        money: data.money,
+        items: Object.values(data.inventory).reduce((a, b) => a + b.qty, 0)
+      };
+    })
+    .filter(Boolean);
 
-      const target = interaction.options.getUser("user");
-      const itemName = interaction.options.getString("item");
-      const qty = interaction.options.getInteger("cantidad");
+  const topMoney = [...members].sort((a,b)=>b.money-a.money).slice(0,5);
+  const topItems = [...members].sort((a,b)=>b.items-a.items).slice(0,5);
 
-      if (target.id === interaction.user.id)
-        return interaction.reply({ content: "❌ No puedes tradear contigo.", ephemeral: true });
+  channel.send(
+`🏆 **Tops del Abismo**
 
-      if (!user.inventory[itemName] || user.inventory[itemName].qty < qty)
-        return interaction.reply({ content: "❌ No tienes ese ítem.", ephemeral: true });
+💰 **Más dinero**
+${topMoney.map((u,i)=>`${i+1}. ${u.name} — ${u.money}`).join("\n")}
 
-      const tradeId = `${interaction.user.id}_${target.id}`;
-      pendingTrades.set(tradeId, { from: interaction.user.id, to: target.id, itemName, qty });
-
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`trade_accept_${tradeId}`).setLabel("Aceptar").setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId(`trade_cancel_${tradeId}`).setLabel("Cancelar").setStyle(ButtonStyle.Danger)
-      );
-
-      return interaction.reply({
-        content: `🔁 **Trade propuesto**\n${interaction.user.username} ofrece **${qty} ${itemName}** a ${target.username}`,
-        components: [row]
-      });
-    }
-  }
-
-  if (interaction.isButton()) {
-    const [_, action, tradeId] = interaction.customId.split("_");
-    const trade = pendingTrades.get(tradeId);
-    if (!trade) return interaction.reply({ content: "❌ Trade expirado.", ephemeral: true });
-
-    if (action === "cancel") {
-      pendingTrades.delete(tradeId);
-      return interaction.update({ content: "❌ Trade cancelado.", components: [] });
-    }
-
-    if (action === "accept") {
-      if (interaction.user.id !== trade.to)
-        return interaction.reply({ content: "❌ No eres el destinatario.", ephemeral: true });
-
-      const from = getUser(trade.from);
-      const to = getUser(trade.to);
-
-      from.inventory[trade.itemName].qty -= trade.qty;
-      if (from.inventory[trade.itemName].qty <= 0)
-        delete from.inventory[trade.itemName];
-
-      to.inventory[trade.itemName] ??= { name: trade.itemName, icon: "📦", qty: 0 };
-      to.inventory[trade.itemName].qty += trade.qty;
-
-      saveUsers();
-      pendingTrades.delete(tradeId);
-
-      return interaction.update({
-        content: "✅ **Trade completado con éxito.**",
-        components: []
-      });
-    }
-  }
-});
+🎒 **Más reliquias**
+${topItems.map((u,i)=>`${i+1}. ${u.name} — ${u.items}`).join("\n")}
+`);
+}
 
 /* =====================
 READY
 ===================== */
 client.once(Events.ClientReady, async () => {
   await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+  setInterval(sendTops, 2 * 60 * 1000);
   console.log("🧭 Belaf despierta");
+});
+
+/* =====================
+INTERACTIONS
+===================== */
+client.on(Events.InteractionCreate, async interaction => {
+
+  if (interaction.isChannelSelectMenu()) {
+    if (interaction.customId === "reliquies") config.channels.reliquies = interaction.values;
+    if (interaction.customId === "trade") config.channels.trade = interaction.values[0];
+    if (interaction.customId === "sell") config.channels.sell = interaction.values[0];
+    if (interaction.customId === "tops") config.channels.tops = interaction.values[0];
+    saveConfig();
+    return interaction.update({ content: "📜 Registrado.", components: [] });
+  }
+
+  if (!interaction.isChatInputCommand()) return;
+  const user = getUser(interaction.user.id);
+
+  /* INVENTORY */
+  if (interaction.commandName === "inventory") {
+    const items = Object.values(user.inventory);
+    if (!items.length) return interaction.reply({ content: "🎒 Vacío", ephemeral: true });
+
+    return interaction.reply({
+      content: items.map(i => `${i.icon} **${i.name}** x${i.qty}`).join("\n"),
+      ephemeral: true
+    });
+  }
+
+  /* MONEY */
+  if (interaction.commandName === "mymoney") {
+    return interaction.reply({ content: `💰 ${user.money} monedas`, ephemeral: true });
+  }
+
+  /* TRADE */
+  if (interaction.commandName === "trade") {
+    if (interaction.channelId !== config.channels.trade)
+      return interaction.reply({ content: "❌ No es el canal de trade.", ephemeral: true });
+
+    const target = interaction.options.getUser("user");
+    const itemName = interaction.options.getString("item");
+
+    if (!user.inventory[itemName] || user.inventory[itemName].qty < 1)
+      return interaction.reply({ content: "🎒 No tienes ese objeto.", ephemeral: true });
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`trade_accept_${interaction.user.id}_${target.id}_${itemName}`)
+        .setLabel("Aceptar trade")
+        .setStyle(ButtonStyle.Success)
+    );
+
+    return interaction.reply({
+      content: `🔁 **${target.username}**, ${interaction.user.username} te ofrece **${itemName}**`,
+      components: [row]
+    });
+  }
+
+  /* BUTTONS */
+  if (interaction.isButton()) {
+    const [_, from, to, item] = interaction.customId.split("_");
+    if (interaction.user.id !== to) return interaction.reply({ content: "❌ No es para ti.", ephemeral: true });
+
+    const giver = getUser(from);
+    const receiver = getUser(to);
+
+    if (!giver.inventory[item]) return interaction.reply({ content: "❌ Trade inválido.", ephemeral: true });
+
+    giver.inventory[item].qty--;
+    if (giver.inventory[item].qty <= 0) delete giver.inventory[item];
+
+    receiver.inventory[item] ??= { name: item, icon: giver.inventory[item]?.icon || "📦", qty: 0 };
+    receiver.inventory[item].qty++;
+
+    saveUsers();
+    return interaction.update({ content: "✅ **Trade completado.**", components: [] });
+  }
 });
 
 client.login(TOKEN);
