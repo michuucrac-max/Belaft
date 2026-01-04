@@ -200,31 +200,41 @@ client.once(Events.ClientReady, async () => {
 
   // ENVIAR TOPS AUTOMÁTICOS
   setInterval(() => {
-    if (!config.channels.tops) return;
-    const channel = client.channels.cache.get(config.channels.tops);
-    if (!channel) return;
+  if (!config.channels.tops) return;
+  const channel = client.channels.cache.get(config.channels.tops);
+  if (!channel) return;
 
-    const topMoney = Object.entries(users)
-      .sort(([, a], [, b]) => b.money - a.money)
-      .slice(0, 5)
-      .map(([id, u], i) => `#${i+1} <@${id}> - ${u.money} 💰`)
-      .join("\n");
+  // ===== TOP DINERO =====
+  const topMoney = Object.entries(users)
+    .sort(([, a], [, b]) => b.money - a.money)
+    .slice(0, 5)
+    .map(([id, u], i) =>
+      `#${i + 1} <@${id}> [${u.rank}] — ${u.money} 💰`
+    )
+    .join("\n");
 
-    const topObjects = Object.entries(users)
-      .map(([id, u]) => {
-        const totalQty = Object.values(u.inventory).reduce((sum, o) => sum + o.qty, 0);
-        return { id, totalQty };
-      })
-      .sort((a, b) => b.totalQty - a.totalQty)
-      .slice(0, 5)
-      .map((u, i) => `#${i+1} <@${u.id}> - ${u.totalQty} objetos`)
-      .join("\n");
+  // ===== TOP RELIQUIAS =====
+  const topRelics = Object.entries(users)
+    .map(([id, u]) => {
+      const totalQty = Object.values(u.inventory || {})
+        .reduce((sum, o) => sum + o.qty, 0);
+      return { id, totalQty, rank: u.rank };
+    })
+    .sort((a, b) => b.totalQty - a.totalQty)
+    .slice(0, 5)
+    .map((u, i) =>
+      `#${i + 1} <@${u.id}> [${u.rank}] — ${u.totalQty} reliquias`
+    )
+    .join("\n");
 
-    channel.send({
-      content: `🏆 **TOP 5 Monedas** 🏆\n${topMoney}\n\n🎒 **TOP 5 Objetos** 🎒\n${topObjects}`
-    });
-  }, 2 * 60 * 1000);
-});
+  channel.send({
+    content:
+      `🏆 **TOP EXPLORADORES** 🏆\n\n` +
+      `💰 **Top Dinero**\n${topMoney || "Sin datos"}\n\n` +
+      `🎒 **Top Reliquias**\n${topRelics || "Sin datos"}`
+  });
+
+}, 10 * 60 * 1000); // ⏱️ cada 10 minutos
 
 /* =====================
 INTERACTIONS
