@@ -120,18 +120,26 @@ client.on(Events.MessageCreate, message => {
 });
 
 /* =====================
-COMMANDS
+SLASH COMMANDS
 ===================== */
 const commands = [
-  new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
-  new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
-  new SlashCommandBuilder().setName("rankup").setDescription("Subir de rango"),
+  new SlashCommandBuilder()
+    .setName("inventory")
+    .setDescription("Ver inventario"), // ✅ description string literal
+  new SlashCommandBuilder()
+    .setName("mymoney")
+    .setDescription("Ver monedas"), // ✅
+  new SlashCommandBuilder()
+    .setName("rankup")
+    .setDescription("Subir de rango"), // ✅
 
   new SlashCommandBuilder()
     .setName("sell")
-    .setDescription("Vender reliquias")
+    .setDescription("Vender reliquias") // ✅
     .addStringOption(o =>
-      o.setName("mode")
+      o
+        .setName("mode")
+        .setDescription("Modo de venta") // ✅ obligatorio
         .setRequired(true)
         .addChoices([
           { name: "Uno", value: "one" },
@@ -141,34 +149,68 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName("trade")
-    .setDescription("Intercambiar reliquias")
+    .setDescription("Intercambiar reliquias") // ✅
     .addUserOption(o =>
-      o.setName("user").setDescription("Usuario").setRequired(true)
+      o
+        .setName("user")
+        .setDescription("Selecciona usuario") // ✅
+        .setRequired(true)
     ),
 
-  new SlashCommandBuilder().setName("setchannelreliquies")
+  new SlashCommandBuilder()
+    .setName("setchannelreliquies")
     .setDescription("Configurar drops")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
-  new SlashCommandBuilder().setName("setchanneltrade")
+  new SlashCommandBuilder()
+    .setName("setchanneltrade")
     .setDescription("Configurar trade")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
-  new SlashCommandBuilder().setName("setchannelsell")
+  new SlashCommandBuilder()
+    .setName("setchannelsell")
     .setDescription("Configurar sell")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
-  new SlashCommandBuilder().setName("setchanneltops")
+  new SlashCommandBuilder()
+    .setName("setchanneltops")
     .setDescription("Configurar tops")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
 ];
 
-const rest = new REST({ version: "10" }).setToken(TOKEN);
+/* =====================
+TRADE MENU
+===================== */
+if (interaction.isStringSelectMenu() && interaction.customId.startsWith("trade_")) {
+  const [, from, to] = interaction.customId.split("_");
+  if (interaction.user.id !== from) return;
 
-client.once(Events.ClientReady, async () => {
-  await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-  console.log("🧭 Belaf despierta");
-});
+  const fromUser = getUser(from);
+  const toUser = getUser(to);
+  const name = interaction.values[0];
+
+  if (!fromUser.inventory[name]) return;
+
+  fromUser.inventory[name].qty--;
+
+  if (!toUser.inventory[name]) {
+    toUser.inventory[name] = {
+      name: fromUser.inventory[name].name ?? "Objeto",
+      icon: fromUser.inventory[name].icon ?? "❔",
+      price: fromUser.inventory[name].price ?? 0,
+      qty: 0
+    };
+  }
+
+  toUser.inventory[name].qty++;
+
+  if (fromUser.inventory[name].qty <= 0)
+    delete fromUser.inventory[name];
+
+  saveUsers();
+
+  return interaction.update({ content: "🔁 Trade completado.", components: [] });
+}
 
 /* =====================
 INTERACTIONS
