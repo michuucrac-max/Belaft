@@ -133,10 +133,10 @@ const commands = [
     .addStringOption(o =>
       o.setName("mode")
         .setRequired(true)
-        .addChoices(
+        .addChoices([
           { name: "Uno", value: "one" },
           { name: "Todo", value: "all" }
-        )
+        ])
     ),
 
   new SlashCommandBuilder()
@@ -251,7 +251,7 @@ client.on(Events.InteractionCreate, async interaction => {
       .setPlaceholder("Selecciona objeto")
       .addOptions(items.map(i => ({
         label: i.name,
-        value: i.name,
+        value: i.name.toString(), // asegurar string
         description: `x${i.qty}`
       })));
 
