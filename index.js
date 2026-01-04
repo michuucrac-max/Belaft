@@ -65,7 +65,10 @@ const saveUsers = () =>
 const saveConfig = () =>
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 
-function getUser(id) {
+/* =====================
+USER MANAGEMENT
+===================== */
+function getUser(id, guildMember = null) {
   if (!users[id]) {
     users[id] = {
       money: 0,
@@ -74,9 +77,20 @@ function getUser(id) {
       inventory: {},
       messages: 0
     };
-    saveUsers();
   }
-  updateHumanity(users[id]); // asegurarnos que humanidad esté correcta
+
+  // Actualizamos rango según roles de Discord si tenemos member
+  if (guildMember) {
+    const roleOrder = ["bell","silbato_rojo","silbato_azul","silbato_lunar","silbato_negro","silbato_blanco","narehate"];
+    const memberRoles = guildMember.roles.cache.map(r => r.name);
+
+    // Elegimos el rol más alto según el orden
+    const matchedRole = roleOrder.reverse().find(r => memberRoles.includes(r));
+    if (matchedRole) users[id].rank = matchedRole;
+  }
+
+  updateHumanity(users[id]);
+  saveUsers();
   return users[id];
 }
 
@@ -94,7 +108,7 @@ client.on(Events.MessageCreate, message => {
   if (!config.channels.reliquies.includes(message.channel.id)) return;
 
   const depth = config.channels.reliquies.indexOf(message.channel.id);
-  const user = getUser(message.author.id);
+  const user = getUser(message.author.id, message.member);
   user.messages++;
 
   if (user.messages % 5 !== 0) return;
@@ -212,9 +226,9 @@ client.once(Events.ClientReady, async () => {
       .join("\n");
 
     channel.send({
-      content: `🏆 **TOP 5 Monedas** 🏆\n${topMoney}\n\n🎒 **TOP 5 Objetos** 🎒\n${topObjects}`
+      content: `🏆 **Top exploradores**\n\n🏆 **TOP 5 Monedas** 🏆\n${topMoney}\n\n🎒 **TOP 5 Objetos** 🎒\n${topObjects}`
     });
-  }, 2 * 60 * 1000); // cada 2 minutos
+  }, 2 * 60 * 1000);
 });
 
 /* =====================
@@ -253,7 +267,7 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (!interaction.isChatInputCommand()) return;
-  const user = getUser(interaction.user.id);
+  const user = getUser(interaction.user.id, interaction.member);
 
   /* ===== RANKUP ===== */
   if (interaction.commandName === "rankup") {
@@ -285,8 +299,8 @@ client.on(Events.InteractionCreate, async interaction => {
       return interaction.reply({ ephemeral: true, content: "❌ Canal incorrecto." });
 
     const targetUser = interaction.options.getUser("user");
-    const target = getUser(targetUser.id);
-    updateHumanity(target);
+    const targetMember = interaction.guild.members.cache.get(targetUser.id);
+    const target = getUser(targetUser.id, targetMember);
 
     if (user.humanity && target.humanity)
       return interaction.reply({ ephemeral: true, content: "❌ Humanos no pueden tradear entre sí." });
@@ -317,8 +331,8 @@ client.on(Events.InteractionCreate, async interaction => {
     const [, from, to] = interaction.customId.split("_");
     if (interaction.user.id !== from) return;
 
-    const fromUser = getUser(from);
-    const toUser = getUser(to);
+    const fromUser = getUser(from, interaction.guild.members.cache.get(from));
+    const toUser = getUser(to, interaction.guild.members.cache.get(to));
     const name = interaction.values[0];
 
     if (!fromUser.inventory[name]) return;
