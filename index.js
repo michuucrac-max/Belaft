@@ -45,33 +45,32 @@ const client = new Client({
 /* =====================
 FILES
 ===================== */
-let config = fs.existsSync("config.json")
-  ? JSON.parse(fs.readFileSync("config.json"))
-  : {
-      channels: {
-        reliquies: [],
-        trade: null,
-        sell: null,
-        tops: null
-      }
-    };
+const configPath = "./config.json";
+const usersPath = "./users.json";
+const objectsPath = "./objects.json";
 
-const objects = JSON.parse(fs.readFileSync("objects.json"));
-let users = fs.existsSync("users.json")
-  ? JSON.parse(fs.readFileSync("users.json"))
+const config = fs.existsSync(configPath)
+  ? JSON.parse(fs.readFileSync(configPath, "utf8"))
+  : { channels: { reliquies: [], trade: null, sell: null, tops: null } };
+
+const objects = JSON.parse(fs.readFileSync(objectsPath, "utf8"));
+
+const users = fs.existsSync(usersPath)
+  ? JSON.parse(fs.readFileSync(usersPath, "utf8"))
   : {};
 
 const saveUsers = () =>
-  fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
+  fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+
 const saveConfig = () =>
-  fs.writeFileSync("config.json", JSON.stringify(config, null, 2));
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 
 function getUser(id) {
   if (!users[id]) {
     users[id] = {
       money: 0,
       rank: "bell",
-      humanity: true, // false = narehate
+      humanity: true,
       inventory: {},
       messages: 0
     };
@@ -81,7 +80,7 @@ function getUser(id) {
 }
 
 /* =====================
-DROP SYSTEM (NO TOCADO)
+DROP SYSTEM
 ===================== */
 client.on(Events.MessageCreate, message => {
   if (message.author.bot || !message.guild) return;
@@ -97,7 +96,7 @@ client.on(Events.MessageCreate, message => {
     objects.class4,
     objects.class3,
     objects.class2,
-    objects.class1,
+    objects.special,
     objects.special,
     objects.special
   ];
@@ -105,15 +104,23 @@ client.on(Events.MessageCreate, message => {
   const pool = pools[depth] ?? objects.class4;
   const item = pool[Math.floor(Math.random() * pool.length)];
 
-  user.inventory[item.name] ??= { ...item, qty: 0 };
-  user.inventory[item.name].qty++;
+  if (!user.inventory[item.name]) {
+    user.inventory[item.name] = {
+      name: item.name,
+      icon: item.icon,
+      price: item.price ?? item.value ?? 0,
+      qty: 0
+    };
+  }
 
+  user.inventory[item.name].qty++;
   saveUsers();
+
   message.reply(`🧭 Encontraste **${item.icon} ${item.name}**`);
 });
 
 /* =====================
-SLASH COMMANDS
+COMMANDS
 ===================== */
 const commands = [
   new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
@@ -139,24 +146,20 @@ const commands = [
       o.setName("user").setDescription("Usuario").setRequired(true)
     ),
 
-  new SlashCommandBuilder()
-    .setName("setchannelreliquies")
-    .setDescription("Drops")
+  new SlashCommandBuilder().setName("setchannelreliquies")
+    .setDescription("Configurar drops")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
-  new SlashCommandBuilder()
-    .setName("setchanneltrade")
-    .setDescription("Trade")
+  new SlashCommandBuilder().setName("setchanneltrade")
+    .setDescription("Configurar trade")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
-  new SlashCommandBuilder()
-    .setName("setchannelsell")
-    .setDescription("Sell")
+  new SlashCommandBuilder().setName("setchannelsell")
+    .setDescription("Configurar sell")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
-  new SlashCommandBuilder()
-    .setName("setchanneltops")
-    .setDescription("Tops")
+  new SlashCommandBuilder().setName("setchanneltops")
+    .setDescription("Configurar tops")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
 ];
 
@@ -202,6 +205,7 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (!interaction.isChatInputCommand()) return;
+
   const user = getUser(interaction.user.id);
 
   /* ===== RANKUP ===== */
@@ -218,12 +222,13 @@ client.on(Events.InteractionCreate, async interaction => {
 
     const cost = costs[i + 1];
     if (user.money < cost)
-      return interaction.reply({ ephemeral: true, content: `💰 Necesitas ${cost}` });
+      return interaction.reply({ ephemeral: true, content: `💰 Necesitas ${cost} monedas.` });
 
     user.money -= cost;
     user.rank = order[i + 1];
     saveUsers();
-    return interaction.reply(`🏅 Nuevo rango: **${user.rank}** (💰 -${cost})`);
+
+    return interaction.reply(`🏅 Ascendiste a **${user.rank}** (-${cost} 💰)`);
   }
 
   /* ===== TRADE ===== */
@@ -234,11 +239,7 @@ client.on(Events.InteractionCreate, async interaction => {
     const targetUser = interaction.options.getUser("user");
     const target = getUser(targetUser.id);
 
-    const valid =
-      (!user.humanity && !target.humanity) ||
-      (user.humanity && !target.humanity);
-
-    if (!valid)
+    if (user.humanity && target.humanity)
       return interaction.reply({ ephemeral: true, content: "❌ Humanos no pueden tradear entre sí." });
 
     const items = Object.values(user.inventory).filter(i => i.qty > 0);
@@ -248,40 +249,42 @@ client.on(Events.InteractionCreate, async interaction => {
     const menu = new StringSelectMenuBuilder()
       .setCustomId(`trade_${interaction.user.id}_${targetUser.id}`)
       .setPlaceholder("Selecciona objeto")
-      .addOptions(
-        items.map(i => ({
-          label: i.name,
-          value: i.name,
-          description: `x${i.qty}`
-        }))
-      );
+      .addOptions(items.map(i => ({
+        label: i.name,
+        value: i.name,
+        description: `x${i.qty}`
+      })));
 
     return interaction.reply({
       ephemeral: true,
       components: [new ActionRowBuilder().addComponents(menu)]
     });
   }
-});
 
-/* =====================
-TRADE MENU
-===================== */
-client.on(Events.InteractionCreate, async interaction => {
-  if (!interaction.isStringSelectMenu()) return;
+  /* ===== TRADE MENU ===== */
+  if (interaction.isStringSelectMenu() &&
+      interaction.customId.startsWith("trade_")) {
 
-  if (interaction.customId.startsWith("trade_")) {
     const [, from, to] = interaction.customId.split("_");
     if (interaction.user.id !== from) return;
 
-    const user = getUser(from);
-    const target = getUser(to);
+    const fromUser = getUser(from);
+    const toUser = getUser(to);
     const name = interaction.values[0];
 
-    user.inventory[name].qty--;
-    target.inventory[name] ??= { ...user.inventory[name], qty: 0 };
-    target.inventory[name].qty++;
+    if (!fromUser.inventory[name]) return;
 
-    if (user.inventory[name].qty <= 0) delete user.inventory[name];
+    fromUser.inventory[name].qty--;
+
+    if (!toUser.inventory[name]) {
+      toUser.inventory[name] = { ...fromUser.inventory[name], qty: 0 };
+    }
+
+    toUser.inventory[name].qty++;
+
+    if (fromUser.inventory[name].qty <= 0)
+      delete fromUser.inventory[name];
+
     saveUsers();
 
     return interaction.update({ content: "🔁 Trade completado.", components: [] });
