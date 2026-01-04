@@ -9,7 +9,8 @@ import {
   ActionRowBuilder,
   StringSelectMenuBuilder,
   ChannelSelectMenuBuilder,
-  ChannelType
+  ChannelType,
+  PermissionsBitField
 } from "discord.js";
 
 import fs from "fs";
@@ -138,10 +139,25 @@ const commands = [
       o.setName("user").setDescription("Usuario").setRequired(true)
     ),
 
-  new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Drops").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchanneltrade").setDescription("Trade").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchannelsell").setDescription("Sell").setDefaultMemberPermissions(0),
-  new SlashCommandBuilder().setName("setchanneltops").setDescription("Tops").setDefaultMemberPermissions(0)
+  new SlashCommandBuilder()
+    .setName("setchannelreliquies")
+    .setDescription("Drops")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
+  new SlashCommandBuilder()
+    .setName("setchanneltrade")
+    .setDescription("Trade")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
+  new SlashCommandBuilder()
+    .setName("setchannelsell")
+    .setDescription("Sell")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
+  new SlashCommandBuilder()
+    .setName("setchanneltops")
+    .setDescription("Tops")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
 ];
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
@@ -165,6 +181,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
     const menu = new ChannelSelectMenuBuilder()
       .setCustomId(id)
+      .setPlaceholder("Selecciona canal(es)")
       .addChannelTypes(ChannelType.GuildText)
       .setMinValues(1)
       .setMaxValues(multi ? 6 : 1);
@@ -224,13 +241,15 @@ client.on(Events.InteractionCreate, async interaction => {
     if (!valid)
       return interaction.reply({ ephemeral: true, content: "❌ Humanos no pueden tradear entre sí." });
 
-    if (!Object.keys(user.inventory).length)
+    const items = Object.values(user.inventory).filter(i => i.qty > 0);
+    if (!items.length)
       return interaction.reply({ ephemeral: true, content: "🎒 Inventario vacío." });
 
     const menu = new StringSelectMenuBuilder()
       .setCustomId(`trade_${interaction.user.id}_${targetUser.id}`)
+      .setPlaceholder("Selecciona objeto")
       .addOptions(
-        Object.values(user.inventory).map(i => ({
+        items.map(i => ({
           label: i.name,
           value: i.name,
           description: `x${i.qty}`
