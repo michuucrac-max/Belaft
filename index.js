@@ -235,7 +235,7 @@ client.once(Events.ClientReady, async () => {
   });
 
 }, 10 * 60 * 1000); // ⏱️ cada 10 minutos
-}
+})
 /* =====================
 INTERACTIONS
 ===================== */
