@@ -76,7 +76,14 @@ function getUser(id) {
     };
     saveUsers();
   }
+  updateHumanity(users[id]); // asegurarnos que humanidad esté correcta
   return users[id];
+}
+
+// Actualiza humanidad según rango
+function updateHumanity(user) {
+  const narehateRanks = ["silbato_rojo","silbato_azul","silbato_lunar","silbato_negro","silbato_blanco","narehate"];
+  user.humanity = !narehateRanks.includes(user.rank);
 }
 
 /* =====================
@@ -177,6 +184,37 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 client.once(Events.ClientReady, async () => {
   await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
   console.log("🧭 Belaf despierta");
+
+  // =====================
+  // ENVIAR TOPS CADA 2 MINUTOS
+  // =====================
+  setInterval(() => {
+    if (!config.channels.tops) return;
+    const channel = client.channels.cache.get(config.channels.tops);
+    if (!channel) return;
+
+    // Top dinero
+    const topMoney = Object.entries(users)
+      .sort(([, a], [, b]) => b.money - a.money)
+      .slice(0, 5)
+      .map(([id, u], i) => `#${i+1} <@${id}> - ${u.money} 💰`)
+      .join("\n");
+
+    // Top objetos (cantidad total)
+    const topObjects = Object.entries(users)
+      .map(([id, u]) => {
+        const totalQty = Object.values(u.inventory).reduce((sum, o) => sum + o.qty, 0);
+        return { id, totalQty };
+      })
+      .sort((a, b) => b.totalQty - a.totalQty)
+      .slice(0, 5)
+      .map((u, i) => `#${i+1} <@${u.id}> - ${u.totalQty} objetos`)
+      .join("\n");
+
+    channel.send({
+      content: `🏆 **TOP 5 Monedas** 🏆\n${topMoney}\n\n🎒 **TOP 5 Objetos** 🎒\n${topObjects}`
+    });
+  }, 2 * 60 * 1000); // cada 2 minutos
 });
 
 /* =====================
@@ -235,6 +273,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
     user.money -= cost;
     user.rank = order[i + 1];
+    updateHumanity(user);
     saveUsers();
 
     return interaction.reply(`🏅 Ascendiste a **${user.rank}** (-${cost} 💰)`);
@@ -247,6 +286,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
     const targetUser = interaction.options.getUser("user");
     const target = getUser(targetUser.id);
+    updateHumanity(target);
 
     if (user.humanity && target.humanity)
       return interaction.reply({ ephemeral: true, content: "❌ Humanos no pueden tradear entre sí." });
