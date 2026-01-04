@@ -125,92 +125,59 @@ SLASH COMMANDS
 const commands = [
   new SlashCommandBuilder()
     .setName("inventory")
-    .setDescription("Ver inventario"), // ✅ description string literal
+    .setDescription("Ver inventario"),
   new SlashCommandBuilder()
     .setName("mymoney")
-    .setDescription("Ver monedas"), // ✅
+    .setDescription("Ver monedas"),
   new SlashCommandBuilder()
     .setName("rankup")
-    .setDescription("Subir de rango"), // ✅
-
+    .setDescription("Subir de rango"),
   new SlashCommandBuilder()
     .setName("sell")
-    .setDescription("Vender reliquias") // ✅
+    .setDescription("Vender reliquias")
     .addStringOption(o =>
       o
         .setName("mode")
-        .setDescription("Modo de venta") // ✅ obligatorio
+        .setDescription("Modo de venta")
         .setRequired(true)
         .addChoices([
           { name: "Uno", value: "one" },
           { name: "Todo", value: "all" }
         ])
     ),
-
   new SlashCommandBuilder()
     .setName("trade")
-    .setDescription("Intercambiar reliquias") // ✅
+    .setDescription("Intercambiar reliquias")
     .addUserOption(o =>
       o
         .setName("user")
-        .setDescription("Selecciona usuario") // ✅
+        .setDescription("Selecciona usuario")
         .setRequired(true)
     ),
-
   new SlashCommandBuilder()
     .setName("setchannelreliquies")
     .setDescription("Configurar drops")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-
   new SlashCommandBuilder()
     .setName("setchanneltrade")
     .setDescription("Configurar trade")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-
   new SlashCommandBuilder()
     .setName("setchannelsell")
     .setDescription("Configurar sell")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-
   new SlashCommandBuilder()
     .setName("setchanneltops")
     .setDescription("Configurar tops")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
 ];
 
-/* =====================
-TRADE MENU
-===================== */
-if (interaction.isStringSelectMenu() && interaction.customId.startsWith("trade_")) {
-  const [, from, to] = interaction.customId.split("_");
-  if (interaction.user.id !== from) return;
+const rest = new REST({ version: "10" }).setToken(TOKEN);
 
-  const fromUser = getUser(from);
-  const toUser = getUser(to);
-  const name = interaction.values[0];
-
-  if (!fromUser.inventory[name]) return;
-
-  fromUser.inventory[name].qty--;
-
-  if (!toUser.inventory[name]) {
-    toUser.inventory[name] = {
-      name: fromUser.inventory[name].name ?? "Objeto",
-      icon: fromUser.inventory[name].icon ?? "❔",
-      price: fromUser.inventory[name].price ?? 0,
-      qty: 0
-    };
-  }
-
-  toUser.inventory[name].qty++;
-
-  if (fromUser.inventory[name].qty <= 0)
-    delete fromUser.inventory[name];
-
-  saveUsers();
-
-  return interaction.update({ content: "🔁 Trade completado.", components: [] });
-}
+client.once(Events.ClientReady, async () => {
+  await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+  console.log("🧭 Belaf despierta");
+});
 
 /* =====================
 INTERACTIONS
@@ -237,6 +204,7 @@ client.on(Events.InteractionCreate, async interaction => {
     });
   }
 
+  /* ===== CHANNEL SELECT ===== */
   if (interaction.isChannelSelectMenu()) {
     if (interaction.customId === "reliquies") config.channels.reliquies = interaction.values;
     if (interaction.customId === "trade") config.channels.trade = interaction.values[0];
@@ -247,7 +215,6 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (!interaction.isChatInputCommand()) return;
-
   const user = getUser(interaction.user.id);
 
   /* ===== RANKUP ===== */
@@ -273,7 +240,7 @@ client.on(Events.InteractionCreate, async interaction => {
     return interaction.reply(`🏅 Ascendiste a **${user.rank}** (-${cost} 💰)`);
   }
 
-  /* ===== TRADE ===== */
+  /* ===== TRADE COMMAND ===== */
   if (interaction.commandName === "trade") {
     if (interaction.channelId !== config.channels.trade)
       return interaction.reply({ ephemeral: true, content: "❌ Canal incorrecto." });
@@ -293,7 +260,7 @@ client.on(Events.InteractionCreate, async interaction => {
       .setPlaceholder("Selecciona objeto")
       .addOptions(items.map(i => ({
         label: i.name,
-        value: i.name.toString(), // asegurar string
+        value: i.name.toString(),
         description: `x${i.qty}`
       })));
 
@@ -319,7 +286,12 @@ client.on(Events.InteractionCreate, async interaction => {
     fromUser.inventory[name].qty--;
 
     if (!toUser.inventory[name]) {
-      toUser.inventory[name] = { ...fromUser.inventory[name], qty: 0 };
+      toUser.inventory[name] = {
+        name: fromUser.inventory[name].name ?? "Objeto",
+        icon: fromUser.inventory[name].icon ?? "❔",
+        price: fromUser.inventory[name].price ?? 0,
+        qty: 0
+      };
     }
 
     toUser.inventory[name].qty++;
