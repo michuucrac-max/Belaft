@@ -197,7 +197,7 @@ client.once(Events.ClientReady, async () => {
     channel.send({
       content:
 `@everyone
-🏆 **TOPS DEL ABISMO**
+🏆 **TOPS EXPLORADORES**
 
 💰 **Top Dinero**
 ${topMoney || "Sin datos"}
@@ -266,7 +266,15 @@ client.on(Events.InteractionCreate, async interaction => {
     return interaction.reply({ ephemeral: true, content: `💰 ${user.money}` });
   }
 
+  /* ===== SELL (RESTRINGIDO) ===== */
   if (interaction.commandName === "sell") {
+
+    if (interaction.channelId !== config.channels.sell)
+      return interaction.reply({
+        ephemeral: true,
+        content: "❌ Este comando solo puede usarse en el canal de ventas."
+      });
+
     const mode = interaction.options.getString("mode");
 
     if (!Object.keys(user.inventory).length)
@@ -300,6 +308,7 @@ client.on(Events.InteractionCreate, async interaction => {
     });
   }
 
+  /* ===== RANKUP ===== */
   if (interaction.commandName === "rankup") {
     const order = ["bell","silbato_rojo","silbato_azul","silbato_lunar","silbato_negro","silbato_blanco"];
     const costs = [0,100,300,700,1500,3000];
@@ -317,7 +326,15 @@ client.on(Events.InteractionCreate, async interaction => {
     return interaction.reply(`🏅 Ahora eres **${user.rank}**`);
   }
 
+  /* ===== TRADE (RESTRINGIDO) ===== */
   if (interaction.commandName === "trade") {
+
+    if (interaction.channelId !== config.channels.trade)
+      return interaction.reply({
+        ephemeral: true,
+        content: "❌ Este comando solo puede usarse en el canal de trade."
+      });
+
     const target = interaction.options.getUser("user");
     if (!Object.keys(user.inventory).length)
       return interaction.reply({ ephemeral: true, content: "🎒 Vacío" });
@@ -339,7 +356,9 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
-/* ===== SELECT MENUS ===== */
+/* =====================
+SELECT MENUS
+===================== */
 client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isStringSelectMenu()) return;
 
@@ -368,7 +387,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
     if (user.inventory[name].qty <= 0) delete user.inventory[name];
     saveUsers();
-    return interaction.update({ content: `🔁 Intercambio hecho`, components: [] });
+    return interaction.update({ content: "🔁 Intercambio hecho", components: [] });
   }
 });
 
