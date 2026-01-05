@@ -411,35 +411,40 @@ async function sendTopExploradores() {
   if (!config.channels.tops) return;
 
   const channel = await client.channels.fetch(config.channels.tops).catch(() => null);
-  if (!channel) return;
+  if (!channel || !channel.guild) return;
 
-  const data = Object.entries(users)
-    .map(([id, u]) => {
-      let member = null;
-try {
-  member = await channel.guild.members.fetch(id);
-} catch {
-  member = null;
-}
-      const totalItems = Object.values(u.inventory ?? {}).reduce(
-        (sum, i) => sum + (i.qty ?? 0),
-        0
-      );
+  const data = [];
 
-      return {
-        id,
-        tag: member ? member.user.tag : "Usuario salido",
-        rank: getDiscordRank(member),
-        money: u.money ?? 0,
-        items: totalItems
-      };
-    })
+  for (const [id, u] of Object.entries(users)) {
+    let member = null;
+
+    try {
+      member = await channel.guild.members.fetch(id);
+    } catch {
+      member = null;
+    }
+
+    const totalItems = Object.values(u.inventory ?? {}).reduce(
+      (sum, i) => sum + (i.qty ?? 0),
+      0
+    );
+
+    data.push({
+      id,
+      tag: member ? member.user.tag : "Usuario salido",
+      rank: getDiscordRank(member),
+      money: u.money ?? 0,
+      items: totalItems
+    });
+  }
+
+  const top = data
     .sort((a, b) => b.money - a.money)
     .slice(0, 10);
 
-  if (!data.length) return;
+  if (!top.length) return;
 
-  const text = data
+  const text = top
     .map(
       (u, i) =>
         `**${i + 1}. ${u.tag}**\n` +
@@ -452,7 +457,7 @@ try {
   await channel.send({
     content: `🏆 **TOP EXPLORADORES** 🏆\n\n${text}`
   });
-}
+        }
 
 /* Cada 10 minutos */
 setInterval(sendTopExploradores, 10 * 60 * 1000);
