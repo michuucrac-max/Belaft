@@ -215,6 +215,168 @@ const commands = [
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
+/* =====================
+INTERACTIONS
+===================== */
+client.on(Events.InteractionCreate, async interaction => {
+  if (
+    !interaction.isChatInputCommand() &&
+    !interaction.isChannelSelectMenu() &&
+    !interaction.isStringSelectMenu()
+  ) return;
+
+  const user = getUser(interaction.user.id, interaction.member);
+
+  /* ===== SETCHANNEL COMMANDS ===== */
+  if (interaction.isChatInputCommand() && interaction.commandName.startsWith("setchannel")) {
+    const id = interaction.commandName.replace("setchannel", "");
+    const multi = id === "reliquies";
+
+    const menu = new ChannelSelectMenuBuilder()
+      .setCustomId(`setchannel_${id}`)
+      .setPlaceholder("Selecciona canal(es)")
+      .addChannelTypes(ChannelType.GuildText)
+      .setMinValues(1)
+      .setMaxValues(multi ? 6 : 1);
+
+    return interaction.reply({
+      ephemeral: true,
+      components: [new ActionRowBuilder().addComponents(menu)]
+    });
+  }
+
+  /* ===== CHANNEL SELECT ===== */
+  if (interaction.isChannelSelectMenu() && interaction.customId.startsWith("setchannel_")) {
+    const id = interaction.customId.replace("setchannel_", "");
+
+    if (id === "reliquies") config.channels.reliquies = interaction.values;
+    if (id === "trade") config.channels.trade = interaction.values[0];
+    if (id === "sell") config.channels.sell = interaction.values[0];
+    if (id === "tops") config.channels.tops = interaction.values[0];
+
+    saveConfig();
+    return interaction.update({ content: "📜 Canal configurado.", components: [] });
+  }
+
+  /* ===== INVENTORY ===== */
+  if (interaction.isChatInputCommand() && interaction.commandName === "inventory") {
+    if (!Object.keys(user.inventory).length)
+      return interaction.reply({ ephemeral: true, content: "🎒 Tu inventario está vacío." });
+
+    const list = Object.values(user.inventory)
+      .map(i => `${i.icon} ${i.name} x${i.qty}`)
+      .join("\n");
+
+    return interaction.reply({ ephemeral: true, content: `🎒 **Inventario**\n${list}` });
+  }
+
+  /* ===== MY MONEY ===== */
+  if (interaction.isChatInputCommand() && interaction.commandName === "mymoney") {
+    return interaction.reply({ ephemeral: true, content: `💰 Tienes ${user.money} monedas.` });
+  }
+
+  /* ===== RANKUP ===== */
+  if (interaction.isChatInputCommand() && interaction.commandName === "rankup") {
+    if (!user.humanity)
+      return interaction.reply({ ephemeral: true, content: "❌ Los narehates no pueden ascender." });
+
+    const order = ["bell","silbato_rojo","silbato_azul","silbato_lunar","silbato_negro","silbato_blanco"];
+    const costs = [0,100,300,700,1500,3000];
+
+    const i = order.indexOf(user.rank);
+    if (i === order.length - 1)
+      return interaction.reply({ ephemeral: true, content: "🏅 Rango máximo." });
+
+    const cost = costs[i + 1];
+    if (user.money < cost)
+      return interaction.reply({ ephemeral: true, content: `💰 Necesitas ${cost} monedas.` });
+
+    user.money -= cost;
+    user.rank = order[i + 1];
+    updateHumanity(user);
+    saveUsers();
+
+    return interaction.reply(`🏅 Ascendiste a **${user.rank}** (-${cost} 💰)`);
+  }
+
+  /* ===== SELL ===== */
+  if (interaction.isChatInputCommand() && interaction.commandName === "sell") {
+    const mode = interaction.options.getString("mode");
+    if (!Object.keys(user.inventory).length)
+      return interaction.reply({ ephemeral: true, content: "🎒 No tienes objetos." });
+
+    let sold = [];
+    if (mode === "one") {
+      const item = Object.values(user.inventory)[0];
+      user.money += item.price;
+      item.qty--;
+      sold.push(`${item.icon} ${item.name}`);
+      if (item.qty <= 0) delete user.inventory[item.name];
+    } else {
+      for (const i of Object.values(user.inventory)) {
+        user.money += i.price * i.qty;
+        sold.push(`${i.icon} ${i.name} x${i.qty}`);
+      }
+      user.inventory = {};
+    }
+
+    saveUsers();
+    return interaction.reply({ ephemeral: true, content: `💰 Vendiste: ${sold.join(", ")}` });
+  }
+
+  /* ===== TRADE ===== */
+  if (interaction.isChatInputCommand() && interaction.commandName === "trade") {
+    if (interaction.channelId !== config.channels.trade)
+      return interaction.reply({ ephemeral: true, content: "❌ Canal incorrecto." });
+
+    const targetUser = interaction.options.getUser("user");
+    const target = getUser(targetUser.id, interaction.guild.members.cache.get(targetUser.id));
+
+    if (user.humanity && target.humanity)
+      return interaction.reply({ ephemeral: true, content: "❌ Humanos no pueden tradear entre sí." });
+
+    const items = Object.values(user.inventory).filter(i => i.qty > 0);
+    if (!items.length)
+      return interaction.reply({ ephemeral: true, content: "🎒 Inventario vacío." });
+
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId(`trade_${interaction.user.id}_${targetUser.id}`)
+      .setPlaceholder("Selecciona objeto")
+      .addOptions(items.map(i => ({
+        label: i.name,
+        value: i.name,
+        description: `x${i.qty}`
+      })));
+
+    return interaction.reply({
+      ephemeral: true,
+      components: [new ActionRowBuilder().addComponents(menu)]
+    });
+  }
+
+  /* ===== TRADE MENU ===== */
+  if (interaction.isStringSelectMenu() && interaction.customId.startsWith("trade_")) {
+    const [, from, to] = interaction.customId.split("_");
+    if (interaction.user.id !== from) return;
+
+    const fromUser = getUser(from, interaction.guild.members.cache.get(from));
+    const toUser = getUser(to, interaction.guild.members.cache.get(to));
+    const name = interaction.values[0];
+
+    fromUser.inventory[name].qty--;
+    if (!toUser.inventory[name]) {
+      toUser.inventory[name] = { ...fromUser.inventory[name], qty: 0 };
+    }
+    toUser.inventory[name].qty++;
+
+    if (fromUser.inventory[name].qty <= 0)
+      delete fromUser.inventory[name];
+
+    saveUsers();
+    return interaction.update({ content: "🔁 Trade completado.", components: [] });
+  }
+});
+
 client.once(Events.ClientReady, async () => {
   await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
   console.log("🧭 Belaf despierta");
