@@ -384,27 +384,39 @@ client.once(Events.ClientReady, async () => {
 });
 
 /* =====================
+RANGOS POR ID (OFICIAL)
+===================== */
+const RANK_ROLES = [
+  { name: "Bell", id: "1456176950849572979" },
+  { name: "Silbato rojo", id: "1456178133240778763" },
+  { name: "Silbato azul", id: "1456178299364573348" },
+  { name: "Silbato lunar", id: "1456179008625447105" },
+  { name: "Silbato negro", id: "1456178700096635002" },
+  { name: "Silbato blanco", id: "1456179085364695133" }
+];
+
+const NAREHATE_ROLE_ID = "1456180289465483396";
+
+/* =====================
 TOP EXPLORADORES
 ===================== */
 function getDiscordRank(member) {
+function getDiscordRank(member) {
   if (!member) return "Sin rango";
 
-  const order = [
-    "bell",
-    "silbato_rojo",
-    "silbato_azul",
-    "silbato_lunar",
-    "silbato_negro",
-    "silbato_blanco",
-    "narehate"
-  ];
+  // Prioridad máxima: Narehate
+  if (member.roles.cache.has(NAREHATE_ROLE_ID)) {
+    return "Narehate";
+  }
 
-  const found = order
-    .slice()
-    .reverse()
-    .find(r => member.roles.cache.some(role => role.name === r));
+  // Buscar silbatos por ID (del más alto al más bajo)
+  for (let i = RANK_ROLES.length - 1; i >= 0; i--) {
+    if (member.roles.cache.has(RANK_ROLES[i].id)) {
+      return RANK_ROLES[i].name;
+    }
+  }
 
-  return found ?? "Sin rango";
+  return "Sin rango";
 }
 
 async function sendTopExploradores() {
