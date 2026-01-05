@@ -401,7 +401,6 @@ const NAREHATE_ROLE_ID = "1456180289465483396";
 TOP EXPLORADORES
 ===================== */
 function getDiscordRank(member) {
-function getDiscordRank(member) {
   if (!member) return "Sin rango";
 
   // Prioridad máxima: Narehate
@@ -418,7 +417,6 @@ function getDiscordRank(member) {
 
   return "Sin rango";
 }
-
 async function sendTopExploradores() {
   if (!config.channels.tops) return;
 
