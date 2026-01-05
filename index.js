@@ -480,7 +480,8 @@ async function sendTopExploradores() {
 
 /* Cada 10 minutos */
 setInterval(sendTopExploradores, 10*60*1000);
-  
+})
+
 /* =====================
 SAFE SAVE
 ===================== */
