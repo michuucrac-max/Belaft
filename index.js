@@ -287,58 +287,160 @@ client.on(Events.InteractionCreate, async interaction => {
     return interaction.reply({ ephemeral: true, content: `💰 Vendiste: ${sold.join(", ")}` });
   }
 
-  /* ===== TRADE ===== */
-  if (interaction.isChatInputCommand() && interaction.commandName === "trade") {
-    if (interaction.channelId !== config.channels.trade)
-      return interaction.reply({ ephemeral: true, content: "❌ Canal incorrecto." });
+/* ===== TRADE COMPLETO ===== */
+if (interaction.isChatInputCommand() && interaction.commandName === "trade") {
+  if (interaction.channelId !== config.channels.trade)
+    return interaction.reply({ ephemeral: true, content: "❌ Canal incorrecto." });
 
-    const targetUser = interaction.options.getUser("user");
-    const target = getStatus(targetUser.id, await interaction.guild.members.fetch(targetUser.id));
+  const targetUser = interaction.options.getUser("user");
+  if (!targetUser) return;
 
-    if (user.humanity && target.humanity)
-      return interaction.reply({ ephemeral: true, content: "❌ Humanos no pueden tradear entre sí." });
+  const target = getUser(targetUser.id, interaction.guild.members.cache.get(targetUser.id));
+  const user = getUser(interaction.user.id, interaction.member);
 
-    const items = Object.values(user.inventory).filter(i => i.qty > 0);
-    if (!items.length)
-      return interaction.reply({ ephemeral: true, content: "🎒 Inventario vacío." });
+  if (user.humanity && target.humanity)
+    return interaction.reply({ ephemeral: true, content: "❌ Humanos no pueden tradear entre sí." });
 
-    const menu = new StringSelectMenuBuilder()
-      .setCustomId(`trade_${interaction.user.id}_${targetUser.id}`)
-      .setPlaceholder("Selecciona objeto")
-      .addOptions(items.map(i => ({
-        label: i.name,
+  if (!Object.keys(user.inventory).length)
+    return interaction.reply({ ephemeral: true, content: "🎒 Tu inventario está vacío." });
+  if (!Object.keys(target.inventory).length)
+    return interaction.reply({ ephemeral: true, content: "🎒 El inventario del otro usuario está vacío." });
+
+  // Iniciamos sesión de trade
+  if (!global.tradeSessions) global.tradeSessions = {};
+  const sessionId = `${interaction.user.id}_${targetUser.id}`;
+  if (!global.tradeSessions[sessionId]) {
+    global.tradeSessions[sessionId] = { from: {}, to: {}, status: "selecting" };
+  }
+
+  // Mostrar menú de selección para ambos usuarios
+  const createMenu = (inv, customId) => {
+    return new StringSelectMenuBuilder()
+      .setCustomId(customId)
+      .setPlaceholder("Selecciona los objetos que quieres ofrecer (mantén Ctrl para varios)")
+      .setMinValues(1)
+      .setMaxValues(Object.keys(inv).length)
+      .addOptions(Object.values(inv).map(i => ({
+        label: `${i.name} x${i.qty}`,
         value: i.name,
-        description: `x${i.qty}`
+        description: `Valor: ${i.price} monedas`
       })));
+  };
 
-    return interaction.reply({
-      ephemeral: true,
-      components: [new ActionRowBuilder().addComponents(menu)]
+  const rowUser = new ActionRowBuilder().addComponents(createMenu(user.inventory, `trade_select_${interaction.user.id}`));
+  const rowTarget = new ActionRowBuilder().addComponents(createMenu(target.inventory, `trade_select_${targetUser.id}`));
+
+  return interaction.reply({
+    ephemeral: true,
+    content: `🔁 Trade iniciado con ${targetUser.tag}. Selecciona tus objetos:`,
+    components: [rowUser, rowTarget]
+  });
+}
+
+/* ===== SELECCIÓN DE OBJETOS ===== */
+if (interaction.isStringSelectMenu() && interaction.customId.startsWith("trade_select_")) {
+  const userId = interaction.customId.replace("trade_select_", "");
+  const session = Object.values(global.tradeSessions || {}).find(s => s.from[userId] || s.to[userId] || s.status === "selecting");
+  if (!session) return;
+
+  const isFrom = interaction.user.id === userId;
+  const userInv = getUser(interaction.user.id, interaction.guild.members.cache.get(interaction.user.id)).inventory;
+
+  // Guardamos selección
+  session[isFrom ? "from" : "to"] = {};
+  for (const itemName of interaction.values) {
+    const item = userInv[itemName];
+    if (item) session[isFrom ? "from" : "to"][itemName] = item.qty;
+  }
+
+  // Verificar si ambos ya seleccionaron
+  if (Object.keys(session.from).length && Object.keys(session.to).length) {
+    session.status = "confirm";
+
+    // Crear mensaje de confirmación
+    const fromList = Object.entries(session.from).map(([name, qty]) => `${name} x${qty}`).join("\n");
+    const toList = Object.entries(session.to).map(([name, qty]) => `${name} x${qty}`).join("\n");
+
+    const confirmRow = new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId(`trade_confirm_${interaction.user.id}_${interaction.user.tag}`)
+        .setPlaceholder("✅ Aceptar / ❌ Rechazar")
+        .addOptions([
+          { label: "Aceptar", value: "accept", description: "Confirmar trade" },
+          { label: "Rechazar", value: "reject", description: "Cancelar trade" }
+        ])
+    );
+
+    return interaction.update({
+      content: `⚖️ Trade listo para confirmación:\n\n**Tú das:**\n${fromList}\n\n**Recibes:**\n${toList}\n\nSelecciona Aceptar o Rechazar.`,
+      components: [confirmRow]
+    });
+  } else {
+    return interaction.update({
+      content: "🔁 Esperando que el otro usuario seleccione sus objetos...",
+      components: []
     });
   }
+}
 
-  /* ===== TRADE MENU ===== */
-  if (interaction.isStringSelectMenu() && interaction.customId.startsWith("trade_")) {
-    const [, from, to] = interaction.customId.split("_");
-    if (interaction.user.id !== from) return;
+/* ===== CONFIRMACIÓN FINAL ===== */
+if (interaction.isStringSelectMenu() && interaction.customId.startsWith("trade_confirm_")) {
+  const [, fromId, fromTag] = interaction.customId.split("_");
+  const session = global.tradeSessions[`${fromId}_${interaction.user.id}`] || global.tradeSessions[`${interaction.user.id}_${fromId}`];
+  if (!session || session.status !== "confirm") return;
 
-    const fromUser = getStatus(from, await interaction.guild.members.fetch(from));
-    const toUser = getStatus(to, await interaction.guild.members.fetch(to));
-    const name = interaction.values[0];
-
-    fromUser.inventory[name].qty--;
-    if (!toUser.inventory[name]) {
-      toUser.inventory[name] = { ...fromUser.inventory[name], qty: 0 };
-    }
-    toUser.inventory[name].qty++;
-
-    if (fromUser.inventory[name].qty <= 0)
-      delete fromUser.inventory[name];
-
-    saveStatus();
-    return interaction.update({ content: "🔁 Trade completado.", components: [] });
+  if (interaction.values[0] === "reject") {
+    delete global.tradeSessions[`${fromId}_${interaction.user.id}`];
+    delete global.tradeSessions[`${interaction.user.id}_${fromId}`];
+    return interaction.update({ content: "❌ Trade cancelado.", components: [] });
   }
-});
+
+  // Hacer intercambio real
+  const fromUser = getUser(fromId, interaction.guild.members.cache.get(fromId));
+  const toUser = getUser(interaction.user.id, interaction.guild.members.cache.get(interaction.user.id));
+
+  for (const [name, qty] of Object.entries(session.from)) {
+    if (!fromUser.inventory[name] || fromUser.inventory[name].qty < qty) continue;
+    fromUser.inventory[name].qty -= qty;
+    if (!toUser.inventory[name]) toUser.inventory[name] = { ...fromUser.inventory[name], qty: 0 };
+    toUser.inventory[name].qty += qty;
+    if (fromUser.inventory[name].qty <= 0) delete fromUser.inventory[name];
+  }
+
+  for (const [name, qty] of Object.entries(session.to)) {
+    if (!toUser.inventory[name] || toUser.inventory[name].qty < qty) continue;
+    toUser.inventory[name].qty -= qty;
+    if (!fromUser.inventory[name]) fromUser.inventory[name] = { ...toUser.inventory[name], qty: 0 };
+    fromUser.inventory[name].qty += qty;
+    if (toUser.inventory[name].qty <= 0) delete toUser.inventory[name];
+  }
+
+  saveUsers();
+  delete global.tradeSessions[`${fromId}_${interaction.user.id}`];
+  delete global.tradeSessions[`${interaction.user.id}_${fromId}`];
+
+  return interaction.update({
+    content: "✅ Trade completado exitosamente.",
+    components: []
+  });
+  }
+
+/* =====================
+RANK DISCORD
+===================== */
+function getDiscordRank(member) {
+  if (!member) return "Sin rango";
+
+  // Prioridad máxima: Narehate
+  if (member.roles.cache.has(NAREHATE_ROLE_ID)) return "Narehate";
+
+  // Buscar silbatos por ID (del más alto al más bajo)
+  for (let i = RANK_ROLES.length - 1; i >= 0; i--) {
+    if (member.roles.cache.has(RANK_ROLES[i].id)) return RANK_ROLES[i].name;
+  }
+
+  return "Sin rango";
+}
 
 /* =====================
 TOP EXPLORADORES
@@ -367,7 +469,6 @@ async function sendTopExploradores() {
   }
 
   const top = data.sort((a,b) => b.money - a.money).slice(0,10);
-
   if (!top.length) return;
 
   const text = top.map((u,i) =>
@@ -377,8 +478,9 @@ async function sendTopExploradores() {
   await channel.send({ content: `🏆 **TOP EXPLORADORES** 🏆\n\n${text}` });
 }
 
+/* Cada 10 minutos */
 setInterval(sendTopExploradores, 10*60*1000);
-
+  
 /* =====================
 SAFE SAVE
 ===================== */
