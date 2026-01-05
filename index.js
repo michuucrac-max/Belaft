@@ -444,6 +444,7 @@ async function sendTopExploradores() {
   for (const [id, u] of Object.entries(status)) {
     let member = null;
     try { member = await channel.guild.members.fetch(id); } catch {}
+    
     const totalItems = Object.values(u.inventory ?? {}).reduce((sum, i) => sum + (i.qty ?? 0), 0);
 
     data.push({
@@ -455,15 +456,18 @@ async function sendTopExploradores() {
     });
   }
 
-  const top = data.sort((a,b) => b.money - a.money || b.items - a.items).slice(0,10);
+  const top = data.sort((a,b) => b.money - a.money).slice(0,10);
   if (!top.length) return;
 
   const text = top.map((u,i) =>
-    `**${i+1}. ${u.tag}**\n🧭 Rango: **${u.rank}**\n💰 Dinero: **${u.money}**\n📦 Objetos: **${u.items}**`
+    `**${i+1}. ${u.tag}**\n🧭 Rango: **${u.rank}**\n💰 Dinero: **${u.money}**\n🎒 Objetos: **${u.items}**`
   ).join("\n\n");
 
-  channel.send({ content: `🏆 **Top Exploradores**\n\n${text}` });
+  await channel.send({ content: `🏆 **TOP EXPLORADORES** 🏆\n\n${text}` });
 }
+
+/* Enviar top cada 10 minutos */
+setInterval(sendTopExploradores, 10 * 60 * 1000);
 
 /* =====================
 SAFE SAVE
