@@ -36,6 +36,7 @@ CLIENT
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent
   ],
@@ -414,7 +415,12 @@ async function sendTopExploradores() {
 
   const data = Object.entries(users)
     .map(([id, u]) => {
-      const member = channel.guild.members.cache.get(id);
+      let member = null;
+try {
+  member = await channel.guild.members.fetch(id);
+} catch {
+  member = null;
+}
       const totalItems = Object.values(u.inventory ?? {}).reduce(
         (sum, i) => sum + (i.qty ?? 0),
         0
