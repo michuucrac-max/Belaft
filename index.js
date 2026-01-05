@@ -1,4 +1,3 @@
-Pasa el index comoelto tal que asi:
 import {
 Client,
 GatewayIntentBits,
