@@ -184,58 +184,108 @@ const commands = [
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 /* =====================
-RANK DISCORD
+INTERACTIONS
 ===================== */
-function getDiscordRank(member) {
-  if (!member) return "Sin rango";
+client.on(Events.InteractionCreate, async interaction => {
+  if (!interaction.isChatInputCommand() && !interaction.isChannelSelectMenu() && !interaction.isStringSelectMenu()) return;
 
-  if (member.roles.cache.has(NAREHATE_ROLE_ID)) return "Narehate";
+  const user = getStatus(interaction.user.id, interaction.member);
 
-  for (let i = RANK_ROLES.length - 1; i >= 0; i--) {
-    if (member.roles.cache.has(RANK_ROLES[i].id)) return RANK_ROLES[i].name;
-  }
+  /* ===== SETCHANNEL COMMANDS ===== */
+  if (interaction.isChatInputCommand() && interaction.commandName.startsWith("setchannel")) {
+    const id = interaction.commandName.replace("setchannel", "");
+    const multi = id === "reliquies";
 
-  return "Sin rango";
-}
+    const menu = new ChannelSelectMenuBuilder()
+      .setCustomId(`setchannel_${id}`)
+      .setPlaceholder("Selecciona canal(es)")
+      .addChannelTypes(ChannelType.GuildText)
+      .setMinValues(1)
+      .setMaxValues(multi ? 6 : 1);
 
-/* =====================
-TOP EXPLORADORES
-===================== */
-async function sendTopExploradores() {
-  if (!config.channels.tops) return;
-
-  const channel = await client.channels.fetch(config.channels.tops).catch(() => null);
-  if (!channel || !channel.guild) return;
-
-  const data = [];
-
-  for (const [id, u] of Object.entries(status)) {
-    let member = null;
-    try { member = await channel.guild.members.fetch(id); } catch {}
-
-    const totalItems = Object.values(u.inventory ?? {}).reduce((sum, i) => sum + (i.qty ?? 0), 0);
-
-    data.push({
-      id,
-      tag: member ? member.user.tag : "Usuario salido",
-      rank: getDiscordRank(member),
-      money: u.money ?? 0,
-      items: totalItems
+    return interaction.reply({
+      ephemeral: true,
+      components: [new ActionRowBuilder().addComponents(menu)]
     });
   }
 
-  const top = data.sort((a,b) => b.money - a.money).slice(0,10);
-  if (!top.length) return;
+  if (interaction.isChannelSelectMenu() && interaction.customId.startsWith("setchannel_")) {
+    const id = interaction.customId.replace("setchannel_", "");
 
-  const text = top.map((u,i) =>
-    `**${i+1}. ${u.tag}**\n🧭 Rango: **${u.rank}**\n💰 Dinero: **${u.money}**\n🎒 Objetos: **${u.items}**`
-  ).join("\n\n");
+    if (id === "reliquies") config.channels.reliquies = interaction.values;
+    if (id === "trade") config.channels.trade = interaction.values[0];
+    if (id === "sell") config.channels.sell = interaction.values[0];
+    if (id === "tops") config.channels.tops = interaction.values[0];
 
-  await channel.send({ content: `🏆 **TOP EXPLORADORES** 🏆\n\n${text}` });
-}
+    saveConfig();
+    return interaction.update({ content: "📜 Canal configurado.", components: [] });
+  }
 
-/* Cada 10 minutos */
-setInterval(sendTopExploradores, 10*60*1000);
+  /* ===== INVENTORY ===== */
+  if (interaction.isChatInputCommand() && interaction.commandName === "inventory") {
+    if (!Object.keys(user.inventory).length)
+      return interaction.reply({ ephemeral: true, content: "🎒 Tu inventario está vacío." });
+
+    const list = Object.values(user.inventory)
+      .map(i => `${i.icon} ${i.name} x${i.qty}`)
+      .join("\n");
+
+    return interaction.reply({ ephemeral: true, content: `🎒 **Inventario**\n${list}` });
+  }
+
+  /* ===== MY MONEY ===== */
+  if (interaction.isChatInputCommand() && interaction.commandName === "mymoney") {
+    return interaction.reply({ ephemeral: true, content: `💰 Tienes ${user.money} monedas.` });
+  }
+
+  /* ===== RANKUP ===== */
+  if (interaction.isChatInputCommand() && interaction.commandName === "rankup") {
+    if (!user.humanity)
+      return interaction.reply({ ephemeral: true, content: "❌ Los narehates no pueden ascender." });
+
+    const order = ["Bell","Silbato rojo","Silbato azul","Silbato lunar","Silbato negro","Silbato blanco"];
+    const costs = [0,100,300,700,1500,3000];
+
+    const i = order.indexOf(user.rank);
+    if (i === order.length - 1)
+      return interaction.reply({ ephemeral: true, content: "🏅 Rango máximo." });
+
+    const cost = costs[i + 1];
+    if (user.money < cost)
+      return interaction.reply({ ephemeral: true, content: `💰 Necesitas ${cost} monedas.` });
+
+    user.money -= cost;
+    user.rank = order[i + 1];
+    saveStatus();
+
+    return interaction.reply(`🏅 Ascendiste a **${user.rank}** (-${cost} 💰)`);
+  }
+
+  /* ===== SELL ===== */
+  if (interaction.isChatInputCommand() && interaction.commandName === "sell") {
+    const mode = interaction.options.getString("mode");
+    if (!Object.keys(user.inventory).length)
+      return interaction.reply({ ephemeral: true, content: "🎒 No tienes objetos." });
+
+    let sold = [];
+    if (mode === "one") {
+      const item = Object.values(user.inventory)[0];
+      user.money += item.price;
+      item.qty--;
+      sold.push(`${item.icon} ${item.name}`);
+      if (item.qty <= 0) delete user.inventory[item.name];
+    } else {
+      for (const i of Object.values(user.inventory)) {
+        user.money += i.price * i.qty;
+        sold.push(`${i.icon} ${i.name} x${i.qty}`);
+      }
+      user.inventory = {};
+    }
+
+    saveStatus();
+    return interaction.reply({ ephemeral: true, content: `💰 Vendiste: ${sold.join(", ")}` });
+  }
+});
 
 /* =====================
 SAFE SAVE
@@ -251,13 +301,6 @@ client.once(Events.ClientReady, async () => {
   await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
   console.log(`🧭 Belaf despierta como ${client.user.tag}`);
 });
-
-/* =====================
-ERROR LOGGING
-===================== */
-client.on(Events.Error, console.error);
-client.on(Events.Warn, console.warn);
-client.on(Events.Debug, console.log);
 
 /* =====================
 LOGIN
