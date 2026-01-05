@@ -54,7 +54,9 @@ const config = fs.existsSync(configPath)
   ? JSON.parse(fs.readFileSync(configPath, "utf8"))
   : { channels: { reliquies: [], trade: null, sell: null, tops: null } };
 
-const objects = JSON.parse(fs.readFileSync(objectsPath, "utf8"));
+const objects = fs.existsSync(objectsPath) 
+  ? JSON.parse(fs.readFileSync(objectsPath, "utf8"))
+  : { class4: [], class3: [], class2: [], special: [] };
 
 const status = fs.existsSync(statusPath)
   ? JSON.parse(fs.readFileSync(statusPath, "utf8"))
@@ -67,7 +69,7 @@ const saveConfig = () =>
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 
 /* =====================
-RANGOS POR ID (OFICIAL)
+RANGOS
 ===================== */
 const RANK_ROLES = [
   { name: "Bell", id: "1456176950849572979" },
@@ -109,12 +111,20 @@ function getStatus(id, member = null) {
       memberRoles.includes(r)
     );
     if (matchedRole) status[id].rank = matchedRole;
-
     status[id].humanity = !member.roles.cache.has(NAREHATE_ROLE_ID);
   }
 
   saveStatus();
   return status[id];
+}
+
+function getDiscordRank(member) {
+  if (!member) return "Sin rango";
+  if (member.roles.cache.has(NAREHATE_ROLE_ID)) return "Narehate";
+  for (let i = RANK_ROLES.length - 1; i >= 0; i--) {
+    if (member.roles.cache.has(RANK_ROLES[i].id)) return RANK_ROLES[i].name;
+  }
+  return "Sin rango";
 }
 
 /* =====================
@@ -140,6 +150,8 @@ client.on(Events.MessageCreate, message => {
   ];
 
   const pool = pools[depth] ?? objects.class4;
+  if (!pool.length) return;
+
   const item = pool[Math.floor(Math.random() * pool.length)];
 
   if (!user.inventory[item.name]) {
@@ -158,7 +170,7 @@ client.on(Events.MessageCreate, message => {
 });
 
 /* =====================
-SLASH COMMANDS
+COMMANDS
 ===================== */
 const commands = [
   new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
@@ -285,7 +297,173 @@ client.on(Events.InteractionCreate, async interaction => {
     saveStatus();
     return interaction.reply({ ephemeral: true, content: `💰 Vendiste: ${sold.join(", ")}` });
   }
+
+  /* ===== TRADE ===== */
+  if (interaction.isChatInputCommand() && interaction.commandName === "trade") {
+    if (interaction.channelId !== config.channels.trade)
+      return interaction.reply({ ephemeral: true, content: "❌ Canal incorrecto." });
+
+    const targetUser = interaction.options.getUser("user");
+    if (!targetUser) return;
+
+    const target = getStatus(targetUser.id, interaction.guild.members.cache.get(targetUser.id));
+    const user = getStatus(interaction.user.id, interaction.member);
+
+    if (!Object.keys(user.inventory).length)
+      return interaction.reply({ ephemeral: true, content: "🎒 Tu inventario está vacío." });
+    if (!Object.keys(target.inventory).length)
+      return interaction.reply({ ephemeral: true, content: "🎒 El inventario del otro usuario está vacío." });
+
+    if (!global.tradeSessions) global.tradeSessions = {};
+    const sessionId = `${interaction.user.id}_${targetUser.id}`;
+    if (!global.tradeSessions[sessionId]) {
+      global.tradeSessions[sessionId] = { from: {}, to: {}, status: "selecting" };
+    }
+
+    const createMenu = (inv, customId) => {
+      return new StringSelectMenuBuilder()
+        .setCustomId(customId)
+        .setPlaceholder("Selecciona los objetos que quieres ofrecer")
+        .setMinValues(1)
+        .setMaxValues(Object.keys(inv).length)
+        .addOptions(Object.values(inv).map(i => ({
+          label: `${i.name} x${i.qty}`,
+          value: i.name,
+          description: `Valor: ${i.price} monedas`
+        })));
+    };
+
+    const rowUser = new ActionRowBuilder().addComponents(createMenu(user.inventory, `trade_select_${interaction.user.id}`));
+    const rowTarget = new ActionRowBuilder().addComponents(createMenu(target.inventory, `trade_select_${targetUser.id}`));
+
+    return interaction.reply({
+      ephemeral: true,
+      content: `🔁 Trade iniciado con ${targetUser.tag}. Selecciona tus objetos:`,
+      components: [rowUser, rowTarget]
+    });
+  }
+
+  /* ===== SELECCIÓN DE OBJETOS Y CONFIRM ===== */
+  if (interaction.isStringSelectMenu()) {
+    const id = interaction.customId;
+
+    if (id.startsWith("trade_select_")) {
+      const userId = id.replace("trade_select_", "");
+      const session = Object.values(global.tradeSessions || {}).find(
+        s => s.from[userId] || s.to[userId] || s.status === "selecting"
+      );
+      if (!session) return;
+
+      const isFrom = interaction.user.id === userId;
+      const userInv = getStatus(interaction.user.id, interaction.guild.members.cache.get(interaction.user.id)).inventory;
+
+      session[isFrom ? "from" : "to"] = {};
+      for (const itemName of interaction.values) {
+        const item = userInv[itemName];
+        if (item) session[isFrom ? "from" : "to"][itemName] = item.qty;
+      }
+
+      if (Object.keys(session.from).length && Object.keys(session.to).length) {
+        session.status = "confirm";
+
+        const fromList = Object.entries(session.from).map(([name, qty]) => `${name} x${qty}`).join("\n");
+        const toList = Object.entries(session.to).map(([name, qty]) => `${name} x${qty}`).join("\n");
+
+        const confirmRow = new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId(`trade_confirm_${interaction.user.id}_${interaction.user.tag}`)
+            .setPlaceholder("✅ Aceptar / ❌ Rechazar")
+            .addOptions([
+              { label: "Aceptar", value: "accept", description: "Confirmar trade" },
+              { label: "Rechazar", value: "reject", description: "Cancelar trade" }
+            ])
+        );
+
+        return interaction.update({
+          content: `⚖️ Trade listo para confirmación:\n\n**Tú das:**\n${fromList}\n\n**Recibes:**\n${toList}\n\nSelecciona Aceptar o Rechazar.`,
+          components: [confirmRow]
+        });
+      } else {
+        return interaction.update({
+          content: "🔁 Esperando que el otro usuario seleccione sus objetos...",
+          components: []
+        });
+      }
+    }
+
+    if (id.startsWith("trade_confirm_")) {
+      const [, fromId] = id.split("_");
+      const session = global.tradeSessions[`${fromId}_${interaction.user.id}`] || global.tradeSessions[`${interaction.user.id}_${fromId}`];
+      if (!session || session.status !== "confirm") return;
+
+      if (interaction.values[0] === "reject") {
+        delete global.tradeSessions[`${fromId}_${interaction.user.id}`];
+        delete global.tradeSessions[`${interaction.user.id}_${fromId}`];
+        return interaction.update({ content: "❌ Trade cancelado.", components: [] });
+      }
+
+      const fromUser = getStatus(fromId, interaction.guild.members.cache.get(fromId));
+      const toUser = getStatus(interaction.user.id, interaction.guild.members.cache.get(interaction.user.id));
+
+      for (const [name, qty] of Object.entries(session.from)) {
+        if (!fromUser.inventory[name] || fromUser.inventory[name].qty < qty) continue;
+        fromUser.inventory[name].qty -= qty;
+        if (!toUser.inventory[name]) toUser.inventory[name] = { ...fromUser.inventory[name], qty: 0 };
+        toUser.inventory[name].qty += qty;
+        if (fromUser.inventory[name].qty <= 0) delete fromUser.inventory[name];
+      }
+
+      for (const [name, qty] of Object.entries(session.to)) {
+        if (!toUser.inventory[name] || toUser.inventory[name].qty < qty) continue;
+        toUser.inventory[name].qty -= qty;
+        if (!fromUser.inventory[name]) fromUser.inventory[name] = { ...toUser.inventory[name], qty: 0 };
+        fromUser.inventory[name].qty += qty;
+        if (toUser.inventory[name].qty <= 0) delete toUser.inventory[name];
+      }
+
+      saveStatus();
+      delete global.tradeSessions[`${fromId}_${interaction.user.id}`];
+      delete global.tradeSessions[`${interaction.user.id}_${fromId}`];
+
+      return interaction.update({ content: "✅ Trade completado exitosamente.", components: [] });
+    }
+  }
 });
+
+/* =====================
+TOP EXPLORADORES
+===================== */
+async function sendTopExploradores() {
+  if (!config.channels.tops) return;
+
+  const channel = await client.channels.fetch(config.channels.tops).catch(() => null);
+  if (!channel || !channel.guild) return;
+
+  const data = [];
+
+  for (const [id, u] of Object.entries(status)) {
+    let member = null;
+    try { member = await channel.guild.members.fetch(id); } catch {}
+    const totalItems = Object.values(u.inventory ?? {}).reduce((sum, i) => sum + (i.qty ?? 0), 0);
+
+    data.push({
+      id,
+      tag: member ? member.user.tag : "Usuario salido",
+      rank: getDiscordRank(member),
+      money: u.money ?? 0,
+      items: totalItems
+    });
+  }
+
+  const top = data.sort((a,b) => b.money - a.money || b.items - a.items).slice(0,10);
+  if (!top.length) return;
+
+  const text = top.map((u,i) =>
+    `**${i+1}. ${u.tag}**\n🧭 Rango: **${u.rank}**\n💰 Dinero: **${u.money}**\n📦 Objetos: **${u.items}**`
+  ).join("\n\n");
+
+  channel.send({ content: `🏆 **Top Exploradores**\n\n${text}` });
+}
 
 /* =====================
 SAFE SAVE
@@ -300,6 +478,9 @@ CLIENT READY
 client.once(Events.ClientReady, async () => {
   await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
   console.log(`🧭 Belaf despierta como ${client.user.tag}`);
+
+  // Envía top cada 1 hora (3600000 ms)
+  setInterval(sendTopExploradores, 3600000);
 });
 
 /* =====================
