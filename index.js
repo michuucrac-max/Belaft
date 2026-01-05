@@ -382,4 +382,73 @@ client.once(Events.ClientReady, async () => {
   console.log("🧭 Belaf despierta");
 });
 
+/* =====================
+TOP EXPLORADORES
+===================== */
+function getDiscordRank(member) {
+  if (!member) return "Sin rango";
+
+  const order = [
+    "bell",
+    "silbato_rojo",
+    "silbato_azul",
+    "silbato_lunar",
+    "silbato_negro",
+    "silbato_blanco",
+    "narehate"
+  ];
+
+  const found = order
+    .slice()
+    .reverse()
+    .find(r => member.roles.cache.some(role => role.name === r));
+
+  return found ?? "Sin rango";
+}
+
+async function sendTopExploradores() {
+  if (!config.channels.tops) return;
+
+  const channel = await client.channels.fetch(config.channels.tops).catch(() => null);
+  if (!channel) return;
+
+  const data = Object.entries(users)
+    .map(([id, u]) => {
+      const member = channel.guild.members.cache.get(id);
+      const totalItems = Object.values(u.inventory ?? {}).reduce(
+        (sum, i) => sum + (i.qty ?? 0),
+        0
+      );
+
+      return {
+        id,
+        tag: member ? member.user.tag : "Usuario salido",
+        rank: getDiscordRank(member),
+        money: u.money ?? 0,
+        items: totalItems
+      };
+    })
+    .sort((a, b) => b.money - a.money)
+    .slice(0, 10);
+
+  if (!data.length) return;
+
+  const text = data
+    .map(
+      (u, i) =>
+        `**${i + 1}. ${u.tag}**\n` +
+        `🧭 Rango: **${u.rank}**\n` +
+        `💰 Dinero: **${u.money}**\n` +
+        `🎒 Objetos: **${u.items}**`
+    )
+    .join("\n\n");
+
+  await channel.send({
+    content: `🏆 **TOP EXPLORADORES** 🏆\n\n${text}`
+  });
+}
+
+/* Cada 10 minutos */
+setInterval(sendTopExploradores, 10 * 60 * 1000);
+
 client.login(TOKEN);
