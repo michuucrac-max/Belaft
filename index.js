@@ -232,10 +232,14 @@ client.once(Events.ClientReady, async () => {
       })
       .join("\n");
 
-    channel.send(
-      `🏆 **TOP EXPLORADORES** 🏆\n\n💰 **Top Dinero**\n${topMoney || "Sin datos"}\n\n🎒 **Top Reliquias**\n${topRelics || "Sin datos"}`
-    );
-  }, 10 * 60 * 1000);
+    channel.send({
+  content: `🏆 TOP EXPLORADORES 🏆
+
+💰 **Top Dinero**
+${topMoney || "Sin datos"}
+
+🎒 **Top Reliquias**
+${topRelics || "Sin datos"}`
 });
 
 /* =====================
