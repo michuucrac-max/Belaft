@@ -91,7 +91,10 @@ function getUser(id, guildMember = null) {
     ];
 
     const memberRoles = guildMember.roles.cache.map(r => r.name);
-    const matchedRole = [...roleOrder].reverse().find(r => memberRoles.includes(r));
+    const matchedRole = [...roleOrder].reverse().find(r =>
+      memberRoles.includes(r)
+    );
+
     if (matchedRole) users[id].rank = matchedRole;
   }
 
@@ -156,14 +159,24 @@ client.on(Events.MessageCreate, message => {
 SLASH COMMANDS
 ===================== */
 const commands = [
-  new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
-  new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
-  new SlashCommandBuilder().setName("rankup").setDescription("Subir de rango"),
+  new SlashCommandBuilder()
+    .setName("inventory")
+    .setDescription("Ver inventario"),
+
+  new SlashCommandBuilder()
+    .setName("mymoney")
+    .setDescription("Ver monedas"),
+
+  new SlashCommandBuilder()
+    .setName("rankup")
+    .setDescription("Subir de rango"),
+
   new SlashCommandBuilder()
     .setName("sell")
     .setDescription("Vender reliquias")
     .addStringOption(o =>
-      o.setName("mode")
+      o
+        .setName("mode")
         .setDescription("Modo de venta")
         .setRequired(true)
         .addChoices(
@@ -171,19 +184,32 @@ const commands = [
           { name: "Todo", value: "all" }
         )
     ),
+
   new SlashCommandBuilder()
     .setName("trade")
     .setDescription("Intercambiar reliquias")
     .addUserOption(o =>
-      o.setName("user").setDescription("Selecciona usuario").setRequired(true)
+      o.setName("user").setDescription("Usuario").setRequired(true)
     ),
-  new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Configurar drops")
+
+  new SlashCommandBuilder()
+    .setName("setchannelreliquies")
+    .setDescription("Configurar drops")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-  new SlashCommandBuilder().setName("setchanneltrade").setDescription("Configurar trade")
+
+  new SlashCommandBuilder()
+    .setName("setchanneltrade")
+    .setDescription("Configurar trade")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-  new SlashCommandBuilder().setName("setchannelsell").setDescription("Configurar sell")
+
+  new SlashCommandBuilder()
+    .setName("setchannelsell")
+    .setDescription("Configurar sell")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-  new SlashCommandBuilder().setName("setchanneltops").setDescription("Configurar tops")
+
+  new SlashCommandBuilder()
+    .setName("setchanneltops")
+    .setDescription("Configurar tops")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
 ];
 
@@ -192,38 +218,6 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 client.once(Events.ClientReady, async () => {
   await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
   console.log("🧭 Belaf despierta");
-
-  setInterval(() => {
-    if (!config.channels.tops) return;
-    const channel = client.channels.cache.get(config.channels.tops);
-    if (!channel) return;
-
-    const topMoney = Object.entries(users)
-      .sort(([, a], [, b]) => b.money - a.money)
-      .slice(0, 5)
-      .map(([id, u], i) => `#${i + 1} <@${id}> [${u.rank}] — ${u.money} 💰`)
-      .join("\n");
-
-    const topRelics = Object.entries(users)
-      .map(([id, u]) => {
-        const totalQty = Object.values(u.inventory || {}).reduce((s, o) => s + o.qty, 0);
-        return { id, totalQty, rank: u.rank };
-      })
-      .sort((a, b) => b.totalQty - a.totalQty)
-      .slice(0, 5)
-      .map((u, i) => `#${i + 1} <@${u.id}> [${u.rank}] — ${u.totalQty} reliquias`)
-      .join("\n");
-
-    channel.send({
-      content:
-        `🏆 **TOP EXPLORADORES** 🏆\n\n` +
-        `💰 **Top Dinero**\n${topMoney || "Sin datos"}\n\n` +
-        `🎒 **Top Reliquias**\n${topRelics || "Sin datos"}`
-    });
-  }, 10 * 60 * 1000);
 });
 
-/* =====================
-LOGIN
-===================== */
 client.login(TOKEN);
