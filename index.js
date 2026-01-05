@@ -28,7 +28,7 @@ EXPRESS
 ===================== */
 const app = express();
 app.get("/", (_, res) => res.send("Belaf observa el Abismo 🧭"));
-app.listen(PORT);
+app.listen(PORT, () => console.log(`🌐 Express levantado en puerto ${PORT}`));
 
 /* =====================
 CLIENT
@@ -184,257 +184,13 @@ const commands = [
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 /* =====================
-INTERACTIONS
-===================== */
-client.on(Events.InteractionCreate, async interaction => {
-  if (!interaction.isChatInputCommand() && !interaction.isChannelSelectMenu() && !interaction.isStringSelectMenu()) return;
-
-  const user = getStatus(interaction.user.id, interaction.member);
-
-  /* ===== SETCHANNEL COMMANDS ===== */
-  if (interaction.isChatInputCommand() && interaction.commandName.startsWith("setchannel")) {
-    const id = interaction.commandName.replace("setchannel", "");
-    const multi = id === "reliquies";
-
-    const menu = new ChannelSelectMenuBuilder()
-      .setCustomId(`setchannel_${id}`)
-      .setPlaceholder("Selecciona canal(es)")
-      .addChannelTypes(ChannelType.GuildText)
-      .setMinValues(1)
-      .setMaxValues(multi ? 6 : 1);
-
-    return interaction.reply({
-      ephemeral: true,
-      components: [new ActionRowBuilder().addComponents(menu)]
-    });
-  }
-
-  /* ===== CHANNEL SELECT ===== */
-  if (interaction.isChannelSelectMenu() && interaction.customId.startsWith("setchannel_")) {
-    const id = interaction.customId.replace("setchannel_", "");
-
-    if (id === "reliquies") config.channels.reliquies = interaction.values;
-    if (id === "trade") config.channels.trade = interaction.values[0];
-    if (id === "sell") config.channels.sell = interaction.values[0];
-    if (id === "tops") config.channels.tops = interaction.values[0];
-
-    saveConfig();
-    return interaction.update({ content: "📜 Canal configurado.", components: [] });
-  }
-
-  /* ===== INVENTORY ===== */
-  if (interaction.isChatInputCommand() && interaction.commandName === "inventory") {
-    if (!Object.keys(user.inventory).length)
-      return interaction.reply({ ephemeral: true, content: "🎒 Tu inventario está vacío." });
-
-    const list = Object.values(user.inventory)
-      .map(i => `${i.icon} ${i.name} x${i.qty}`)
-      .join("\n");
-
-    return interaction.reply({ ephemeral: true, content: `🎒 **Inventario**\n${list}` });
-  }
-
-  /* ===== MY MONEY ===== */
-  if (interaction.isChatInputCommand() && interaction.commandName === "mymoney") {
-    return interaction.reply({ ephemeral: true, content: `💰 Tienes ${user.money} monedas.` });
-  }
-
-  /* ===== RANKUP ===== */
-  if (interaction.isChatInputCommand() && interaction.commandName === "rankup") {
-    if (!user.humanity)
-      return interaction.reply({ ephemeral: true, content: "❌ Los narehates no pueden ascender." });
-
-    const order = ["Bell","Silbato rojo","Silbato azul","Silbato lunar","Silbato negro","Silbato blanco"];
-    const costs = [0,100,300,700,1500,3000];
-
-    const i = order.indexOf(user.rank);
-    if (i === order.length - 1)
-      return interaction.reply({ ephemeral: true, content: "🏅 Rango máximo." });
-
-    const cost = costs[i + 1];
-    if (user.money < cost)
-      return interaction.reply({ ephemeral: true, content: `💰 Necesitas ${cost} monedas.` });
-
-    user.money -= cost;
-    user.rank = order[i + 1];
-    saveStatus();
-
-    return interaction.reply(`🏅 Ascendiste a **${user.rank}** (-${cost} 💰)`);
-  }
-
-  /* ===== SELL ===== */
-  if (interaction.isChatInputCommand() && interaction.commandName === "sell") {
-    const mode = interaction.options.getString("mode");
-    if (!Object.keys(user.inventory).length)
-      return interaction.reply({ ephemeral: true, content: "🎒 No tienes objetos." });
-
-    let sold = [];
-    if (mode === "one") {
-      const item = Object.values(user.inventory)[0];
-      user.money += item.price;
-      item.qty--;
-      sold.push(`${item.icon} ${item.name}`);
-      if (item.qty <= 0) delete user.inventory[item.name];
-    } else {
-      for (const i of Object.values(user.inventory)) {
-        user.money += i.price * i.qty;
-        sold.push(`${i.icon} ${i.name} x${i.qty}`);
-      }
-      user.inventory = {};
-    }
-
-    saveStatus();
-    return interaction.reply({ ephemeral: true, content: `💰 Vendiste: ${sold.join(", ")}` });
-  }
-
-/* ===== TRADE COMPLETO ===== */
-if (interaction.isChatInputCommand() && interaction.commandName === "trade") {
-  if (interaction.channelId !== config.channels.trade)
-    return interaction.reply({ ephemeral: true, content: "❌ Canal incorrecto." });
-
-  const targetUser = interaction.options.getUser("user");
-  if (!targetUser) return;
-
-  const target = getUser(targetUser.id, interaction.guild.members.cache.get(targetUser.id));
-  const user = getUser(interaction.user.id, interaction.member);
-
-  if (user.humanity && target.humanity)
-    return interaction.reply({ ephemeral: true, content: "❌ Humanos no pueden tradear entre sí." });
-
-  if (!Object.keys(user.inventory).length)
-    return interaction.reply({ ephemeral: true, content: "🎒 Tu inventario está vacío." });
-  if (!Object.keys(target.inventory).length)
-    return interaction.reply({ ephemeral: true, content: "🎒 El inventario del otro usuario está vacío." });
-
-  // Iniciamos sesión de trade
-  if (!global.tradeSessions) global.tradeSessions = {};
-  const sessionId = `${interaction.user.id}_${targetUser.id}`;
-  if (!global.tradeSessions[sessionId]) {
-    global.tradeSessions[sessionId] = { from: {}, to: {}, status: "selecting" };
-  }
-
-  // Mostrar menú de selección para ambos usuarios
-  const createMenu = (inv, customId) => {
-    return new StringSelectMenuBuilder()
-      .setCustomId(customId)
-      .setPlaceholder("Selecciona los objetos que quieres ofrecer (mantén Ctrl para varios)")
-      .setMinValues(1)
-      .setMaxValues(Object.keys(inv).length)
-      .addOptions(Object.values(inv).map(i => ({
-        label: `${i.name} x${i.qty}`,
-        value: i.name,
-        description: `Valor: ${i.price} monedas`
-      })));
-  };
-
-  const rowUser = new ActionRowBuilder().addComponents(createMenu(user.inventory, `trade_select_${interaction.user.id}`));
-  const rowTarget = new ActionRowBuilder().addComponents(createMenu(target.inventory, `trade_select_${targetUser.id}`));
-
-  return interaction.reply({
-    ephemeral: true,
-    content: `🔁 Trade iniciado con ${targetUser.tag}. Selecciona tus objetos:`,
-    components: [rowUser, rowTarget]
-  });
-}
-
-/* ===== SELECCIÓN DE OBJETOS ===== */
-if (interaction.isStringSelectMenu() && interaction.customId.startsWith("trade_select_")) {
-  const userId = interaction.customId.replace("trade_select_", "");
-  const session = Object.values(global.tradeSessions || {}).find(s => s.from[userId] || s.to[userId] || s.status === "selecting");
-  if (!session) return;
-
-  const isFrom = interaction.user.id === userId;
-  const userInv = getUser(interaction.user.id, interaction.guild.members.cache.get(interaction.user.id)).inventory;
-
-  // Guardamos selección
-  session[isFrom ? "from" : "to"] = {};
-  for (const itemName of interaction.values) {
-    const item = userInv[itemName];
-    if (item) session[isFrom ? "from" : "to"][itemName] = item.qty;
-  }
-
-  // Verificar si ambos ya seleccionaron
-  if (Object.keys(session.from).length && Object.keys(session.to).length) {
-    session.status = "confirm";
-
-    // Crear mensaje de confirmación
-    const fromList = Object.entries(session.from).map(([name, qty]) => `${name} x${qty}`).join("\n");
-    const toList = Object.entries(session.to).map(([name, qty]) => `${name} x${qty}`).join("\n");
-
-    const confirmRow = new ActionRowBuilder().addComponents(
-      new StringSelectMenuBuilder()
-        .setCustomId(`trade_confirm_${interaction.user.id}_${interaction.user.tag}`)
-        .setPlaceholder("✅ Aceptar / ❌ Rechazar")
-        .addOptions([
-          { label: "Aceptar", value: "accept", description: "Confirmar trade" },
-          { label: "Rechazar", value: "reject", description: "Cancelar trade" }
-        ])
-    );
-
-    return interaction.update({
-      content: `⚖️ Trade listo para confirmación:\n\n**Tú das:**\n${fromList}\n\n**Recibes:**\n${toList}\n\nSelecciona Aceptar o Rechazar.`,
-      components: [confirmRow]
-    });
-  } else {
-    return interaction.update({
-      content: "🔁 Esperando que el otro usuario seleccione sus objetos...",
-      components: []
-    });
-  }
-}
-
-/* ===== CONFIRMACIÓN FINAL ===== */
-if (interaction.isStringSelectMenu() && interaction.customId.startsWith("trade_confirm_")) {
-  const [, fromId, fromTag] = interaction.customId.split("_");
-  const session = global.tradeSessions[`${fromId}_${interaction.user.id}`] || global.tradeSessions[`${interaction.user.id}_${fromId}`];
-  if (!session || session.status !== "confirm") return;
-
-  if (interaction.values[0] === "reject") {
-    delete global.tradeSessions[`${fromId}_${interaction.user.id}`];
-    delete global.tradeSessions[`${interaction.user.id}_${fromId}`];
-    return interaction.update({ content: "❌ Trade cancelado.", components: [] });
-  }
-
-  // Hacer intercambio real
-  const fromUser = getUser(fromId, interaction.guild.members.cache.get(fromId));
-  const toUser = getUser(interaction.user.id, interaction.guild.members.cache.get(interaction.user.id));
-
-  for (const [name, qty] of Object.entries(session.from)) {
-    if (!fromUser.inventory[name] || fromUser.inventory[name].qty < qty) continue;
-    fromUser.inventory[name].qty -= qty;
-    if (!toUser.inventory[name]) toUser.inventory[name] = { ...fromUser.inventory[name], qty: 0 };
-    toUser.inventory[name].qty += qty;
-    if (fromUser.inventory[name].qty <= 0) delete fromUser.inventory[name];
-  }
-
-  for (const [name, qty] of Object.entries(session.to)) {
-    if (!toUser.inventory[name] || toUser.inventory[name].qty < qty) continue;
-    toUser.inventory[name].qty -= qty;
-    if (!fromUser.inventory[name]) fromUser.inventory[name] = { ...toUser.inventory[name], qty: 0 };
-    fromUser.inventory[name].qty += qty;
-    if (toUser.inventory[name].qty <= 0) delete toUser.inventory[name];
-  }
-
-  saveUsers();
-  delete global.tradeSessions[`${fromId}_${interaction.user.id}`];
-  delete global.tradeSessions[`${interaction.user.id}_${fromId}`];
-
-  return interaction.update({
-    content: "✅ Trade completado exitosamente.",
-    components: []
-  });
-  }
-
-/* =====================
 RANK DISCORD
 ===================== */
 function getDiscordRank(member) {
   if (!member) return "Sin rango";
 
-  // Prioridad máxima: Narehate
   if (member.roles.cache.has(NAREHATE_ROLE_ID)) return "Narehate";
 
-  // Buscar silbatos por ID (del más alto al más bajo)
   for (let i = RANK_ROLES.length - 1; i >= 0; i--) {
     if (member.roles.cache.has(RANK_ROLES[i].id)) return RANK_ROLES[i].name;
   }
@@ -455,8 +211,8 @@ async function sendTopExploradores() {
 
   for (const [id, u] of Object.entries(status)) {
     let member = null;
-
     try { member = await channel.guild.members.fetch(id); } catch {}
+
     const totalItems = Object.values(u.inventory ?? {}).reduce((sum, i) => sum + (i.qty ?? 0), 0);
 
     data.push({
@@ -480,7 +236,6 @@ async function sendTopExploradores() {
 
 /* Cada 10 minutos */
 setInterval(sendTopExploradores, 10*60*1000);
-})
 
 /* =====================
 SAFE SAVE
@@ -489,9 +244,22 @@ process.on("SIGINT", () => { saveStatus(); process.exit(); });
 process.on("SIGTERM", () => { saveStatus(); process.exit(); });
 process.on("uncaughtException", err => { console.error(err); saveStatus(); process.exit(1); });
 
+/* =====================
+CLIENT READY
+===================== */
 client.once(Events.ClientReady, async () => {
   await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-  console.log("🧭 Belaf despierta");
+  console.log(`🧭 Belaf despierta como ${client.user.tag}`);
 });
 
-client.login(TOKEN);
+/* =====================
+ERROR LOGGING
+===================== */
+client.on(Events.Error, console.error);
+client.on(Events.Warn, console.warn);
+client.on(Events.Debug, console.log);
+
+/* =====================
+LOGIN
+===================== */
+client.login(TOKEN).then(() => console.log("🔑 Intentando conectar con Discord..."));
