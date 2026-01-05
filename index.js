@@ -241,7 +241,8 @@ ${topMoney || "Sin datos"}
 🎒 **Top Reliquias**
 ${topRelics || "Sin datos"}`
 });
-  })
+  
+})
 /* =====================
 INTERACTIONS
 ===================== */
