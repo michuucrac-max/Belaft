@@ -84,7 +84,7 @@ if (guildMember) {
 const roleOrder = ["bell","silbato_rojo","silbato_azul","silbato_lunar","silbato_negro","silbato_blanco","narehate"];
 const memberRoles = guildMember.roles.cache.map(r => r.name);
 
-const matchedRole = roleOrder.reverse().find(r => memberRoles.includes(r));
+const matchedRole = roleOrder.reverse().find(r => memberRoles.includes(r));  
 if (matchedRole) users[id].rank = matchedRole;
 
 }
@@ -137,7 +137,7 @@ qty: 0
 user.inventory[item.name].qty++;
 saveUsers();
 
-message.reply(🧭 Encontraste ${item.icon} ${item.name});
+message.reply(🧭 Encontraste **${item.icon} ${item.name}**);
 });
 
 /* =====================
@@ -230,9 +230,9 @@ return { id, totalQty, rank: u.rank };
 
 channel.send({
 content:
-🏆 TOP EXPLORADORES 🏆\n\n +
-💰 Top Dinero\n${topMoney || "Sin datos"}\n\n +
-🎒 Top Reliquias\n${topRelics || "Sin datos"}
+🏆 **TOP EXPLORADORES** 🏆\n\n +
+💰 **Top Dinero**\n${topMoney || "Sin datos"}\n\n +
+🎒 **Top Reliquias**\n${topRelics || "Sin datos"}
 });
 
 }, 10 * 60 * 1000); // ⏱️ cada 10 minutos
@@ -251,16 +251,16 @@ if (interaction.isChatInputCommand() && interaction.commandName.startsWith("setc
 const id = interaction.commandName.replace("setchannel", "");
 const multi = id === "reliquies";
 
-const menu = new ChannelSelectMenuBuilder()
-.setCustomId(id)
-.setPlaceholder("Selecciona canal(es)")
-.addChannelTypes(ChannelType.GuildText)
-.setMinValues(1)
-.setMaxValues(multi ? 6 : 1);
+const menu = new ChannelSelectMenuBuilder()  
+  .setCustomId(id)  
+  .setPlaceholder("Selecciona canal(es)")  
+  .addChannelTypes(ChannelType.GuildText)  
+  .setMinValues(1)  
+  .setMaxValues(multi ? 6 : 1);  
 
-return interaction.reply({
-ephemeral: true,
-components: [new ActionRowBuilder().addComponents(menu)]
+return interaction.reply({  
+  ephemeral: true,  
+  components: [new ActionRowBuilder().addComponents(menu)]  
 });
 
 }
@@ -280,11 +280,11 @@ if (interaction.isChatInputCommand() && interaction.commandName === "inventory")
 if (!Object.keys(user.inventory).length)
 return interaction.reply({ ephemeral: true, content: "🎒 Tu inventario está vacío." });
 
-const list = Object.values(user.inventory)
-.map(i => ${i.icon} ${i.name} x${i.qty})
-.join("\n");
+const list = Object.values(user.inventory)  
+  .map(i => `${i.icon} ${i.name} x${i.qty}`)  
+  .join("\n");  
 
-return interaction.reply({ ephemeral: true, content: 🎒 Inventario\n${list} });
+return interaction.reply({ ephemeral: true, content: `🎒 **Inventario**\n${list}` });
 
 }
 
@@ -298,23 +298,23 @@ if (interaction.isChatInputCommand() && interaction.commandName === "rankup") {
 if (!user.humanity)
 return interaction.reply({ ephemeral: true, content: "❌ Los narehates no pueden ascender." });
 
-const order = ["bell","silbato_rojo","silbato_azul","silbato_lunar","silbato_negro","silbato_blanco"];
-const costs = [0,100,300,700,1500,3000];
+const order = ["bell","silbato_rojo","silbato_azul","silbato_lunar","silbato_negro","silbato_blanco"];  
+const costs = [0,100,300,700,1500,3000];  
 
-const i = order.indexOf(user.rank);
-if (i === order.length - 1)
-return interaction.reply({ ephemeral: true, content: "🏅 Rango máximo." });
+const i = order.indexOf(user.rank);  
+if (i === order.length - 1)  
+  return interaction.reply({ ephemeral: true, content: "🏅 Rango máximo." });  
 
-const cost = costs[i + 1];
-if (user.money < cost)
-return interaction.reply({ ephemeral: true, content: 💰 Necesitas ${cost} monedas. });
+const cost = costs[i + 1];  
+if (user.money < cost)  
+  return interaction.reply({ ephemeral: true, content: `💰 Necesitas ${cost} monedas.` });  
 
-user.money -= cost;
-user.rank = order[i + 1];
-updateHumanity(user);
-saveUsers();
+user.money -= cost;  
+user.rank = order[i + 1];  
+updateHumanity(user);  
+saveUsers();  
 
-return interaction.reply(🏅 Ascendiste a ${user.rank} (-${cost} 💰));
+return interaction.reply(`🏅 Ascendiste a **${user.rank}** (-${cost} 💰)`);
 
 }
 
@@ -324,22 +324,22 @@ const mode = interaction.options.getString("mode");
 if (!Object.keys(user.inventory).length)
 return interaction.reply({ ephemeral: true, content: "🎒 No tienes objetos para vender." });
 
-let soldItems = [];
-if (mode === "one") {
-const item = Object.values(user.inventory)[0];
-user.money += item.price;
-item.qty--;
-soldItems.push(${item.icon} ${item.name});
-if (item.qty <= 0) delete user.inventory[item.name];
-} else if (mode === "all") {
-for (const i of Object.values(user.inventory)) {
-user.money += i.price * i.qty;
-soldItems.push(${i.icon} ${i.name} x${i.qty});
-}
-user.inventory = {};
-}
-saveUsers();
-return interaction.reply({ ephemeral: true, content: 💰 Vendiste: ${soldItems.join(", ")} });
+let soldItems = [];  
+if (mode === "one") {  
+  const item = Object.values(user.inventory)[0];  
+  user.money += item.price;  
+  item.qty--;  
+  soldItems.push(`${item.icon} ${item.name}`);  
+  if (item.qty <= 0) delete user.inventory[item.name];  
+} else if (mode === "all") {  
+  for (const i of Object.values(user.inventory)) {  
+    user.money += i.price * i.qty;  
+    soldItems.push(`${i.icon} ${i.name} x${i.qty}`);  
+  }  
+  user.inventory = {};  
+}  
+saveUsers();  
+return interaction.reply({ ephemeral: true, content: `💰 Vendiste: ${soldItems.join(", ")}` });
 
 }
 
@@ -348,29 +348,29 @@ if (interaction.isChatInputCommand() && interaction.commandName === "trade") {
 if (interaction.channelId !== config.channels.trade)
 return interaction.reply({ ephemeral: true, content: "❌ Canal incorrecto." });
 
-const targetUser = interaction.options.getUser("user");
-const targetMember = interaction.guild.members.cache.get(targetUser.id);
-const target = getUser(targetUser.id, targetMember);
+const targetUser = interaction.options.getUser("user");  
+const targetMember = interaction.guild.members.cache.get(targetUser.id);  
+const target = getUser(targetUser.id, targetMember);  
 
-if (user.humanity && target.humanity)
-return interaction.reply({ ephemeral: true, content: "❌ Humanos no pueden tradear entre sí." });
+if (user.humanity && target.humanity)  
+  return interaction.reply({ ephemeral: true, content: "❌ Humanos no pueden tradear entre sí." });  
 
-const items = Object.values(user.inventory).filter(i => i.qty > 0);
-if (!items.length)
-return interaction.reply({ ephemeral: true, content: "🎒 Inventario vacío." });
+const items = Object.values(user.inventory).filter(i => i.qty > 0);  
+if (!items.length)  
+  return interaction.reply({ ephemeral: true, content: "🎒 Inventario vacío." });  
 
-const menu = new StringSelectMenuBuilder()
-.setCustomId(trade_${interaction.user.id}_${targetUser.id})
-.setPlaceholder("Selecciona objeto")
-.addOptions(items.map(i => ({
-label: i.name,
-value: i.name.toString(),
-description: x${i.qty}
-})));
+const menu = new StringSelectMenuBuilder()  
+  .setCustomId(`trade_${interaction.user.id}_${targetUser.id}`)  
+  .setPlaceholder("Selecciona objeto")  
+  .addOptions(items.map(i => ({  
+    label: i.name,  
+    value: i.name.toString(),  
+    description: `x${i.qty}`  
+  })));  
 
-return interaction.reply({
-ephemeral: true,
-components: [new ActionRowBuilder().addComponents(menu)]
+return interaction.reply({  
+  ephemeral: true,  
+  components: [new ActionRowBuilder().addComponents(menu)]  
 });
 
 }
@@ -379,32 +379,32 @@ components: [new ActionRowBuilder().addComponents(menu)]
 if (interaction.isStringSelectMenu() &&
 interaction.customId.startsWith("trade_")) {
 
-const [, from, to] = interaction.customId.split("_");
-if (interaction.user.id !== from) return;
+const [, from, to] = interaction.customId.split("_");  
+if (interaction.user.id !== from) return;  
 
-const fromUser = getUser(from, interaction.guild.members.cache.get(from));
-const toUser = getUser(to, interaction.guild.members.cache.get(to));
-const name = interaction.values[0];
+const fromUser = getUser(from, interaction.guild.members.cache.get(from));  
+const toUser = getUser(to, interaction.guild.members.cache.get(to));  
+const name = interaction.values[0];  
 
-if (!fromUser.inventory[name]) return;
+if (!fromUser.inventory[name]) return;  
 
-fromUser.inventory[name].qty--;
+fromUser.inventory[name].qty--;  
 
-if (!toUser.inventory[name]) {
-toUser.inventory[name] = {
-name: fromUser.inventory[name].name ?? "Objeto",
-icon: fromUser.inventory[name].icon ?? "❔",
-price: fromUser.inventory[name].price ?? 0,
-qty: 0
-};
-}
+if (!toUser.inventory[name]) {  
+  toUser.inventory[name] = {  
+    name: fromUser.inventory[name].name ?? "Objeto",  
+    icon: fromUser.inventory[name].icon ?? "❔",  
+    price: fromUser.inventory[name].price ?? 0,  
+    qty: 0  
+  };  
+}  
 
-toUser.inventory[name].qty++;
+toUser.inventory[name].qty++;  
 
-if (fromUser.inventory[name].qty <= 0)
-delete fromUser.inventory[name];
+if (fromUser.inventory[name].qty <= 0)  
+  delete fromUser.inventory[name];  
 
-saveUsers();
+saveUsers();  
 return interaction.update({ content: "🔁 Trade completado.", components: [] });
 
 }
