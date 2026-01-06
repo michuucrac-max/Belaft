@@ -497,7 +497,8 @@ if (interaction.isButton() && interaction.customId.startsWith("trade_confirm_"))
     activeTrades.delete(fromId);
     return interaction.update({ content: `❌ Trade cancelado por ${interaction.user.tag}`, components: [] });
   }
-    });
+    }
+  });
 
 //// BLOQUE 11: LOGIN ////
 client.login(TOKEN).then(() => console.log("🤖 Bot iniciado correctamente"));
