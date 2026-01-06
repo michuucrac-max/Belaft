@@ -199,7 +199,7 @@ const commands = [
 ];
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
-const activeTrades = new Map(); // Guarda trades activos por ID
+const activeTrades = new Map();
 
 //// BLOQUE 10: INTERACTIONS ////
 client.on(Events.InteractionCreate, async interaction => {
@@ -210,7 +210,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
     //// CHAT COMMANDS ////
     if (interaction.isChatInputCommand()) {
-      
+
       //// INVENTORY ////
       if (interaction.commandName === "inventory") {
         const items = Object.values(user.inventory);
@@ -373,7 +373,6 @@ client.on(Events.InteractionCreate, async interaction => {
         components: [confirmRow]
       });
 
-      // Timeout de 2 minutos
       trade.timeout = setTimeout(() => {
         activeTrades.delete(fromId);
         interaction.followUp({ ephemeral: true, content: "⏰ El trade expiró." });
@@ -390,7 +389,6 @@ client.on(Events.InteractionCreate, async interaction => {
         trade.confirmed[interaction.user.id === fromId ? "from" : "to"] = true;
         activeTrades.set(fromId, trade);
 
-        // Si ambos confirmaron, realizar intercambio
         if (trade.confirmed.from && trade.confirmed.to) {
           const fromStatus = getStatus(fromId);
           const toStatus = getStatus(toId);
@@ -398,13 +396,56 @@ client.on(Events.InteractionCreate, async interaction => {
           const fromItem = fromStatus.inventory[trade.fromItem];
           const toItem = toStatus.inventory[trade.toItem];
 
-          // Restar cantidades
-          fromItem.qty -= trade.fromQty; 
+          fromItem.qty -= trade.fromQty;
           if (fromItem.qty <= 0) delete fromStatus.inventory[trade.fromItem];
-          toItem.qty -= trade.toQty; 
+
+          toItem.qty -= trade.toQty;
           if (toItem.qty <= 0) delete toStatus.inventory[trade.toItem];
 
-          // Agregar al otro
           if (!toStatus.inventory[trade.fromItem]) toStatus.inventory[trade.fromItem] = { ...fromItem, qty: 0 };
-          if (!fromStatus
-    
+          if (!fromStatus.inventory[trade.toItem]) fromStatus.inventory[trade.toItem] = { ...toItem, qty: 0 };
+
+          toStatus.inventory[trade.fromItem].qty += trade.fromQty;
+          fromStatus.inventory[trade.toItem].qty += trade.toQty;
+
+          saveStatus();
+          clearTimeout(trade.timeout);
+          activeTrades.delete(fromId);
+
+          return interaction.update({ ephemeral: true, content: "✅ Trade completado correctamente.", components: [] });
+        }
+      }
+
+      if (action === "reject") {
+        clearTimeout(trade.timeout);
+        activeTrades.delete(fromId);
+        return interaction.update({ ephemeral: true, content: "❌ Trade rechazado.", components: [] });
+      }
+    }
+
+  } catch (err) {
+    console.error("❌ Error en InteractionCreate:", err);
+  }
+});
+
+//// BLOQUE 12: SECURITY / SAVE ////
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("⚠️ Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("❌ Uncaught Exception:", err);
+  try {
+    saveStatus();
+    console.log("💾 Status guardado antes de cerrar por error crítico.");
+  } catch (e) {
+    console.error("❌ Error guardando status:", e);
+  }
+});
+
+//// BLOQUE 13: CLIENT LOGIN ////
+client.login(TOKEN).then(() => {
+  console.log("✅ Cliente Discord conectado correctamente.");
+}).catch(err => {
+  console.error("❌ Error iniciando sesión del cliente Discord:", err);
+});
