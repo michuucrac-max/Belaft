@@ -202,32 +202,118 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 INTERACTIONS
 ===================== */
 client.on(Events.InteractionCreate, async interaction => {
-  if (
-    !interaction.isChatInputCommand() &&
-    !interaction.isChannelSelectMenu() &&
-    !interaction.isStringSelectMenu()
-  )
-    return;
+  try {
+    if (
+      !interaction.isChatInputCommand() &&
+      !interaction.isChannelSelectMenu() &&
+      !interaction.isStringSelectMenu()
+    ) return;
 
-  const user = getStatus(interaction.user.id, interaction.member);
+    /* =====================
+    CHAT COMMANDS
+    ===================== */
+    if (interaction.isChatInputCommand()) {
+      const user = getStatus(interaction.user.id, interaction.member);
 
-  /* ===== INVENTORY ===== */
-  if (interaction.isChatInputCommand() && interaction.commandName === "inventory") {
-    if (!Object.keys(user.inventory).length)
-      return interaction.reply({
-        ephemeral: true,
-        content: "🎒 Tu inventario está vacío."
+      /* ===== INVENTORY ===== */
+      if (interaction.commandName === "inventory") {
+        if (!Object.keys(user.inventory).length) {
+          return interaction.reply({
+            ephemeral: true,
+            content: "🎒 Tu inventario está vacío."
+          });
+        }
+
+        const list = Object.values(user.inventory)
+          .map(i => `${i.icon} ${i.name} x${i.qty}`)
+          .join("\n");
+
+        return interaction.reply({
+          ephemeral: true,
+          content: `🎒 **Inventario**\n${list}`
+        });
+      }
+
+      /* ===== MY MONEY ===== */
+      if (interaction.commandName === "mymoney") {
+        return interaction.reply({
+          ephemeral: true,
+          content: `💰 Tienes ${user.money} monedas.`
+        });
+      }
+
+      /* =====================
+      SETCHANNEL (MENÚ)
+      ===================== */
+      if (interaction.commandName.startsWith("setchannel")) {
+        if (
+          !interaction.member.permissions.has(
+            PermissionsBitField.Flags.Administrator
+          )
+        ) {
+          return interaction.reply({
+            ephemeral: true,
+            content: "❌ No tienes permisos."
+          });
+        }
+
+        const row = new ActionRowBuilder().addComponents(
+          new ChannelSelectMenuBuilder()
+            .setCustomId(`set_${interaction.commandName}`)
+            .setPlaceholder("Selecciona un canal")
+            .addChannelTypes(ChannelType.GuildText)
+        );
+
+        return interaction.reply({
+          ephemeral: true,
+          content: "📌 Selecciona el canal:",
+          components: [row]
+        });
+      }
+    }
+
+    /* =====================
+    CHANNEL SELECT
+    ===================== */
+    if (interaction.isChannelSelectMenu()) {
+      const channelId = interaction.values[0];
+      const id = interaction.customId;
+
+      if (id === "set_setchanneltops") {
+        config.channels.tops = channelId;
+      }
+
+      if (id === "set_setchanneltrade") {
+        config.channels.trade = channelId;
+      }
+
+      if (id === "set_setchannelsell") {
+        config.channels.sell = channelId;
+      }
+
+      if (id === "set_setchannelreliquies") {
+        if (!config.channels.reliquies.includes(channelId)) {
+          config.channels.reliquies.push(channelId);
+        }
+      }
+
+      saveConfig();
+
+      return interaction.update({
+        content: "✅ Canal configurado correctamente.",
+        components: []
       });
-
-    const list = Object.values(user.inventory)
-      .map(i => `${i.icon} ${i.name} x${i.qty}`)
-      .join("\n");
-
-    return interaction.reply({
-      ephemeral: true,
-      content: `🎒 **Inventario**\n${list}`
-    });
+    }
+  } catch (err) {
+    console.error("❌ Interaction error:", err);
+    if (!interaction.replied) {
+      interaction.reply({
+        ephemeral: true,
+        content: "❌ Ocurrió un error."
+      });
+    }
   }
+});
 
   /* ===== MY MONEY ===== */
   if (interaction.isChatInputCommand() && interaction.commandName === "mymoney") {
