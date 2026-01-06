@@ -470,8 +470,11 @@ if (id.startsWith("trade_select_")) {
 
   if (Object.keys(session.from).length && Object.keys(session.to).length) {  
     session.status = "confirm";  
-
-});
+if (Object.keys(session.from).length && Object.keys(session.to).length) {  
+    session.status = "confirm";  
+  }
+}
+}
 
 /* =====================
 TOP EXPLORADORES
