@@ -383,71 +383,156 @@ if (id.startsWith("trade_select_")) {
 
   if (Object.keys(session.from).length && Object.keys(session.to).length) {  
     session.status = "confirm";  
+/* =====================
+TRADE AVANZADO
+===================== */
+if (interaction.isChatInputCommand() && interaction.commandName === "trade") {
+  if (interaction.channelId !== config.channels.trade)
+    return interaction.reply({ ephemeral: true, content: `❌ Canal incorrecto.` });
 
-    const fromList = Object.entries(session.from).map(([name, qty]) => `${name} x${qty}`).join("\n");  
-    const toList = Object.entries(session.to).map(([name, qty]) => `${name} x${qty}`).join("\n");  
+  const targetUser = interaction.options.getUser("user");
+  if (!targetUser) return;
 
-    const confirmRow = new ActionRowBuilder().addComponents(  
-      new StringSelectMenuBuilder()  
-        .setCustomId(`trade_confirm_${interaction.user.id}_${interaction.user.tag}`)  
-        .setPlaceholder(`✅ Aceptar / ❌ Rechazar`)  
-        .addOptions([  
-          { label: "Aceptar", value: "accept", description: "Confirmar trade" },  
-          { label: "Rechazar", value: "reject", description: "Cancelar trade" }  
-        ])  
-    );  
+  if (targetUser.id === interaction.user.id)
+    return interaction.reply({ ephemeral: true, content: `❌ No puedes hacer trade contigo mismo.` });
 
-    return interaction.update({  
-      content: `⚖️ Trade listo para confirmación:\n\n**Tú das:**\n${fromList}\n\n**Recibes:**\n${toList}\n\nSelecciona Aceptar o Rechazar.`,  
-      components: [confirmRow]  
-    });  
-  } else {  
-    return interaction.update({  
-      content: `🔁 Esperando que el otro usuario seleccione sus objetos...`,  
-      components: []  
-    });  
-  }  
-}  
+  const userInv = getStatus(interaction.user.id, interaction.member).inventory;
+  const targetInv = getStatus(targetUser.id, interaction.guild.members.cache.get(targetUser.id)).inventory;
 
-if (id.startsWith("trade_confirm_")) {  
-  const [, fromId] = id.split("_");  
-  const session = global.tradeSessions[`${fromId}_${interaction.user.id}`] || global.tradeSessions[`${interaction.user.id}_${fromId}`];  
-  if (!session || session.status !== "confirm") return;  
+  if (!Object.keys(userInv).length)
+    return interaction.reply({ ephemeral: true, content: `🎒 Tu inventario está vacío.` });
+  if (!Object.keys(targetInv).length)
+    return interaction.reply({ ephemeral: true, content: `🎒 El inventario del otro usuario está vacío.` });
 
-  if (interaction.values[0] === "reject") {  
-    delete global.tradeSessions[`${fromId}_${interaction.user.id}`];  
-    delete global.tradeSessions[`${interaction.user.id}_${fromId}`];  
-    return interaction.update({ content: `❌ Trade cancelado.`, components: [] });  
-  }  
+  // Crear sesión de trade
+  if (!global.tradeSessions) global.tradeSessions = {};
+  const sessionId = `${interaction.user.id}_${targetUser.id}`;
+  global.tradeSessions[sessionId] = {
+    fromId: interaction.user.id,
+    toId: targetUser.id,
+    itemsFrom: {},
+    itemsTo: {},
+    confirmed: {},
+  };
 
-  const fromUser = getStatus(fromId, interaction.guild.members.cache.get(fromId));  
-  const toUser = getStatus(interaction.user.id, interaction.guild.members.cache.get(interaction.user.id));  
+  // Función para crear menú de selección
+  const createMenu = (inv, customId) => {
+    return new StringSelectMenuBuilder()
+      .setCustomId(customId)
+      .setPlaceholder(`Selecciona los objetos que quieres ofrecer`)
+      .setMinValues(1)
+      .setMaxValues(Object.keys(inv).length)
+      .addOptions(
+        Object.values(inv).map(i => ({
+          label: `${i.name} x${i.qty}`,
+          value: i.name,
+          description: `Valor: ${i.price} monedas`,
+        }))
+      );
+  };
 
-  for (const [name, qty] of Object.entries(session.from)) {  
-    if (!fromUser.inventory[name] || fromUser.inventory[name].qty < qty) continue;  
-    fromUser.inventory[name].qty -= qty;  
-    if (!toUser.inventory[name]) toUser.inventory[name] = { ...fromUser.inventory[name], qty: 0 };  
-    toUser.inventory[name].qty += qty;  
-    if (fromUser.inventory[name].qty <= 0) delete fromUser.inventory[name];  
-  }  
+  const rowUser = new ActionRowBuilder().addComponents(createMenu(userInv, `trade_select_${interaction.user.id}`));
+  const rowTarget = new ActionRowBuilder().addComponents(createMenu(targetInv, `trade_select_${targetUser.id}`));
 
-  for (const [name, qty] of Object.entries(session.to)) {  
-    if (!toUser.inventory[name] || toUser.inventory[name].qty < qty) continue;  
-    toUser.inventory[name].qty -= qty;  
-    if (!fromUser.inventory[name]) fromUser.inventory[name] = { ...toUser.inventory[name], qty: 0 };  
-    fromUser.inventory[name].qty += qty;  
-    if (toUser.inventory[name].qty <= 0) delete toUser.inventory[name];  
-  }  
-
-  saveStatus();  
-  delete global.tradeSessions[`${fromId}_${interaction.user.id}`];  
-  delete global.tradeSessions[`${interaction.user.id}_${fromId}`];  
-
-  return interaction.update({ content: `✅ Trade completado exitosamente.`, components: [] });  
+  return interaction.reply({
+    ephemeral: true,
+    content: `🔁 Trade iniciado con ${targetUser.tag}. Selecciona tus objetos:`,
+    components: [rowUser, rowTarget],
+  });
 }
 
+/* ===== SELECCIÓN DE OBJETOS Y CONFIRMACIÓN ===== */
+if (interaction.isStringSelectMenu() || interaction.isButton()) {
+  // Manejo de selección de objetos
+  if (interaction.isStringSelectMenu() && interaction.customId.startsWith("trade_select_")) {
+    const userId = interaction.customId.replace(`trade_select_`, "");
+    const session = Object.values(global.tradeSessions || {}).find(
+      s => s.fromId === userId || s.toId === userId
+    );
+    if (!session) return;
+
+    const isFrom = interaction.user.id === session.fromId;
+    const userInv = getStatus(interaction.user.id, interaction.guild.members.cache.get(interaction.user.id)).inventory;
+
+    // Guardar selección
+    const selectedItems = {};
+    for (const name of interaction.values) {
+      const item = userInv[name];
+      if (item) selectedItems[name] = item.qty;
+    }
+
+    if (isFrom) session.itemsFrom = selectedItems;
+    else session.itemsTo = selectedItems;
+
+    // Preparar botones de confirmación
+    if (Object.keys(session.itemsFrom).length && Object.keys(session.itemsTo).length) {
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`tradeconfirm_${session.fromId}_${session.toId}_${interaction.user.id}`)
+          .setLabel(`✅ Confirmar`)
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId(`tradecancel_${session.fromId}_${session.toId}_${interaction.user.id}`)
+          .setLabel(`❌ Cancelar`)
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      return interaction.update({
+        content: `⚖️ Trade listo. Ambos deben confirmar.`,
+        components: [row],
+      });
+    } else {
+      return interaction.update({
+        content: `🔁 Esperando que el otro usuario seleccione sus objetos...`,
+        components: [],
+      });
+    }
+  }
+
+  // Manejo de botones de confirmación / cancelación
+  if (interaction.isButton()) {
+    const [action, fromId, toId, userId] = interaction.customId.split("_");
+    const sessionId = `${fromId}_${toId}`;
+    const session = global.tradeSessions?.[sessionId];
+    if (!session) return interaction.reply({ ephemeral: true, content: `❌ Sesión no encontrada.` });
+
+    if (action === "tradeconfirm") {
+      session.confirmed[interaction.user.id] = true;
+
+      if (Object.values(session.confirmed).length === 2) {
+        // Intercambiar objetos
+        const fromUser = getStatus(session.fromId, interaction.guild.members.cache.get(session.fromId));
+        const toUser = getStatus(session.toId, interaction.guild.members.cache.get(session.toId));
+
+        for (const [item, qty] of Object.entries(session.itemsFrom)) {
+          fromUser.inventory[item].qty -= qty;
+          if (!toUser.inventory[item]) toUser.inventory[item] = { ...fromUser.inventory[item], qty: 0 };
+          toUser.inventory[item].qty += qty;
+          if (fromUser.inventory[item].qty <= 0) delete fromUser.inventory[item];
+        }
+
+        for (const [item, qty] of Object.entries(session.itemsTo)) {
+          toUser.inventory[item].qty -= qty;
+          if (!fromUser.inventory[item]) fromUser.inventory[item] = { ...toUser.inventory[item], qty: 0 };
+          fromUser.inventory[item].qty += qty;
+          if (toUser.inventory[item].qty <= 0) delete toUser.inventory[item];
+        }
+
+        saveStatus();
+        delete global.tradeSessions[sessionId];
+
+        return interaction.update({ content: `✅ Trade completado con éxito.`, components: [] });
+      } else {
+        return interaction.reply({ ephemeral: true, content: `⚠️ Esperando que el otro usuario confirme...` });
+      }
+    }
+
+    if (action === "tradecancel") {
+      delete global.tradeSessions[sessionId];
+      return interaction.update({ content: "❌ Trade cancelado.", components: [] });
+    }
+  }
 }
-});
 
 /* =====================
 TOP EXPLORADORES
