@@ -173,6 +173,32 @@ client.on(Events.MessageCreate, message => {
 });
 
 /* =====================
+COMMANDS
+===================== */
+const commands = [
+  new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
+  new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
+  new SlashCommandBuilder().setName("rankup").setDescription("Subir de rango"),
+  new SlashCommandBuilder()
+    .setName("sell")
+    .setDescription("Vender reliquias")
+    .addStringOption(o =>
+      o.setName("mode").setDescription("Modo de venta").setRequired(true)
+        .addChoices({ name: "Uno", value: "one" }, { name: "Todo", value: "all" })
+    ),
+  new SlashCommandBuilder()
+    .setName("trade")
+    .setDescription("Intercambiar reliquias")
+    .addUserOption(o => o.setName("user").setDescription("Usuario").setRequired(true)),
+  new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Configurar drops").setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+  new SlashCommandBuilder().setName("setchanneltrade").setDescription("Configurar trade").setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+  new SlashCommandBuilder().setName("setchannelsell").setDescription("Configurar sell").setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+  new SlashCommandBuilder().setName("setchanneltops").setDescription("Configurar tops").setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
+];
+
+const rest = new REST({ version: "10" }).setToken(TOKEN);
+
+/* =====================
 INTERACTIONS
 ===================== */
 client.on(Events.InteractionCreate, async interaction => {
