@@ -27,7 +27,7 @@ const PORT = process.env.PORT || 3000;
 EXPRESS
 ===================== */
 const app = express();
-app.get("/", (_, res) => res.send("Belaf observa el Abismo 🧭"));
+app.get("/", (_, res) => res.send(`Belaf observa el Abismo 🧭`));
 app.listen(PORT, () => console.log(`🌐 Express levantado en puerto ${PORT}`));
 
 /* =====================
@@ -231,14 +231,14 @@ if (id === "sell") config.channels.sell = interaction.values[0];
 if (id === "tops") config.channels.tops = interaction.values[0];  
 
 saveConfig();  
-return interaction.update({ content: "📜 Canal configurado.", components: [] });
+return interaction.update({ content: `📜 Canal configurado.`, components: [] });
 
 }
 
 /* ===== INVENTORY ===== */
 if (interaction.isChatInputCommand() && interaction.commandName === "inventory") {
 if (!Object.keys(user.inventory).length)
-return interaction.reply({ ephemeral: true, content: "🎒 Tu inventario está vacío." });
+return interaction.reply({ ephemeral: true, content: `🎒 Tu inventario está vacío.` });
 
 const list = Object.values(user.inventory)  
   .map(i => `${i.icon} ${i.name} x${i.qty}`)  
@@ -250,20 +250,20 @@ return interaction.reply({ ephemeral: true, content: `🎒 **Inventario**\n${lis
 
 /* ===== MY MONEY ===== */
 if (interaction.isChatInputCommand() && interaction.commandName === "mymoney") {
-return interaction.reply({ ephemeral: true, content: 💰 Tienes ${user.money} monedas. });
+return interaction.reply({ ephemeral: true, content: `💰 Tienes ${user.money} monedas.` });
 }
 
 /* ===== RANKUP ===== */
 if (interaction.isChatInputCommand() && interaction.commandName === "rankup") {
 if (!user.humanity)
-return interaction.reply({ ephemeral: true, content: "❌ Los narehates no pueden ascender." });
+return interaction.reply({ ephemeral: true, content: `❌ Los narehates no pueden ascender.` });
 
 const order = ["Bell","Silbato rojo","Silbato azul","Silbato lunar","Silbato negro","Silbato blanco"];  
 const costs = [0,100,300,700,1500,3000];  
 
 const i = order.indexOf(user.rank);  
 if (i === order.length - 1)  
-  return interaction.reply({ ephemeral: true, content: "🏅 Rango máximo." });  
+  return interaction.reply({ ephemeral: true, content: `🏅 Rango máximo.` });  
 
 const cost = costs[i + 1];  
 if (user.money < cost)  
@@ -281,7 +281,7 @@ return interaction.reply(`🏅 Ascendiste a **${user.rank}** (-${cost} 💰)`);
 if (interaction.isChatInputCommand() && interaction.commandName === "sell") {
 const mode = interaction.options.getString("mode");
 if (!Object.keys(user.inventory).length)
-return interaction.reply({ ephemeral: true, content: "🎒 No tienes objetos." });
+return interaction.reply({ ephemeral: true, content: `🎒 No tienes objetos.` });
 
 let sold = [];  
 if (mode === "one") {  
@@ -306,7 +306,7 @@ return interaction.reply({ ephemeral: true, content: `💰 Vendiste: ${sold.join
 /* ===== TRADE ===== */
 if (interaction.isChatInputCommand() && interaction.commandName === "trade") {
 if (interaction.channelId !== config.channels.trade)
-return interaction.reply({ ephemeral: true, content: "❌ Canal incorrecto." });
+return interaction.reply({ ephemeral: true, content: `❌ Canal incorrecto.` });
 
 const targetUser = interaction.options.getUser("user");  
 if (!targetUser) return;  
@@ -315,9 +315,9 @@ const target = getStatus(targetUser.id, interaction.guild.members.cache.get(targ
 const user = getStatus(interaction.user.id, interaction.member);  
 
 if (!Object.keys(user.inventory).length)  
-  return interaction.reply({ ephemeral: true, content: "🎒 Tu inventario está vacío." });  
+  return interaction.reply({ ephemeral: true, content: `🎒 Tu inventario está vacío.` });  
 if (!Object.keys(target.inventory).length)  
-  return interaction.reply({ ephemeral: true, content: "🎒 El inventario del otro usuario está vacío." });  
+  return interaction.reply({ ephemeral: true, content: `🎒 El inventario del otro usuario está vacío.` });  
 
 if (!global.tradeSessions) global.tradeSessions = {};  
 const sessionId = `${interaction.user.id}_${targetUser.id}`;  
@@ -378,7 +378,7 @@ if (id.startsWith("trade_select_")) {
     const confirmRow = new ActionRowBuilder().addComponents(  
       new StringSelectMenuBuilder()  
         .setCustomId(`trade_confirm_${interaction.user.id}_${interaction.user.tag}`)  
-        .setPlaceholder("✅ Aceptar / ❌ Rechazar")  
+        .setPlaceholder(`✅ Aceptar / ❌ Rechazar`)  
         .addOptions([  
           { label: "Aceptar", value: "accept", description: "Confirmar trade" },  
           { label: "Rechazar", value: "reject", description: "Cancelar trade" }  
@@ -391,7 +391,7 @@ if (id.startsWith("trade_select_")) {
     });  
   } else {  
     return interaction.update({  
-      content: "🔁 Esperando que el otro usuario seleccione sus objetos...",  
+      content: `🔁 Esperando que el otro usuario seleccione sus objetos...`,  
       components: []  
     });  
   }  
@@ -405,7 +405,7 @@ if (id.startsWith("trade_confirm_")) {
   if (interaction.values[0] === "reject") {  
     delete global.tradeSessions[`${fromId}_${interaction.user.id}`];  
     delete global.tradeSessions[`${interaction.user.id}_${fromId}`];  
-    return interaction.update({ content: "❌ Trade cancelado.", components: [] });  
+    return interaction.update({ content: `❌ Trade cancelado.`, components: [] });  
   }  
 
   const fromUser = getStatus(fromId, interaction.guild.members.cache.get(fromId));  
@@ -431,7 +431,7 @@ if (id.startsWith("trade_confirm_")) {
   delete global.tradeSessions[`${fromId}_${interaction.user.id}`];  
   delete global.tradeSessions[`${interaction.user.id}_${fromId}`];  
 
-  return interaction.update({ content: "✅ Trade completado exitosamente.", components: [] });  
+  return interaction.update({ content: `✅ Trade completado exitosamente.`, components: [] });  
 }
 
 }
@@ -498,4 +498,4 @@ setInterval(sendTopExploradores, 3600000);
 /* =====================
 LOGIN
 ===================== */
-client.login(TOKEN).then(() => console.log("🔑 Intentando conectar con Discord..."));
+client.login(TOKEN).then(() => console.log(`🔑 Intentando conectar con Discord...`));
