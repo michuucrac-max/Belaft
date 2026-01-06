@@ -217,22 +217,22 @@ const commands = [
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 /* =====================
-INTERACTIONS
+INTERACTIONS (COMPLETO)
 ===================== */
 client.on(Events.InteractionCreate, async interaction => {
   try {
-    if (
-      !interaction.isChatInputCommand() &&
-      !interaction.isChannelSelectMenu()
-    ) return;
+    if (!interaction.isChatInputCommand() && !interaction.isChannelSelectMenu()) return;
 
+    const user = getStatus(interaction.user.id, interaction.member);
+
+    /* ===== CHAT COMMANDS ===== */
     if (interaction.isChatInputCommand()) {
-      const user = getStatus(interaction.user.id, interaction.member);
 
+      /* ===== INVENTORY ===== */
       if (interaction.commandName === "inventory") {
         const items = Object.values(user.inventory);
         if (!items.length)
-          return interaction.reply({ ephemeral: true, content: "🎒 Vacío." });
+          return interaction.reply({ ephemeral: true, content: "🎒 Tu inventario está vacío." });
 
         return interaction.reply({
           ephemeral: true,
@@ -240,16 +240,225 @@ client.on(Events.InteractionCreate, async interaction => {
         });
       }
 
+      /* ===== MY MONEY ===== */
       if (interaction.commandName === "mymoney") {
         return interaction.reply({
           ephemeral: true,
-          content: `💰 ${user.money} monedas`
+          content: `💰 Tienes ${user.money} monedas.`
         });
       }
 
+      /* ===== SELL ===== */
+      if (interaction.commandName === "sell") {
+        const mode = interaction.options.getString("mode");
+        const invItems = Object.values(user.inventory);
+
+        if (!invItems.length)
+          return interaction.reply({ ephemeral: true, content: "🎒 No tienes reliquias para vender." });
+
+        if (mode === "one") {
+          const item = invItems[0];
+          user.money += (item.price ?? 0);
+          item.qty--;
+          if (item.qty <= 0) delete user.inventory[item.name];
+          saveStatus();
+          return interaction.reply({ content: `💰 Vendiste 1 ${item.icon} ${item.name} por ${item.price} monedas.` });
+        }
+
+        if (mode === "all") {
+          let total = 0;
+          invItems.forEach(item => {
+            total += (item.price ?? 0) * item.qty;
+            delete user.inventory[item.name];
+          });
+          user.money += total;
+          saveStatus();
+          return interaction.reply({ content: `💰 Vendiste todo tu inventario por ${total} monedas.` });
+        }
+      }
+
+      /* =====================
+TRADE MULTI-UNIDAD
+===================== */
+const activeTrades = new Map(); // Guarda trades activos por ID
+
+client.on(Events.InteractionCreate, async interaction => {
+  try {
+    if (!interaction.isChatInputCommand() && !interaction.isMessageComponent() && !interaction.isStringSelectMenu()) return;
+
+    /* ===== INICIAR TRADE ===== */
+    if (interaction.isChatInputCommand() && interaction.commandName === "trade") {
+      const targetUser = interaction.options.getUser("user");
+      if (!targetUser) return interaction.reply({ ephemeral: true, content: "❌ Usuario inválido." });
+      if (targetUser.id === interaction.user.id) return interaction.reply({ ephemeral: true, content: "❌ No puedes intercambiar contigo mismo." });
+
+      const fromUser = getStatus(interaction.user.id, interaction.member);
+      const toUser = getStatus(targetUser.id);
+
+      if (Object.keys(fromUser.inventory).length === 0)
+        return interaction.reply({ ephemeral: true, content: "🎒 No tienes objetos para ofrecer." });
+      if (Object.keys(toUser.inventory).length === 0)
+        return interaction.reply({ ephemeral: true, content: `${targetUser.tag} no tiene objetos para intercambiar.` });
+
+      // Crear menú de selección de objeto + cantidad
+      const selectMenu = new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId(`trade_select_${interaction.user.id}_${targetUser.id}`)
+          .setPlaceholder("Selecciona un objeto para ofrecer")
+          .setMinValues(1)
+          .setMaxValues(1)
+          .addOptions(
+            Object.values(fromUser.inventory).map(item => ({
+              label: `${item.name} (x${item.qty})`,
+              value: item.name,
+              description: `Precio: ${item.price}`,
+              emoji: item.icon
+            }))
+          )
+      );
+
+      return interaction.reply({
+        ephemeral: true,
+        content: `🔄 Selecciona un objeto para ofrecer a ${targetUser.tag}:`,
+        components: [selectMenu]
+      });
+    }
+
+    /* ===== MENÚ DE SELECCIÓN DE OBJETOS ===== */
+    if (interaction.isStringSelectMenu() && interaction.customId.startsWith("trade_select_")) {
+      const [_, fromId, toId, step] = interaction.customId.split("_");
+      const selectedItemName = interaction.values[0];
+
+      const trade = {
+        from: fromId,
+        to: toId,
+        fromItem: selectedItemName,
+        fromQty: 1, // Inicial, luego seleccionable
+        toItem: null,
+        toQty: 0,
+        confirmed: { from: false, to: false },
+        timeout: null
+      };
+      activeTrades.set(fromId, trade);
+
+      // Enviar mensaje al segundo usuario para seleccionar objeto y cantidad
+      const toMember = await interaction.guild.members.fetch(toId).catch(() => null);
+      if (!toMember) return interaction.reply({ ephemeral: true, content: "❌ Usuario no encontrado." });
+      const toStatus = getStatus(toId);
+
+      const selectMenu = new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId(`trade_select_${fromId}_${toId}_response`)
+          .setPlaceholder(`${toMember.user.tag}, selecciona el objeto que deseas ofrecer`)
+          .setMinValues(1)
+          .setMaxValues(1)
+          .addOptions(
+            Object.values(toStatus.inventory).map(item => ({
+              label: `${item.name} (x${item.qty})`,
+              value: item.name,
+              description: `Precio: ${item.price}`,
+              emoji: item.icon
+            }))
+          )
+      );
+
+      await interaction.followUp({
+        ephemeral: true,
+        content: `📩 ${toMember.user.tag}, selecciona un objeto para ofrecer...`,
+        components: [selectMenu]
+      });
+    }
+
+    /* ===== RESPUESTA DEL SEGUNDO USUARIO ===== */
+    if (interaction.isStringSelectMenu() && interaction.customId.endsWith("_response")) {
+      const [_, fromId, toId] = interaction.customId.split("_");
+      const trade = activeTrades.get(fromId);
+      if (!trade) return interaction.reply({ ephemeral: true, content: "❌ Trade no encontrado o expirado." });
+
+      trade.toItem = interaction.values[0];
+      trade.toQty = 1; // Inicial
+      activeTrades.set(fromId, trade);
+
+      const fromMember = await interaction.guild.members.fetch(fromId).catch(() => null);
+      const toMember = await interaction.guild.members.fetch(toId).catch(() => null);
+
+      const confirmRow = new ActionRowBuilder().addComponents(
+        {
+          type: 2, label: "Aceptar", style: 3, custom_id: `trade_confirm_${fromId}_${toId}_accept`
+        },
+        {
+          type: 2, label: "Rechazar", style: 4, custom_id: `trade_confirm_${fromId}_${toId}_reject`
+        }
+      );
+
+      await interaction.followUp({
+        ephemeral: true,
+        content: `🔄 Trade propuesto:\n${fromMember.user.tag} ofrece ${trade.fromItem} x${trade.fromQty}\n${toMember.user.tag} ofrece ${trade.toItem} x${trade.toQty}\nAmbos deben confirmar en 2 minutos.`,
+        components: [confirmRow]
+      });
+
+      // Timeout de 2 minutos
+      trade.timeout = setTimeout(() => {
+        activeTrades.delete(fromId);
+        interaction.followUp({ ephemeral: true, content: "⏰ El trade expiró." });
+      }, 2 * 60 * 1000);
+    }
+
+    /* ===== BOTONES DE CONFIRMACIÓN ===== */
+    if (interaction.isButton() && interaction.customId.startsWith("trade_confirm_")) {
+      const [_, fromId, toId, action] = interaction.customId.split("_");
+      const trade = activeTrades.get(fromId);
+      if (!trade) return interaction.reply({ ephemeral: true, content: "❌ Trade no encontrado o expirado." });
+
+      if (action === "accept") {
+        trade.confirmed[interaction.user.id === fromId ? "from" : "to"] = true;
+        activeTrades.set(fromId, trade);
+
+        // Si ambos confirmaron, realizar intercambio
+        if (trade.confirmed.from && trade.confirmed.to) {
+          const fromStatus = getStatus(fromId);
+          const toStatus = getStatus(toId);
+
+          // Restar cantidad
+          const fromItem = fromStatus.inventory[trade.fromItem];
+          const toItem = toStatus.inventory[trade.toItem];
+          fromItem.qty -= trade.fromQty; if (fromItem.qty <= 0) delete fromStatus.inventory[trade.fromItem];
+          toItem.qty -= trade.toQty; if (toItem.qty <= 0) delete toStatus.inventory[trade.toItem];
+
+          // Agregar al otro
+          if (!toStatus.inventory[trade.fromItem]) toStatus.inventory[trade.fromItem] = { ...fromItem, qty: 0 };
+          if (!fromStatus.inventory[trade.toItem]) fromStatus.inventory[trade.toItem] = { ...toItem, qty: 0 };
+          toStatus.inventory[trade.fromItem].qty += trade.fromQty;
+          fromStatus.inventory[trade.toItem].qty += trade.toQty;
+
+          saveStatus();
+          clearTimeout(trade.timeout);
+          activeTrades.delete(fromId);
+
+          return interaction.update({ ephemeral: true, content: "✅ Trade completado correctamente.", components: [] });
+        } else {
+          return interaction.reply({ ephemeral: true, content: "✅ Confirmaste el trade, esperando al otro usuario." });
+        }
+      }
+
+      if (action === "reject") {
+        clearTimeout(trade.timeout);
+        activeTrades.delete(fromId);
+        return interaction.update({ ephemeral: true, content: "❌ Trade rechazado.", components: [] });
+      }
+    }
+
+  } catch (err) {
+    console.error("❌ Trade error:", err);
+    if (!interaction.replied) interaction.reply({ ephemeral: true, content: "❌ Ocurrió un error en el trade." });
+  }
+});
+      }
+
+      /* ===== SET CHANNELS ===== */
       if (interaction.commandName.startsWith("setchannel")) {
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator))
-          return interaction.reply({ ephemeral: true, content: "❌ Sin permisos" });
+          return interaction.reply({ ephemeral: true, content: "❌ No tienes permisos." });
 
         const row = new ActionRowBuilder().addComponents(
           new ChannelSelectMenuBuilder()
@@ -268,28 +477,35 @@ client.on(Events.InteractionCreate, async interaction => {
       }
     }
 
+    /* ===== CHANNEL SELECT ===== */
     if (interaction.isChannelSelectMenu()) {
-      if (interaction.customId === "set_setchanneltops")
-        config.channels.tops = interaction.values[0];
-
-      if (interaction.customId === "set_setchanneltrade")
-        config.channels.trade = interaction.values[0];
-
-      if (interaction.customId === "set_setchannelsell")
-        config.channels.sell = interaction.values[0];
-
-      if (interaction.customId === "set_setchannelreliquies")
-        config.channels.reliquies = interaction.values;
+      switch (interaction.customId) {
+        case "set_setchanneltops":
+          config.channels.tops = interaction.values[0];
+          break;
+        case "set_setchanneltrade":
+          config.channels.trade = interaction.values[0];
+          break;
+        case "set_setchannelsell":
+          config.channels.sell = interaction.values[0];
+          break;
+        case "set_setchannelreliquies":
+          config.channels.reliquies = interaction.values;
+          break;
+      }
 
       saveConfig();
-
       return interaction.update({
-        content: "✅ Configurado correctamente",
+        content: "✅ Canal configurado correctamente",
         components: []
       });
     }
+
   } catch (err) {
-    console.error(err);
+    console.error("❌ Interaction error:", err);
+    if (!interaction.replied) {
+      interaction.reply({ ephemeral: true, content: "❌ Ocurrió un error." });
+    }
   }
 });
 
