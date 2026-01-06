@@ -272,29 +272,113 @@ client.on(Events.InteractionCreate, async interaction => {
       }
     }
 
+/* =====================
+INTERACTIONS
+===================== */
+client.on(Events.InteractionCreate, async interaction => {
+  try {
+    if (
+      !interaction.isChatInputCommand() &&
+      !interaction.isChannelSelectMenu() &&
+      !interaction.isStringSelectMenu()
+    ) return;
+
+    /* =====================
+    CHAT COMMANDS
+    ===================== */
+    if (interaction.isChatInputCommand()) {
+      const user = getStatus(interaction.user.id, interaction.member);
+
+      /* ===== INVENTORY ===== */
+      if (interaction.commandName === "inventory") {
+        if (!Object.keys(user.inventory).length) {
+          return interaction.reply({
+            ephemeral: true,
+            content: "🎒 Tu inventario está vacío."
+          });
+        }
+
+        const list = Object.values(user.inventory)
+          .map(i => `${i.icon} ${i.name} x${i.qty}`)
+          .join("\n");
+
+        return interaction.reply({
+          ephemeral: true,
+          content: `🎒 **Inventario**\n${list}`
+        });
+      }
+
+      /* ===== MY MONEY ===== */
+      if (interaction.commandName === "mymoney") {
+        return interaction.reply({
+          ephemeral: true,
+          content: `💰 Tienes ${user.money} monedas.`
+        });
+      }
+
+      /* =====================
+      SETCHANNEL (MENÚ)
+      ===================== */
+      if (interaction.commandName.startsWith("setchannel")) {
+        if (
+          !interaction.member.permissions.has(
+            PermissionsBitField.Flags.Administrator
+          )
+        ) {
+          return interaction.reply({
+            ephemeral: true,
+            content: "❌ No tienes permisos."
+          });
+        }
+
+        const isReliquies =
+          interaction.commandName === "setchannelreliquies";
+
+        const row = new ActionRowBuilder().addComponents(
+          new ChannelSelectMenuBuilder()
+            .setCustomId(`set_${interaction.commandName}`)
+            .setPlaceholder(
+              isReliquies
+                ? "Selecciona hasta 6 canales de reliquias"
+                : "Selecciona un canal"
+            )
+            .setMinValues(1)
+            .setMaxValues(isReliquies ? 6 : 1)
+            .addChannelTypes(ChannelType.GuildText)
+        );
+
+        return interaction.reply({
+          ephemeral: true,
+          content: "📌 Selecciona el canal:",
+          components: [row]
+        });
+      }
+    }
+
     /* =====================
     CHANNEL SELECT
     ===================== */
     if (interaction.isChannelSelectMenu()) {
-      const channelId = interaction.values[0];
       const id = interaction.customId;
 
+      /* ===== TOPS ===== */
       if (id === "set_setchanneltops") {
-        config.channels.tops = channelId;
+        config.channels.tops = interaction.values[0];
       }
 
+      /* ===== TRADE ===== */
       if (id === "set_setchanneltrade") {
-        config.channels.trade = channelId;
+        config.channels.trade = interaction.values[0];
       }
 
+      /* ===== SELL ===== */
       if (id === "set_setchannelsell") {
-        config.channels.sell = channelId;
+        config.channels.sell = interaction.values[0];
       }
 
+      /* ===== RELIQUIES (MULTI) ===== */
       if (id === "set_setchannelreliquies") {
-        if (!config.channels.reliquies.includes(channelId)) {
-          config.channels.reliquies.push(channelId);
-        }
+        config.channels.reliquies = interaction.values;
       }
 
       saveConfig();
