@@ -168,13 +168,11 @@ async function handleRankup(interaction) {
   if (user.money < next.cost)
     return interaction.reply({ ephemeral: true, content: `💰 Necesitas ${next.cost} monedas.` });
 
-  // Quitar roles anteriores
   for (const r of RANK_ROLES) {
     if (member.roles.cache.has(r.id))
       await member.roles.remove(r.id).catch(() => {});
   }
 
-  // Dar nuevo rol
   await member.roles.add(next.id).catch(() => {});
 
   user.money -= next.cost;
@@ -273,7 +271,10 @@ READY
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 client.once(Events.ClientReady, async () => {
-  await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+  await rest.put(
+    Routes.applicationCommands(CLIENT_ID),
+    { body: commands.map(c => c.toJSON()) }
+  );
   console.log(`🧭 Belaf despierta como ${client.user.tag}`);
 });
 
