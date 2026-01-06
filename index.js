@@ -468,10 +468,10 @@ const top = data.sort((a,b) => b.money - a.money).slice(0,10);
 if (!top.length) return;
 
 const text = top.map((u,i) =>
-` **${i+1}. ${u.tag}**\n🧭 Rango: **${u.rank}**\n💰 Dinero: **${u.money}**\n🎒 Objetos: **${u.items}**
-).join("\n\n"`);
+` **${i+1}. ${u.tag}**\n🧭 Rango: **${u.rank}**\n💰 Dinero: **${u.money}**\n🎒 Objetos: **${u.items}**`
+).join("\n\n");
 
-await channel.send({ content: 🏆 **TOP EXPLORADORES** 🏆\n\n${text} });
+await channel.send({ content: `🏆 **TOP EXPLORADORES** 🏆\n\n${text}` });
 }
 
 /* Enviar top cada 10 minutos */
