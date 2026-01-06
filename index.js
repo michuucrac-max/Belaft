@@ -531,8 +531,8 @@ if (interaction.isStringSelectMenu() || interaction.isButton()) {
       delete global.tradeSessions[sessionId];
       return interaction.update({ content: "❌ Trade cancelado.", components: [] });
     }
-  }
-};
+  });
+}
 
 /* =====================
 TOP EXPLORADORES
