@@ -321,17 +321,6 @@ client.once(Events.ClientReady, async () => {
 });
 
 /* =====================
-SAFE SAVE
-===================== */
-process.on("SIGINT", () => { saveStatusSafe(); process.exit(); });
-process.on("SIGTERM", () => { saveStatusSafe(); process.exit(); });
-process.on("uncaughtException", err => {
-  console.error(err);
-  saveStatusSafe();
-  process.exit(1);
-});
-
-/* =====================
 LOGIN
 ===================== */
 client.login(TOKEN);
