@@ -7,7 +7,6 @@ import {
   Routes,
   SlashCommandBuilder,
   ActionRowBuilder,
-  StringSelectMenuBuilder,
   ChannelSelectMenuBuilder,
   ChannelType,
   PermissionsBitField
@@ -85,7 +84,7 @@ const RANK_ROLES = [
 const NAREHATE_ROLE_ID = "1456180289465483396";
 
 /* =====================
-STATUS MANAGEMENT
+STATUS
 ===================== */
 function getStatus(id, member = null) {
   if (!status[id]) {
@@ -99,7 +98,7 @@ function getStatus(id, member = null) {
   }
 
   if (member) {
-    const roleOrder = [
+    const order = [
       "Bell",
       "Silbato rojo",
       "Silbato azul",
@@ -108,11 +107,9 @@ function getStatus(id, member = null) {
       "Silbato blanco",
       "Narehate"
     ];
-    const memberRoles = member.roles.cache.map(r => r.name);
-    const matchedRole = [...roleOrder].reverse().find(r =>
-      memberRoles.includes(r)
-    );
-    if (matchedRole) status[id].rank = matchedRole;
+    const roles = member.roles.cache.map(r => r.name);
+    const found = [...order].reverse().find(r => roles.includes(r));
+    if (found) status[id].rank = found;
     status[id].humanity = !member.roles.cache.has(NAREHATE_ROLE_ID);
   }
 
@@ -183,17 +180,38 @@ const commands = [
     .setName("sell")
     .setDescription("Vender reliquias")
     .addStringOption(o =>
-      o.setName("mode").setDescription("Modo de venta").setRequired(true)
-        .addChoices({ name: "Uno", value: "one" }, { name: "Todo", value: "all" })
+      o.setName("mode")
+        .setDescription("Modo de venta")
+        .setRequired(true)
+        .addChoices(
+          { name: "Uno", value: "one" },
+          { name: "Todo", value: "all" }
+        )
     ),
   new SlashCommandBuilder()
     .setName("trade")
     .setDescription("Intercambiar reliquias")
-    .addUserOption(o => o.setName("user").setDescription("Usuario").setRequired(true)),
-  new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Configurar drops").setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-  new SlashCommandBuilder().setName("setchanneltrade").setDescription("Configurar trade").setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-  new SlashCommandBuilder().setName("setchannelsell").setDescription("Configurar sell").setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-  new SlashCommandBuilder().setName("setchanneltops").setDescription("Configurar tops").setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
+    .addUserOption(o =>
+      o.setName("user")
+        .setDescription("Usuario")
+        .setRequired(true)
+    ),
+  new SlashCommandBuilder()
+    .setName("setchannelreliquies")
+    .setDescription("Configurar reliquias")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+  new SlashCommandBuilder()
+    .setName("setchanneltrade")
+    .setDescription("Configurar trade")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+  new SlashCommandBuilder()
+    .setName("setchannelsell")
+    .setDescription("Configurar sell")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+  new SlashCommandBuilder()
+    .setName("setchanneltops")
+    .setDescription("Configurar tops")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
 ];
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
@@ -205,267 +223,73 @@ client.on(Events.InteractionCreate, async interaction => {
   try {
     if (
       !interaction.isChatInputCommand() &&
-      !interaction.isChannelSelectMenu() &&
-      !interaction.isStringSelectMenu()
-    ) return;
-
-    /* =====================
-    CHAT COMMANDS
-    ===================== */
-    if (interaction.isChatInputCommand()) {
-      const user = getStatus(interaction.user.id, interaction.member);
-
-      /* ===== INVENTORY ===== */
-      if (interaction.commandName === "inventory") {
-        if (!Object.keys(user.inventory).length) {
-          return interaction.reply({
-            ephemeral: true,
-            content: "🎒 Tu inventario está vacío."
-          });
-        }
-
-        const list = Object.values(user.inventory)
-          .map(i => `${i.icon} ${i.name} x${i.qty}`)
-          .join("\n");
-
-        return interaction.reply({
-          ephemeral: true,
-          content: `🎒 **Inventario**\n${list}`
-        });
-      }
-
-      /* ===== MY MONEY ===== */
-      if (interaction.commandName === "mymoney") {
-        return interaction.reply({
-          ephemeral: true,
-          content: `💰 Tienes ${user.money} monedas.`
-        });
-      }
-
-      /* =====================
-      SETCHANNEL (MENÚ)
-      ===================== */
-      if (interaction.commandName.startsWith("setchannel")) {
-        if (
-          !interaction.member.permissions.has(
-            PermissionsBitField.Flags.Administrator
-          )
-        ) {
-          return interaction.reply({
-            ephemeral: true,
-            content: "❌ No tienes permisos."
-          });
-        }
-
-        const row = new ActionRowBuilder().addComponents(
-          new ChannelSelectMenuBuilder()
-            .setCustomId(`set_${interaction.commandName}`)
-            .setPlaceholder("Selecciona un canal")
-            .addChannelTypes(ChannelType.GuildText)
-        );
-
-        return interaction.reply({
-          ephemeral: true,
-          content: "📌 Selecciona el canal:",
-          components: [row]
-        });
-      }
-    }
-
-/* =====================
-INTERACTIONS
-===================== */
-client.on(Events.InteractionCreate, async interaction => {
-  try {
-    if (
-      !interaction.isChatInputCommand() &&
-      !interaction.isChannelSelectMenu() &&
-      !interaction.isStringSelectMenu()
-    ) return;
-
-    /* =====================
-    CHAT COMMANDS
-    ===================== */
-    if (interaction.isChatInputCommand()) {
-      const user = getStatus(interaction.user.id, interaction.member);
-
-      /* ===== INVENTORY ===== */
-      if (interaction.commandName === "inventory") {
-        if (!Object.keys(user.inventory).length) {
-          return interaction.reply({
-            ephemeral: true,
-            content: "🎒 Tu inventario está vacío."
-          });
-        }
-
-        const list = Object.values(user.inventory)
-          .map(i => `${i.icon} ${i.name} x${i.qty}`)
-          .join("\n");
-
-        return interaction.reply({
-          ephemeral: true,
-          content: `🎒 **Inventario**\n${list}`
-        });
-      }
-
-      /* ===== MY MONEY ===== */
-      if (interaction.commandName === "mymoney") {
-        return interaction.reply({
-          ephemeral: true,
-          content: `💰 Tienes ${user.money} monedas.`
-        });
-      }
-
-      /* =====================
-      SETCHANNEL (MENÚ)
-      ===================== */
-      if (interaction.commandName.startsWith("setchannel")) {
-        if (
-          !interaction.member.permissions.has(
-            PermissionsBitField.Flags.Administrator
-          )
-        ) {
-          return interaction.reply({
-            ephemeral: true,
-            content: "❌ No tienes permisos."
-          });
-        }
-
-        const isReliquies =
-          interaction.commandName === "setchannelreliquies";
-
-        const row = new ActionRowBuilder().addComponents(
-          new ChannelSelectMenuBuilder()
-            .setCustomId(`set_${interaction.commandName}`)
-            .setPlaceholder(
-              isReliquies
-                ? "Selecciona hasta 6 canales de reliquias"
-                : "Selecciona un canal"
-            )
-            .setMinValues(1)
-/* =====================
-INTERACTIONS
-===================== */
-client.on(Events.InteractionCreate, async interaction => {
-  try {
-    if (
-      !interaction.isChatInputCommand() &&
       !interaction.isChannelSelectMenu()
     ) return;
 
-    /* =====================
-    CHAT COMMANDS
-    ===================== */
     if (interaction.isChatInputCommand()) {
       const user = getStatus(interaction.user.id, interaction.member);
 
-      /* ===== INVENTORY ===== */
       if (interaction.commandName === "inventory") {
-        if (!Object.keys(user.inventory).length) {
-          return interaction.reply({
-            ephemeral: true,
-            content: "🎒 Tu inventario está vacío."
-          });
-        }
-
-        const list = Object.values(user.inventory)
-          .map(i => `${i.icon} ${i.name} x${i.qty}`)
-          .join("\n");
+        const items = Object.values(user.inventory);
+        if (!items.length)
+          return interaction.reply({ ephemeral: true, content: "🎒 Vacío." });
 
         return interaction.reply({
           ephemeral: true,
-          content: `🎒 **Inventario**\n${list}`
+          content: items.map(i => `${i.icon} ${i.name} x${i.qty}`).join("\n")
         });
       }
 
-      /* ===== MY MONEY ===== */
       if (interaction.commandName === "mymoney") {
         return interaction.reply({
           ephemeral: true,
-          content: `💰 Tienes ${user.money} monedas.`
+          content: `💰 ${user.money} monedas`
         });
       }
 
-      /* =====================
-      SETCHANNEL (MENÚ)
-      ===================== */
       if (interaction.commandName.startsWith("setchannel")) {
-        if (
-          !interaction.member.permissions.has(
-            PermissionsBitField.Flags.Administrator
-          )
-        ) {
-          return interaction.reply({
-            ephemeral: true,
-            content: "❌ No tienes permisos."
-          });
-        }
-
-        const isReliquies =
-          interaction.commandName === "setchannelreliquies";
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator))
+          return interaction.reply({ ephemeral: true, content: "❌ Sin permisos" });
 
         const row = new ActionRowBuilder().addComponents(
           new ChannelSelectMenuBuilder()
             .setCustomId(`set_${interaction.commandName}`)
-            .setPlaceholder(
-              isReliquies
-                ? "Selecciona hasta 6 canales de reliquias"
-                : "Selecciona un canal"
-            )
+            .setPlaceholder("Selecciona canal")
             .setMinValues(1)
-            .setMaxValues(isReliquies ? 6 : 1)
+            .setMaxValues(interaction.commandName === "setchannelreliquies" ? 6 : 1)
             .addChannelTypes(ChannelType.GuildText)
         );
 
         return interaction.reply({
           ephemeral: true,
-          content: "📌 Selecciona el canal:",
+          content: "📌 Selecciona canal:",
           components: [row]
         });
       }
     }
 
-    /* =====================
-    CHANNEL SELECT
-    ===================== */
     if (interaction.isChannelSelectMenu()) {
-      const id = interaction.customId;
-
-      /* ===== TOPS ===== */
-      if (id === "set_setchanneltops") {
+      if (interaction.customId === "set_setchanneltops")
         config.channels.tops = interaction.values[0];
-      }
 
-      /* ===== TRADE ===== */
-      if (id === "set_setchanneltrade") {
+      if (interaction.customId === "set_setchanneltrade")
         config.channels.trade = interaction.values[0];
-      }
 
-      /* ===== SELL ===== */
-      if (id === "set_setchannelsell") {
+      if (interaction.customId === "set_setchannelsell")
         config.channels.sell = interaction.values[0];
-      }
 
-      /* ===== RELIQUIES (MULTI 6 CANALES) ===== */
-      if (id === "set_setchannelreliquies") {
+      if (interaction.customId === "set_setchannelreliquies")
         config.channels.reliquies = interaction.values;
-      }
 
       saveConfig();
 
       return interaction.update({
-        content: "✅ Canal configurado correctamente.",
+        content: "✅ Configurado correctamente",
         components: []
       });
     }
   } catch (err) {
-    console.error("❌ Interaction error:", err);
-    if (!interaction.replied) {
-      interaction.reply({
-        ephemeral: true,
-        content: "❌ Ocurrió un error."
-      });
-    }
+    console.error(err);
   }
 });
 
@@ -475,23 +299,17 @@ TOP EXPLORADORES
 async function sendTopExploradores() {
   if (!config.channels.tops) return;
 
-  const channel = await client.channels
-    .fetch(config.channels.tops)
-    .catch(() => null);
+  const channel = await client.channels.fetch(config.channels.tops).catch(() => null);
   if (!channel || !channel.guild) return;
 
   const data = [];
-
   for (const [id, u] of Object.entries(status)) {
     let member = null;
     try {
       member = await channel.guild.members.fetch(id);
     } catch {}
 
-    const totalItems = Object.values(u.inventory ?? {}).reduce(
-      (sum, i) => sum + (i.qty ?? 0),
-      0
-    );
+    const totalItems = Object.values(u.inventory ?? {}).reduce((sum, i) => sum + (i.qty ?? 0), 0);
 
     data.push({
       id,
@@ -505,16 +323,11 @@ async function sendTopExploradores() {
   const top = data.sort((a, b) => b.money - a.money).slice(0, 10);
   if (!top.length) return;
 
-  const text = top
-    .map(
-      (u, i) =>
-        `${i + 1}. ${u.tag}\n🧭 Rango: ${u.rank}\n💰 Dinero: ${u.money}\n🎒 Objetos: ${u.items}`
-    )
-    .join("\n\n");
+  const text = top.map((u, i) =>
+    `${i + 1}. ${u.tag}\n🧭 Rango: ${u.rank}\n💰 Dinero: ${u.money}\n🎒 Objetos: ${u.items}`
+  ).join("\n\n");
 
-  await channel.send({
-    content: `🏆 **TOP EXPLORADORES** 🏆\n\n${text}`
-  });
+  await channel.send({ content: `🏆 **TOP EXPLORADORES** 🏆\n\n${text}` });
 }
 
 /* Enviar top cada 10 minutos */
@@ -523,32 +336,18 @@ setInterval(sendTopExploradores, 10 * 60 * 1000);
 /* =====================
 SAFE SAVE
 ===================== */
-process.on("SIGINT", () => {
-  saveStatus();
-  process.exit();
-});
-process.on("SIGTERM", () => {
-  saveStatus();
-  process.exit();
-});
-process.on("uncaughtException", err => {
-  console.error(err);
-  saveStatus();
-  process.exit(1);
-});
+process.on("SIGINT", () => { saveStatus(); process.exit(); });
+process.on("SIGTERM", () => { saveStatus(); process.exit(); });
+process.on("uncaughtException", err => { console.error(err); saveStatus(); process.exit(1); });
 
 /* =====================
 CLIENT READY
 ===================== */
 client.once(Events.ClientReady, async () => {
-  await rest.put(
-    Routes.applicationCommands(CLIENT_ID),
-    { body: commands }
-  );
-
+  await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
   console.log(`🧭 Belaf despierta como ${client.user.tag}`);
 });
-  
+
 /* =====================
 LOGIN
 ===================== */
