@@ -231,43 +231,43 @@ if (id === "sell") config.channels.sell = interaction.values[0];
 if (id === "tops") config.channels.tops = interaction.values[0];
 
 saveConfig();
-return interaction.update({ content: 📜 Canal configurado., components: [] });
+return interaction.update({ content: `📜 Canal configurado.`, components: [] });
 
 }
 
 /* ===== INVENTORY ===== */
 if (interaction.isChatInputCommand() && interaction.commandName === "inventory") {
 if (!Object.keys(user.inventory).length)
-return interaction.reply({ ephemeral: true, content: 🎒 Tu inventario está vacío. });
+return interaction.reply({ ephemeral: true, content: `🎒 Tu inventario está vacío.` });
 
 const list = Object.values(user.inventory)
 .map(i => ${i.icon} ${i.name} x${i.qty})
 .join("\n");
 
-return interaction.reply({ ephemeral: true, content: 🎒 **Inventario**\n${list} });
+return interaction.reply({ ephemeral: true, content: `🎒 **Inventario**\n${list}` });
 
 }
 
 /* ===== MY MONEY ===== */
 if (interaction.isChatInputCommand() && interaction.commandName === "mymoney") {
-return interaction.reply({ ephemeral: true, content: 💰 Tienes ${user.money} monedas. });
+return interaction.reply({ ephemeral: true, content: `💰 Tienes ${user.money} monedas.` });
 }
 
 /* ===== RANKUP AUTOMÁTICO CON ROL ===== */
 if (interaction.isChatInputCommand() && interaction.commandName === "rankup") {
 if (!user.humanity)
-return interaction.reply({ ephemeral: true, content: ❌ Los narehates no pueden ascender. });
+return interaction.reply({ ephemeral: true, content: `❌ Los narehates no pueden ascender.` });
 
 const order = ["Bell","Silbato rojo","Silbato azul","Silbato lunar","Silbato negro","Silbato blanco"];
 const costs = [0,100,300,700,1500,3000];
 
 const i = order.indexOf(user.rank);
 if (i === order.length - 1)
-return interaction.reply({ ephemeral: true, content: 🏅 Rango máximo. });
+return interaction.reply({ ephemeral: true, content: `🏅 Rango máximo.` });
 
 const cost = costs[i + 1];
 if (user.money < cost)
-return interaction.reply({ ephemeral: true, content: 💰 Necesitas ${cost} monedas. });
+return interaction.reply({ ephemeral: true, content: `💰 Necesitas ${cost} monedas.` });
 
 user.money -= cost;
 const newRank = order[i + 1];
@@ -294,7 +294,7 @@ return interaction.reply(`🏅 Ascendiste a **${newRank}** (-${cost} 💰`));
 if (interaction.isChatInputCommand() && interaction.commandName === "sell") {
 const mode = interaction.options.getString("mode");
 if (!Object.keys(user.inventory).length)
-return interaction.reply({ ephemeral: true, content: 🎒 No tienes objetos. });
+return interaction.reply({ ephemeral: true, content: `🎒 No tienes objetos.` });
 
 let sold = [];
 if (mode === "one") {
@@ -312,7 +312,7 @@ user.inventory = {};
 }
 
 saveStatus();
-return interaction.reply({ ephemeral: true, content: 💰 Vendiste: ${sold.join(", ")} });
+return interaction.reply({ ephemeral: true, content: `💰 Vendiste: ${sold.join(", ")}` });
 
 }
 
@@ -485,7 +485,7 @@ const text = top.map((u,i) => `
  **${i+1}. ${u.tag}**\n🧭 Rango: **${u.rank}**\n💰 Dinero: **${u.money}**\n🎒 Objetos: **${u.items}** `
 ).join("\n\n");
 
-await channel.send({ content: 🏆 **TOP EXPLORADORES** 🏆\n\n${text} });
+await channel.send({ content: `🏆 **TOP EXPLORADORES** 🏆\n\n${text}` });
 }
 
 /* Enviar top cada 10 minutos */
