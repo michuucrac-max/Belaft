@@ -253,29 +253,70 @@ if (interaction.isChatInputCommand() && interaction.commandName === "mymoney") {
 return interaction.reply({ ephemeral: true, content: 💰 Tienes ${user.money} monedas. });
 }
 
-/* ===== RANKUP ===== */
+/* ===== RANKUP (CON ROLES REALES) ===== */
 if (interaction.isChatInputCommand() && interaction.commandName === "rankup") {
-if (!user.humanity)
-return interaction.reply({ ephemeral: true, content: "❌ Los narehates no pueden ascender." });
+  const member = interaction.member;
+  const user = getStatus(interaction.user.id, member);
 
-const order = ["Bell","Silbato rojo","Silbato azul","Silbato lunar","Silbato negro","Silbato blanco"];  
-const costs = [0,100,300,700,1500,3000];  
+  if (!user.humanity || member.roles.cache.has(NAREHATE_ROLE_ID))
+    return interaction.reply({
+      ephemeral: true,
+      content: "❌ Los narehates no pueden ascender."
+    });
 
-const i = order.indexOf(user.rank);  
-if (i === order.length - 1)  
-  return interaction.reply({ ephemeral: true, content: "🏅 Rango máximo." });  
+  const order = [
+    "Bell",
+    "Silbato rojo",
+    "Silbato azul",
+    "Silbato lunar",
+    "Silbato negro",
+    "Silbato blanco"
+  ];
 
-const cost = costs[i + 1];  
-if (user.money < cost)  
-  return interaction.reply({ ephemeral: true, content: `💰 Necesitas ${cost} monedas.` });  
+  const costs = [0, 100, 300, 700, 1500, 3000];
 
-user.money -= cost;  
-user.rank = order[i + 1];  
-saveStatus();  
+  const index = order.indexOf(user.rank);
+  if (index === -1 || index === order.length - 1)
+    return interaction.reply({
+      ephemeral: true,
+      content: "🏅 Ya estás en el rango máximo."
+    });
 
-return interaction.reply(`🏅 Ascendiste a **${user.rank}** (-${cost} 💰)`);
+  const nextRank = order[index + 1];
+  const cost = costs[index + 1];
 
-}
+  if (user.money < cost)
+    return interaction.reply({
+      ephemeral: true,
+      content: `💰 Necesitas ${cost} monedas.`
+    });
+
+  const nextRole = RANK_ROLES.find(r => r.name === nextRank);
+  if (!nextRole)
+    return interaction.reply({
+      ephemeral: true,
+      content: "❌ Rol del siguiente rango no configurado."
+    });
+
+  // Quitar TODOS los roles de rango anteriores
+  for (const r of RANK_ROLES) {
+    if (member.roles.cache.has(r.id)) {
+      await member.roles.remove(r.id).catch(() => {});
+    }
+  }
+
+  // Dar el nuevo rol
+  await member.roles.add(nextRole.id).catch(() => {});
+
+  // Guardar progreso
+  user.money -= cost;
+  user.rank = nextRank;
+  saveStatus();
+
+  return interaction.reply(
+    `🏅 Ascendiste a **${nextRank}** y recibiste el rol correspondiente (-${cost} 💰)`
+  );
+      }
 
 /* ===== SELL ===== */
 if (interaction.isChatInputCommand() && interaction.commandName === "sell") {
@@ -491,8 +532,8 @@ client.once(Events.ClientReady, async () => {
 await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
 console.log(🧭 Belaf despierta como ${client.user.tag});
 
-// Envía top cada 1 hora (3600000 ms)
-setInterval(sendTopExploradores, 3600000);
+// Envía top cada 1 hora (360000 ms)
+setInterval(sendTopExploradores, 360000);
 });
 
 /* =====================
