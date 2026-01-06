@@ -315,15 +315,6 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
-  /* ===== MY MONEY ===== */
-  if (interaction.isChatInputCommand() && interaction.commandName === "mymoney") {
-    return interaction.reply({
-      ephemeral: true,
-      content: `💰 Tienes ${user.money} monedas.`
-    });
-  }
-});
-
 /* =====================
 TOP EXPLORADORES
 ===================== */
