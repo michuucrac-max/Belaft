@@ -462,9 +462,82 @@ if (interaction.isStringSelectMenu() || interaction.isButton()) {
     }
 
     if (isFrom) session.itemsFrom = selectedItems;
+/* ===== TRADE AVANZADO ===== */
+if (interaction.isChatInputCommand() && interaction.commandName === "trade") {
+  if (interaction.channelId !== config.channels.trade)
+    return interaction.reply({ ephemeral: true, content: `❌ Canal incorrecto.` });
+
+  const targetUser = interaction.options.getUser("user");
+  if (!targetUser) return;
+
+  if (targetUser.id === interaction.user.id)
+    return interaction.reply({ ephemeral: true, content: `❌ No puedes hacer trade contigo mismo.` });
+
+  const userInv = getStatus(interaction.user.id, interaction.member).inventory;
+  const targetInv = getStatus(targetUser.id, interaction.guild.members.cache.get(targetUser.id)).inventory;
+
+  if (!Object.keys(userInv).length)
+    return interaction.reply({ ephemeral: true, content: `🎒 Tu inventario está vacío.` });
+  if (!Object.keys(targetInv).length)
+    return interaction.reply({ ephemeral: true, content: `🎒 El inventario del otro usuario está vacío.` });
+
+  // Crear sesión de trade
+  if (!global.tradeSessions) global.tradeSessions = {};
+  const sessionId = `${interaction.user.id}_${targetUser.id}`;
+  global.tradeSessions[sessionId] = {
+    fromId: interaction.user.id,
+    toId: targetUser.id,
+    itemsFrom: {},
+    itemsTo: {},
+    confirmed: {},
+  };
+
+  const createMenu = (inv, customId) => {
+    return new StringSelectMenuBuilder()
+      .setCustomId(customId)
+      .setPlaceholder(`Selecciona los objetos que quieres ofrecer`)
+      .setMinValues(1)
+      .setMaxValues(Object.keys(inv).length)
+      .addOptions(Object.values(inv).map(i => ({
+        label: `${i.name} x${i.qty}`,
+        value: i.name,
+        description: `Valor: ${i.price} monedas`,
+      })));
+  };
+
+  const rowUser = new ActionRowBuilder().addComponents(createMenu(userInv, `trade_select_${interaction.user.id}`));
+  const rowTarget = new ActionRowBuilder().addComponents(createMenu(targetInv, `trade_select_${targetUser.id}`));
+
+  return interaction.reply({
+    ephemeral: true,
+    content: `🔁 Trade iniciado con ${targetUser.tag}. Selecciona tus objetos:`,
+    components: [rowUser, rowTarget],
+  });
+}
+
+/* ===== SELECCIÓN DE OBJETOS Y CONFIRMACIÓN ===== */
+if (interaction.isStringSelectMenu() || interaction.isButton()) {
+  // Selección de objetos
+  if (interaction.isStringSelectMenu() && interaction.customId.startsWith("trade_select_")) {
+    const userId = interaction.customId.replace("trade_select_", "");
+    const session = Object.values(global.tradeSessions || {}).find(
+      s => s.fromId === userId || s.toId === userId
+    );
+    if (!session) return;
+
+    const isFrom = interaction.user.id === session.fromId;
+    const userInv = getStatus(interaction.user.id, interaction.guild.members.cache.get(interaction.user.id)).inventory;
+
+    const selectedItems = {};
+    for (const name of interaction.values) {
+      const item = userInv[name];
+      if (item) selectedItems[name] = item.qty;
+    }
+
+    if (isFrom) session.itemsFrom = selectedItems;
     else session.itemsTo = selectedItems;
 
-    // Preparar botones de confirmación
+    // Botones de confirmación
     if (Object.keys(session.itemsFrom).length && Object.keys(session.itemsTo).length) {
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
@@ -489,9 +562,9 @@ if (interaction.isStringSelectMenu() || interaction.isButton()) {
     }
   }
 
-  // Manejo de botones de confirmación / cancelación
+  // Botones de confirmación/cancelación
   if (interaction.isButton()) {
-    const [action, fromId, toId, userId] = interaction.customId.split("_");
+    const [action, fromId, toId] = interaction.customId.split("_");
     const sessionId = `${fromId}_${toId}`;
     const session = global.tradeSessions?.[sessionId];
     if (!session) return interaction.reply({ ephemeral: true, content: `❌ Sesión no encontrada.` });
@@ -499,7 +572,7 @@ if (interaction.isStringSelectMenu() || interaction.isButton()) {
     if (action === "tradeconfirm") {
       session.confirmed[interaction.user.id] = true;
 
-      if (Object.values(session.confirmed).length === 2) {
+      if (Object.keys(session.confirmed).length === 2) {
         // Intercambiar objetos
         const fromUser = getStatus(session.fromId, interaction.guild.members.cache.get(session.fromId));
         const toUser = getStatus(session.toId, interaction.guild.members.cache.get(session.toId));
@@ -531,9 +604,9 @@ if (interaction.isStringSelectMenu() || interaction.isButton()) {
       delete global.tradeSessions[sessionId];
       return interaction.update({ content: "❌ Trade cancelado.", components: [] });
     }
-  });
+  }
 }
-
+    
 /* =====================
 TOP EXPLORADORES
 ===================== */
