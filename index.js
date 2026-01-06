@@ -605,7 +605,7 @@ if (interaction.isStringSelectMenu() || interaction.isButton()) {
       return interaction.update({ content: "❌ Trade cancelado.", components: [] });
     }
   }
-}
+});
     
 /* =====================
 TOP EXPLORADORES
