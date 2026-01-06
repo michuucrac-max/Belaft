@@ -253,30 +253,42 @@ if (interaction.isChatInputCommand() && interaction.commandName === "mymoney") {
 return interaction.reply({ ephemeral: true, content: `💰 Tienes ${user.money} monedas.` });
 }
 
-/* ===== RANKUP ===== */
+/* ===== RANKUP AUTOMÁTICO CON ROL ===== */
 if (interaction.isChatInputCommand() && interaction.commandName === "rankup") {
-if (!user.humanity)
-return interaction.reply({ ephemeral: true, content: `❌ Los narehates no pueden ascender.` });
+  if (!user.humanity)
+    return interaction.reply({ ephemeral: true, content: `❌ Los narehates no pueden ascender.` });
 
-const order = ["Bell","Silbato rojo","Silbato azul","Silbato lunar","Silbato negro","Silbato blanco"];  
-const costs = [0,100,300,700,1500,3000];  
+  const order = ["Bell","Silbato rojo","Silbato azul","Silbato lunar","Silbato negro","Silbato blanco"];  
+  const costs = [0,100,300,700,1500,3000];  
 
-const i = order.indexOf(user.rank);  
-if (i === order.length - 1)  
-  return interaction.reply({ ephemeral: true, content: `🏅 Rango máximo.` });  
+  const i = order.indexOf(user.rank);  
+  if (i === order.length - 1)  
+    return interaction.reply({ ephemeral: true, content: `🏅 Rango máximo.` });  
 
-const cost = costs[i + 1];  
-if (user.money < cost)  
-  return interaction.reply({ ephemeral: true, content: `💰 Necesitas ${cost} monedas.` });  
+  const cost = costs[i + 1];  
+  if (user.money < cost)  
+    return interaction.reply({ ephemeral: true, content: `💰 Necesitas ${cost} monedas.` });  
 
-user.money -= cost;  
-user.rank = order[i + 1];  
-saveStatus();  
+  user.money -= cost;  
+  const newRank = order[i + 1];
+  user.rank = newRank;
 
-return interaction.reply(`🏅 Ascendiste a **${user.rank}** (-${cost} 💰)`);
+  // Asignar rol automáticamente
+  const member = interaction.member;
+  if(member) {
+    // Primero quitar todos los roles de rango
+    RANK_ROLES.forEach(r => member.roles.remove(r.id).catch(()=>{}));
+    
+    // Luego agregar el nuevo rol
+    const role = RANK_ROLES.find(r => r.name === newRank);
+    if(role) member.roles.add(role.id).catch(()=>{});
+  }
 
+  saveStatus();  
+
+  return interaction.reply(`🏅 Ascendiste a **${newRank}** (-${cost} 💰)`);
 }
-
+  
 /* ===== SELL ===== */
 if (interaction.isChatInputCommand() && interaction.commandName === "sell") {
 const mode = interaction.options.getString("mode");
