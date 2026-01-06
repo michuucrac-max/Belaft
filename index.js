@@ -343,6 +343,76 @@ client.on(Events.InteractionCreate, async interaction => {
                 : "Selecciona un canal"
             )
             .setMinValues(1)
+/* =====================
+INTERACTIONS
+===================== */
+client.on(Events.InteractionCreate, async interaction => {
+  try {
+    if (
+      !interaction.isChatInputCommand() &&
+      !interaction.isChannelSelectMenu()
+    ) return;
+
+    /* =====================
+    CHAT COMMANDS
+    ===================== */
+    if (interaction.isChatInputCommand()) {
+      const user = getStatus(interaction.user.id, interaction.member);
+
+      /* ===== INVENTORY ===== */
+      if (interaction.commandName === "inventory") {
+        if (!Object.keys(user.inventory).length) {
+          return interaction.reply({
+            ephemeral: true,
+            content: "🎒 Tu inventario está vacío."
+          });
+        }
+
+        const list = Object.values(user.inventory)
+          .map(i => `${i.icon} ${i.name} x${i.qty}`)
+          .join("\n");
+
+        return interaction.reply({
+          ephemeral: true,
+          content: `🎒 **Inventario**\n${list}`
+        });
+      }
+
+      /* ===== MY MONEY ===== */
+      if (interaction.commandName === "mymoney") {
+        return interaction.reply({
+          ephemeral: true,
+          content: `💰 Tienes ${user.money} monedas.`
+        });
+      }
+
+      /* =====================
+      SETCHANNEL (MENÚ)
+      ===================== */
+      if (interaction.commandName.startsWith("setchannel")) {
+        if (
+          !interaction.member.permissions.has(
+            PermissionsBitField.Flags.Administrator
+          )
+        ) {
+          return interaction.reply({
+            ephemeral: true,
+            content: "❌ No tienes permisos."
+          });
+        }
+
+        const isReliquies =
+          interaction.commandName === "setchannelreliquies";
+
+        const row = new ActionRowBuilder().addComponents(
+          new ChannelSelectMenuBuilder()
+            .setCustomId(`set_${interaction.commandName}`)
+            .setPlaceholder(
+              isReliquies
+                ? "Selecciona hasta 6 canales de reliquias"
+                : "Selecciona un canal"
+            )
+            .setMinValues(1)
             .setMaxValues(isReliquies ? 6 : 1)
             .addChannelTypes(ChannelType.GuildText)
         );
@@ -376,7 +446,7 @@ client.on(Events.InteractionCreate, async interaction => {
         config.channels.sell = interaction.values[0];
       }
 
-      /* ===== RELIQUIES (MULTI) ===== */
+      /* ===== RELIQUIES (MULTI 6 CANALES) ===== */
       if (id === "set_setchannelreliquies") {
         config.channels.reliquies = interaction.values;
       }
