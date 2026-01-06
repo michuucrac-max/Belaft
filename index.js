@@ -28,7 +28,7 @@ EXPRESS
 ===================== */
 const app = express();
 app.get("/", (_, res) => res.send("Belaf observa el Abismo 🧭"));
-app.listen(PORT, () => console.log(🌐 Express levantado en puerto ${PORT}));
+app.listen(PORT, () => console.log(`🌐 Express levantado en puerto ${PORT}`));
 
 /* =====================
 CLIENT
@@ -166,7 +166,7 @@ qty: 0
 user.inventory[item.name].qty++;
 saveStatus();
 
-message.reply(🧭 Encontraste **${item.icon} ${item.name}**);
+message.reply(`🧭 Encontraste **${item.icon} ${item.name}**`);
 });
 
 /* =====================
@@ -468,8 +468,8 @@ const top = data.sort((a,b) => b.money - a.money).slice(0,10);
 if (!top.length) return;
 
 const text = top.map((u,i) =>
-**${i+1}. ${u.tag}**\n🧭 Rango: **${u.rank}**\n💰 Dinero: **${u.money}**\n🎒 Objetos: **${u.items}**
-).join("\n\n");
+` **${i+1}. ${u.tag}**\n🧭 Rango: **${u.rank}**\n💰 Dinero: **${u.money}**\n🎒 Objetos: **${u.items}**
+).join("\n\n"`);
 
 await channel.send({ content: 🏆 **TOP EXPLORADORES** 🏆\n\n${text} });
 }
@@ -489,9 +489,9 @@ CLIENT READY
 ===================== */
 client.once(Events.ClientReady, async () => {
 await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-console.log(🧭 Belaf despierta como ${client.user.tag});
+console.log(`🧭 Belaf despierta como ${client.user.tag}`);
 
-// Envía top cada 1 hora (3600000 ms)
+// Envía top cada 1 H (3600000 ms)
 setInterval(sendTopExploradores, 3600000);
 });
 
