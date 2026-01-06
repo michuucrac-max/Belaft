@@ -65,9 +65,16 @@ const objects = fs.existsSync(objectsPath)
   ? JSON.parse(fs.readFileSync(objectsPath, "utf8"))
   : { class4: [], class3: [], class2: [], special: [] };
 
-const saveStatusSafe = () => {
+/* =====================
+SAFE SAVE
+===================== */
+function saveStatusSafe() {
   fs.writeFileSync(statusPath, JSON.stringify(status, null, 2));
-};
+}
+
+function saveConfig() {
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+}
 
 /* =====================
 RANGOS / ROLES
@@ -100,60 +107,6 @@ function getStatus(id) {
   return status[id];
 }
 
-function syncMemberRank(member) {
-  if (!member) return;
-  const user = getStatus(member.id);
-
-  if (member.roles.cache.has(NAREHATE_ROLE_ID)) {
-    user.rank = "Narehate";
-    user.humanity = false;
-  } else {
-    for (let i = RANK_ROLES.length - 1; i >= 0; i--) {
-      if (member.roles.cache.has(RANK_ROLES[i].id)) {
-        user.rank = RANK_ROLES[i].name;
-        break;
-      }
-    }
-    user.humanity = true;
-  }
-  saveStatusSafe();
-}
-
-/* =====================
-RANKUP COMMAND
-===================== */
-async function handleRankup(interaction) {
-  const member = interaction.member;
-  const user = getStatus(member.id);
-
-  if (!user.humanity)
-    return interaction.reply({ ephemeral: true, content: "❌ Los narehates no ascienden." });
-
-  const currentIndex = RANK_ROLES.findIndex(r => r.name === user.rank);
-  if (currentIndex === -1 || currentIndex === RANK_ROLES.length - 1)
-    return interaction.reply({ ephemeral: true, content: "🏅 Rango máximo alcanzado." });
-
-  const next = RANK_ROLES[currentIndex + 1];
-  if (user.money < next.cost)
-    return interaction.reply({ ephemeral: true, content: `💰 Necesitas ${next.cost} monedas.` });
-
-  // Quitar rol anterior
-  const currentRole = RANK_ROLES[currentIndex];
-  if (currentRole?.id && member.roles.cache.has(currentRole.id)) {
-    await member.roles.remove(currentRole.id).catch(() => {});
-  }
-
-  // Dar rol nuevo
-  await member.roles.add(next.id).catch(() => {});
-
-  user.money -= next.cost;
-  user.rank = next.name;
-  saveStatusSafe();
-
-  return interaction.reply(`🏅 Ascendiste a **${next.name}** (-${next.cost} 💰)`);
-}
-
-/* =====================
 /* =====================
 COMMANDS
 ===================== */
@@ -177,66 +130,68 @@ const commands = [
     .setName("trade")
     .setDescription("Intercambiar reliquias")
     .addUserOption(o =>
-      o.setName("user").setDescription("Usuario").setRequired(true)),
-  new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Configurar drops").setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-  new SlashCommandBuilder().setName("setchanneltrade").setDescription("Configurar trade").setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-  new SlashCommandBuilder().setName("setchannelsell").setDescription("Configurar sell").setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-  new SlashCommandBuilder().setName("setchanneltops").setDescription("Configurar tops").setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
+      o.setName("user").setDescription("Usuario").setRequired(true)
+    ),
+  new SlashCommandBuilder()
+    .setName("setchannelreliquies")
+    .setDescription("Configurar drops")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+  new SlashCommandBuilder()
+    .setName("setchanneltrade")
+    .setDescription("Configurar trade")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+  new SlashCommandBuilder()
+    .setName("setchannelsell")
+    .setDescription("Configurar sell")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+  new SlashCommandBuilder()
+    .setName("setchanneltops")
+    .setDescription("Configurar tops")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
 ];
-
-/* =====================
-GUARDADO SEGURO
-===================== */
-function saveStatusSafe() {
-  fs.writeFileSync(statusPath, JSON.stringify(status, null, 2));
-}
 
 /* =====================
 RANKUP CON ROLES
 ===================== */
 async function handleRankup(interaction) {
   const member = interaction.member;
-  const user = getStatus(interaction.user.id, member);
+  const user = getStatus(member.id);
 
-  if (!user.humanity)
+  if (member.roles.cache.has(NAREHATE_ROLE_ID))
     return interaction.reply({ ephemeral: true, content: "❌ Los narehates no pueden ascender." });
 
-  const order = ["Bell","Silbato rojo","Silbato azul","Silbato lunar","Silbato negro","Silbato blanco"];
-  const costs = [0,100,300,700,1500,3000];
-
-  const index = order.indexOf(user.rank);
-  if (index === -1 || index === order.length - 1)
+  const index = RANK_ROLES.findIndex(r => r.name === user.rank);
+  if (index === -1 || index === RANK_ROLES.length - 1)
     return interaction.reply({ ephemeral: true, content: "🏅 Ya estás en el rango máximo." });
 
-  const cost = costs[index + 1];
-  if (user.money < cost)
-    return interaction.reply({ ephemeral: true, content: `💰 Necesitas ${cost} monedas.` });
+  const next = RANK_ROLES[index + 1];
+  if (user.money < next.cost)
+    return interaction.reply({ ephemeral: true, content: `💰 Necesitas ${next.cost} monedas.` });
 
-  const nextRank = order[index + 1];
-  const nextRole = RANK_ROLES.find(r => r.name === nextRank);
-  if (!nextRole)
-    return interaction.reply({ ephemeral: true, content: "❌ Rol no configurado." });
-
-  user.money -= cost;
-  user.rank = nextRank;
-
+  // Quitar roles anteriores
   for (const r of RANK_ROLES) {
     if (member.roles.cache.has(r.id))
       await member.roles.remove(r.id).catch(() => {});
   }
 
-  await member.roles.add(nextRole.id).catch(() => {});
+  // Dar nuevo rol
+  await member.roles.add(next.id).catch(() => {});
+
+  user.money -= next.cost;
+  user.rank = next.name;
   saveStatusSafe();
 
-  return interaction.reply(`🏅 Ascendiste a **${nextRank}** (-${cost} 💰)`);
+  return interaction.reply(`🏅 Ascendiste a **${next.name}** (-${next.cost} 💰)`);
 }
 
 /* =====================
 INTERACTIONS
 ===================== */
 client.on(Events.InteractionCreate, async interaction => {
+  if (!interaction.isChatInputCommand() && !interaction.isChannelSelectMenu()) return;
+
   if (interaction.isChatInputCommand()) {
-    const user = getStatus(interaction.user.id, interaction.member);
+    const user = getStatus(interaction.user.id);
 
     if (interaction.commandName === "inventory") {
       if (!Object.keys(user.inventory).length)
@@ -315,6 +270,8 @@ client.on(Events.InteractionCreate, async interaction => {
 /* =====================
 READY
 ===================== */
+const rest = new REST({ version: "10" }).setToken(TOKEN);
+
 client.once(Events.ClientReady, async () => {
   await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
   console.log(`🧭 Belaf despierta como ${client.user.tag}`);
