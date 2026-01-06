@@ -201,7 +201,7 @@ const commands = [
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 const activeTrades = new Map(); // Guarda trades activos por ID
 
-//// BLOQUE 10.1: INTERACTIONS - INICIO ////
+//// BLOQUE 10: INTERACTIONS ////
 client.on(Events.InteractionCreate, async interaction => {
   try {
     if (!interaction.isChatInputCommand() && !interaction.isStringSelectMenu() && !interaction.isButton()) return;
@@ -296,54 +296,11 @@ client.on(Events.InteractionCreate, async interaction => {
           components: [selectMenu]
         });
       }
-            }
-
-  //// BLOQUE 10.2: INTERACTIONS - TRADE MULTI-UNIDAD ////
-client.on(Events.InteractionCreate, async interaction => {
-  try {
-    if (!interaction.isChatInputCommand() && !interaction.isMessageComponent() && !interaction.isStringSelectMenu()) return;
-
-    /* ===== INICIAR TRADE ===== */
-    if (interaction.isChatInputCommand() && interaction.commandName === "trade") {
-      const targetUser = interaction.options.getUser("user");
-      if (!targetUser) return interaction.reply({ ephemeral: true, content: "❌ Usuario inválido." });
-      if (targetUser.id === interaction.user.id) return interaction.reply({ ephemeral: true, content: "❌ No puedes intercambiar contigo mismo." });
-
-      const fromUser = getStatus(interaction.user.id, interaction.member);
-      const toUser = getStatus(targetUser.id);
-
-      if (Object.keys(fromUser.inventory).length === 0)
-        return interaction.reply({ ephemeral: true, content: "🎒 No tienes objetos para ofrecer." });
-      if (Object.keys(toUser.inventory).length === 0)
-        return interaction.reply({ ephemeral: true, content: `${targetUser.tag} no tiene objetos para intercambiar.` });
-
-      // Crear menú de selección de objeto
-      const selectMenu = new ActionRowBuilder().addComponents(
-        new StringSelectMenuBuilder()
-          .setCustomId(`trade_select_${interaction.user.id}_${targetUser.id}`)
-          .setPlaceholder("Selecciona un objeto para ofrecer")
-          .setMinValues(1)
-          .setMaxValues(1)
-          .addOptions(
-            Object.values(fromUser.inventory).map(item => ({
-              label: `${item.name} (x${item.qty})`,
-              value: item.name,
-              description: `Precio: ${item.price}`,
-              emoji: item.icon
-            }))
-          )
-      );
-
-      return interaction.reply({
-        ephemeral: true,
-        content: `🔄 Selecciona un objeto para ofrecer a ${targetUser.tag}:`,
-        components: [selectMenu]
-      });
     }
 
     /* ===== MENÚ DE SELECCIÓN DE OBJETOS ===== */
-    if (interaction.isStringSelectMenu() && interaction.customId.startsWith("trade_select_")) {
-      const [_, fromId, toId, step] = interaction.customId.split("_");
+    if (interaction.isStringSelectMenu() && interaction.customId.startsWith("trade_select_") && !interaction.customId.endsWith("_response")) {
+      const [_, fromId, toId] = interaction.customId.split("_");
       const selectedItemName = interaction.values[0];
 
       const trade = {
@@ -400,12 +357,14 @@ client.on(Events.InteractionCreate, async interaction => {
       const toMember = await interaction.guild.members.fetch(toId).catch(() => null);
 
       const confirmRow = new ActionRowBuilder().addComponents(
-        {
-          type: 2, label: "Aceptar", style: 3, custom_id: `trade_confirm_${fromId}_${toId}_accept`
-        },
-        {
-          type: 2, label: "Rechazar", style: 4, custom_id: `trade_confirm_${fromId}_${toId}_reject`
-        }
+        new ButtonBuilder()
+          .setLabel("Aceptar")
+          .setStyle(ButtonStyle.Success)
+          .setCustomId(`trade_confirm_${fromId}_${toId}_accept`),
+        new ButtonBuilder()
+          .setLabel("Rechazar")
+          .setStyle(ButtonStyle.Danger)
+          .setCustomId(`trade_confirm_${fromId}_${toId}_reject`)
       );
 
       await interaction.followUp({
@@ -440,54 +399,12 @@ client.on(Events.InteractionCreate, async interaction => {
           const toItem = toStatus.inventory[trade.toItem];
 
           // Restar cantidades
-          fromItem.qty -= trade.fromQty; if (fromItem.qty <= 0) delete fromStatus.inventory[trade.fromItem];
-          toItem.qty -= trade.toQty; if (toItem.qty <= 0) delete toStatus.inventory[trade.toItem];
+          fromItem.qty -= trade.fromQty; 
+          if (fromItem.qty <= 0) delete fromStatus.inventory[trade.fromItem];
+          toItem.qty -= trade.toQty; 
+          if (toItem.qty <= 0) delete toStatus.inventory[trade.toItem];
 
           // Agregar al otro
           if (!toStatus.inventory[trade.fromItem]) toStatus.inventory[trade.fromItem] = { ...fromItem, qty: 0 };
-          if (!fromStatus.inventory[trade.toItem]) fromStatus.inventory[trade.toItem] = { ...toItem, qty: 0 };
-          toStatus.inventory[trade.fromItem].qty += trade.fromQty;
-          fromStatus.inventory[trade.toItem].qty += trade.toQty;
-
-          saveStatus();
-          clearTimeout(trade.timeout);
-          activeTrades.delete(fromId);
-
-          return interaction.update({ ephemeral: true, content: "✅ Trade completado correctamente.", components: [] });
-        }
-      }
-
-      if (action === "reject") {
-        clearTimeout(trade.timeout);
-        activeTrades.delete(fromId);
-        return interaction.update({ ephemeral: true, content: "❌ Trade rechazado.", components: [] });
-      }
-    }
-
-  } catch (err) {
-    console.error("❌ Error en InteractionCreate:", err);
-  }
-});
-
-  //// BLOQUE 12: SECURITY / SAVE ////
-process.on("unhandledRejection", (reason, promise) => {
-  console.error("⚠️ Unhandled Rejection at:", promise, "reason:", reason);
-});
-
-process.on("uncaughtException", (err) => {
-  console.error("❌ Uncaught Exception:", err);
-  // Intentar guardar el status antes de cerrar
-  try {
-    saveStatus();
-    console.log("💾 Status guardado antes de cerrar por error crítico.");
-  } catch (e) {
-    console.error("❌ Error guardando status:", e);
-  }
-});
-
-  //// BLOQUE 13: CLIENT LOGIN ////
-client.login(TOKEN).then(() => {
-  console.log("✅ Cliente Discord conectado correctamente.");
-}).catch(err => {
-  console.error("❌ Error iniciando sesión del cliente Discord:", err);
-});
+          if (!fromStatus
+    
