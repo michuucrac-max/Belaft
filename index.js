@@ -247,7 +247,10 @@ client.on(Events.InteractionCreate, async interaction => {
 
     if (mode === "all") {
       let gain = 0;
-      for (const i of Object.values(user.inventory)) gain += i.price * i.qty;
+      for (const i of Object.values(user.inventory)) {
+        const price = Number(i.price ?? i.value ?? 0);
+        gain += price * i.qty;
+      }
       user.money += gain;
       user.inventory = {};
       saveStatus();
@@ -257,7 +260,7 @@ client.on(Events.InteractionCreate, async interaction => {
     const menu = new StringSelectMenuBuilder()
       .setCustomId(`sell_${mode}`)
       .setPlaceholder("Selecciona objeto")
-      .addOptions(Object.values(user.inventory).map(i => ({ label: i.name, description: `x${i.qty} | 💰 ${i.price}`, value: i.name })));
+      .addOptions(Object.values(user.inventory).map(i => ({ label: i.name, description: `x${i.qty} | 💰 ${i.price ?? i.value ?? 0}`, value: i.name })));
 
     return interaction.reply({ ephemeral: true, components: [new ActionRowBuilder().addComponents(menu)] });
   }
@@ -268,8 +271,15 @@ client.on(Events.InteractionCreate, async interaction => {
     const user = getStatus(interaction.user.id);
     const item = user.inventory[itemName];
     let gain = 0;
-    if (mode === "one") { item.qty--; gain = item.price; }
-    else { gain = item.qty * item.price; delete user.inventory[itemName]; }
+    if (mode === "one") { 
+      const price = Number(item.price ?? item.value ?? 0);
+      item.qty--;
+      gain = price; 
+    } else { // mode all
+      const price = Number(item.price ?? item.value ?? 0);
+      gain = item.qty * price;
+      delete user.inventory[itemName];
+    }
     if (item.qty <= 0) delete user.inventory[itemName];
     user.money += gain;
     saveStatus();
@@ -337,7 +347,7 @@ client.on(Events.InteractionCreate, async interaction => {
       .addOptions([...objects.class4,...objects.class3,...objects.class2,...objects.class1,...objects.special,...objects.ultra].map(o=>({
         label:o.name,
         value:o.name,
-        description:`💰 ${o.value || o.price || 0}`
+        description:`💰 ${o.value ?? o.price ?? 0}`
       })));
 
     return interaction.reply({ ephemeral:true, components:[new ActionRowBuilder().addComponents(menu)] });
@@ -378,26 +388,46 @@ client.on(Events.InteractionCreate, async interaction => {
 /* =====================
 DROP SYSTEM
 ===================== */
-client.on(Events.MessageCreate, message=>{
-  if(message.author.bot || !message.guild) return;
-  if(!config.channels.reliquies.includes(message.channel.id)) return;
+client.on(Events.MessageCreate, message => {
+  if (message.author.bot || !message.guild) return;
+  if (!config.channels.reliquies.includes(message.channel.id)) return;
 
-  const depth=config.channels.reliquies.indexOf(message.channel.id);
-  const user=getStatus(message.author.id);
+  // Determinar el "depth" o nivel del canal para escoger el pool correcto
+  const depth = config.channels.reliquies.indexOf(message.channel.id);
+  const user = getStatus(message.author.id);
+
+  // Contador de mensajes
   user.messages++;
   saveStatus();
 
-  if(user.messages % 10 !== 0) return;
+  // Cada 10 mensajes puede salir un objeto
+  if (user.messages % 10 !== 0) return;
 
-  const pools=[objects.class4, objects.class3, objects.class2, objects.special, objects.special, objects.special];
-  const pool=pools[depth] ?? objects.class4;
-  if(!pool.length) return;
+  // Pools de objetos según rareza / canal
+  const pools = [
+    objects.class4, // canal principal
+    objects.class3,
+    objects.class2,
+    objects.special,
+    objects.special,
+    objects.special
+  ];
+  const pool = pools[depth] ?? objects.class4;
+  if (!pool.length) return;
 
-  const item=pool[Math.floor(Math.random()*pool.length)];
-  if(!user.inventory[item.name]) user.inventory[item.name]={...item, qty:0};
+  // Elegir objeto aleatorio
+  const item = pool[Math.floor(Math.random() * pool.length)];
+
+  // Agregar objeto al inventario del usuario
+  if (!user.inventory[item.name]) user.inventory[item.name] = { ...item, qty: 0 };
   user.inventory[item.name].qty++;
+
   saveStatus();
-  message.reply(`🧭 Encontraste **${item.icon} ${item.name}**`);
+
+  // Mensaje al usuario con el drop encontrado
+  message.reply({
+    content: `🧭 ¡Has encontrado un objeto!\n**${item.icon} ${item.name}** x1`
+  });
 });
 
 /* =====================
