@@ -28,7 +28,7 @@ EXPRESS
 ===================== */
 const app = express();
 app.get("/", (_, res) => res.send("Belaf observa el Abismo 🧭"));
-app.listen(PORT, () => console.log(`🌐 Express levantado en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`🌐 Express activo en ${PORT}`));
 
 /* =====================
 CLIENT
@@ -64,67 +64,22 @@ const status = fs.existsSync(statusPath)
 
 const saveStatus = () =>
   fs.writeFileSync(statusPath, JSON.stringify(status, null, 2));
-
 const saveConfig = () =>
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 
 /* =====================
-RANGOS
+STATUS
 ===================== */
-const RANK_ROLES = [
-  { name: "Bell", id: "1456176950849572979" },
-  { name: "Silbato rojo", id: "1456178133240778763" },
-  { name: "Silbato azul", id: "1456178299364573348" },
-  { name: "Silbato lunar", id: "1456179008625447105" },
-  { name: "Silbato negro", id: "1456178700096635002" },
-  { name: "Silbato blanco", id: "1456179085364695133" }
-];
-
-const NAREHATE_ROLE_ID = "1456180289465483396";
-
-/* =====================
-STATUS MANAGEMENT
-===================== */
-function getStatus(id, member = null) {
+function getStatus(id) {
   if (!status[id]) {
     status[id] = {
       money: 0,
-      rank: "Bell",
-      humanity: true,
       inventory: {},
       messages: 0
     };
   }
-
-  if (member) {
-    const roleOrder = [
-      "Bell",
-      "Silbato rojo",
-      "Silbato azul",
-      "Silbato lunar",
-      "Silbato negro",
-      "Silbato blanco",
-      "Narehate"
-    ];
-    const memberRoles = member.roles.cache.map(r => r.name);
-    const matchedRole = [...roleOrder].reverse().find(r =>
-      memberRoles.includes(r)
-    );
-    if (matchedRole) status[id].rank = matchedRole;
-    status[id].humanity = !member.roles.cache.has(NAREHATE_ROLE_ID);
-  }
-
   saveStatus();
   return status[id];
-}
-
-function getDiscordRank(member) {
-  if (!member) return "Sin rango";
-  if (member.roles.cache.has(NAREHATE_ROLE_ID)) return "Narehate";
-  for (let i = RANK_ROLES.length - 1; i >= 0; i--) {
-    if (member.roles.cache.has(RANK_ROLES[i].id)) return RANK_ROLES[i].name;
-  }
-  return "Sin rango";
 }
 
 /* =====================
@@ -135,7 +90,7 @@ client.on(Events.MessageCreate, message => {
   if (!config.channels.reliquies.includes(message.channel.id)) return;
 
   const depth = config.channels.reliquies.indexOf(message.channel.id);
-  const user = getStatus(message.author.id, message.member);
+  const user = getStatus(message.author.id);
   user.messages++;
 
   if (user.messages % 5 !== 0) return;
@@ -158,7 +113,7 @@ client.on(Events.MessageCreate, message => {
     user.inventory[item.name] = {
       name: item.name,
       icon: item.icon,
-      price: item.price ?? item.value ?? 0,
+      price: item.price ?? 10,
       qty: 0
     };
   }
@@ -175,12 +130,11 @@ COMMANDS
 const commands = [
   new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
   new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
-  new SlashCommandBuilder().setName("rankup").setDescription("Subir de rango"),
   new SlashCommandBuilder()
     .setName("sell")
     .setDescription("Vender reliquias")
     .addStringOption(o =>
-      o.setName("mode")
+      o.setName("modo")
         .setDescription("Modo de venta")
         .setRequired(true)
         .addChoices(
@@ -189,22 +143,8 @@ const commands = [
         )
     ),
   new SlashCommandBuilder()
-    .setName("trade")
-    .setDescription("Intercambiar reliquias")
-    .addUserOption(o =>
-      o.setName("user").setDescription("Usuario").setRequired(true)
-    ),
-  new SlashCommandBuilder()
     .setName("setchannelreliquies")
     .setDescription("Configurar drops")
-    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-  new SlashCommandBuilder()
-    .setName("setchanneltrade")
-    .setDescription("Configurar trade")
-    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-  new SlashCommandBuilder()
-    .setName("setchannelsell")
-    .setDescription("Configurar sell")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
   new SlashCommandBuilder()
     .setName("setchanneltops")
@@ -218,28 +158,18 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 INTERACTIONS
 ===================== */
 client.on(Events.InteractionCreate, async interaction => {
-  if (
-    !interaction.isChatInputCommand() &&
-    !interaction.isChannelSelectMenu() &&
-    !interaction.isStringSelectMenu()
-  ) return;
-
-  const user = getStatus(interaction.user.id, interaction.member);
 
   /* ===== SETCHANNEL ===== */
-  if (
-    interaction.isChatInputCommand() &&
-    interaction.commandName.startsWith("setchannel")
-  ) {
-    const id = interaction.commandName.replace("setchannel", "");
-    const multi = id === "reliquies";
+  if (interaction.isChatInputCommand() &&
+      interaction.commandName.startsWith("setchannel")) {
 
+    const id = interaction.commandName.replace("setchannel", "");
     const menu = new ChannelSelectMenuBuilder()
-      .setCustomId(`setchannel_${id}`)
-      .setPlaceholder("Selecciona canal(es)")
+      .setCustomId(`set_${id}`)
+      .setPlaceholder("Selecciona canal")
       .addChannelTypes(ChannelType.GuildText)
       .setMinValues(1)
-      .setMaxValues(multi ? 6 : 1);
+      .setMaxValues(id === "reliquies" ? 6 : 1);
 
     return interaction.reply({
       ephemeral: true,
@@ -247,15 +177,11 @@ client.on(Events.InteractionCreate, async interaction => {
     });
   }
 
-  if (
-    interaction.isChannelSelectMenu() &&
-    interaction.customId.startsWith("setchannel_")
-  ) {
-    const id = interaction.customId.replace("setchannel_", "");
+  if (interaction.isChannelSelectMenu() &&
+      interaction.customId.startsWith("set_")) {
 
+    const id = interaction.customId.replace("set_", "");
     if (id === "reliquies") config.channels.reliquies = interaction.values;
-    if (id === "trade") config.channels.trade = interaction.values[0];
-    if (id === "sell") config.channels.sell = interaction.values[0];
     if (id === "tops") config.channels.tops = interaction.values[0];
 
     saveConfig();
@@ -263,66 +189,122 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   /* ===== INVENTORY ===== */
-  if (interaction.isChatInputCommand() && interaction.commandName === "inventory") {
+  if (interaction.isChatInputCommand() &&
+      interaction.commandName === "inventory") {
+
+    const user = getStatus(interaction.user.id);
     if (!Object.keys(user.inventory).length)
-      return interaction.reply({ ephemeral: true, content: "🎒 Tu inventario está vacío." });
+      return interaction.reply({ ephemeral: true, content: "🎒 Vacío." });
 
     const list = Object.values(user.inventory)
       .map(i => `${i.icon} ${i.name} x${i.qty}`)
       .join("\n");
 
+    return interaction.reply({ ephemeral: true, content: `🎒 **Inventario**\n${list}` });
+  }
+
+  /* ===== MONEY ===== */
+  if (interaction.isChatInputCommand() &&
+      interaction.commandName === "mymoney") {
+
+    const user = getStatus(interaction.user.id);
+    return interaction.reply({ ephemeral: true, content: `💰 ${user.money} monedas` });
+  }
+
+  /* ===== SELL ===== */
+  if (interaction.isChatInputCommand() &&
+      interaction.commandName === "sell") {
+
+    const user = getStatus(interaction.user.id);
+    const mode = interaction.options.getString("modo");
+
+    if (!Object.keys(user.inventory).length)
+      return interaction.reply({ ephemeral: true, content: "❌ No tienes objetos." });
+
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId(`sell_${mode}`)
+      .setPlaceholder("Selecciona objeto")
+      .addOptions(
+        Object.values(user.inventory).map(i => ({
+          label: i.name,
+          description: `x${i.qty} | 💰 ${i.price}`,
+          value: i.name
+        }))
+      );
+
     return interaction.reply({
       ephemeral: true,
-      content: `🎒 **Inventario**\n${list}`
+      components: [new ActionRowBuilder().addComponents(menu)]
     });
   }
 
-  /* ===== MY MONEY ===== */
-  if (interaction.isChatInputCommand() && interaction.commandName === "mymoney") {
-    return interaction.reply({
-      ephemeral: true,
-      content: `💰 Tienes ${user.money} monedas.`
-    });
-  }
+  if (interaction.isStringSelectMenu() &&
+      interaction.customId.startsWith("sell_")) {
 
-  /* ===== RANKUP ===== */
-  if (interaction.isChatInputCommand() && interaction.commandName === "rankup") {
-    if (!user.humanity)
-      return interaction.reply({ ephemeral: true, content: "❌ Los narehates no pueden ascender." });
+    const mode = interaction.customId.replace("sell_", "");
+    const itemName = interaction.values[0];
+    const user = getStatus(interaction.user.id);
+    const item = user.inventory[itemName];
 
-    const order = ["Bell","Silbato rojo","Silbato azul","Silbato lunar","Silbato negro","Silbato blanco"];
-    const costs = [0,100,300,700,1500,3000];
+    let gain = 0;
 
-    const i = order.indexOf(user.rank);
-    if (i === order.length - 1)
-      return interaction.reply({ ephemeral: true, content: "🏅 Rango máximo." });
-
-    const cost = costs[i + 1];
-    if (user.money < cost)
-      return interaction.reply({ ephemeral: true, content: `💰 Necesitas ${cost} monedas.` });
-
-    user.money -= cost;
-    const newRank = order[i + 1];
-    user.rank = newRank;
-
-    const member = interaction.member;
-    if (member) {
-      RANK_ROLES.forEach(r => member.roles.remove(r.id).catch(() => {}));
-      const role = RANK_ROLES.find(r => r.name === newRank);
-      if (role) member.roles.add(role.id).catch(() => {});
+    if (mode === "one") {
+      item.qty--;
+      gain = item.price;
+    } else {
+      gain = item.qty * item.price;
+      delete user.inventory[itemName];
     }
 
+    if (item.qty <= 0) delete user.inventory[itemName];
+
+    user.money += gain;
     saveStatus();
-    return interaction.reply(`🏅 Ascendiste a **${newRank}** (-${cost} 💰)`);
+
+    return interaction.update({
+      content: `💰 Vendido **${itemName}** por ${gain} monedas.`,
+      components: []
+    });
   }
 });
 
 /* =====================
-LOGIN
+TOPS SYSTEM
+===================== */
+async function sendTops() {
+  if (!config.channels.tops) return;
+
+  const ch = await client.channels.fetch(config.channels.tops).catch(() => null);
+  if (!ch) return;
+
+  const users = Object.entries(status);
+
+  const topMoney = [...users]
+    .sort((a,b) => b[1].money - a[1].money)
+    .slice(0,5)
+    .map((u,i) => `${i+1}. <@${u[0]}> — 💰 ${u[1].money}`)
+    .join("\n");
+
+  const topMsg = [...users]
+    .sort((a,b) => b[1].messages - a[1].messages)
+    .slice(0,5)
+    .map((u,i) => `${i+1}. <@${u[0]}> — 💬 ${u[1].messages}`)
+    .join("\n");
+
+  await ch.send(
+    `🏆 **TOPS DEL ABISMO**\n\n` +
+    `💰 **Riqueza**\n${topMoney || "Sin datos"}\n\n` +
+    `💬 **Actividad**\n${topMsg || "Sin datos"}`
+  );
+}
+
+/* =====================
+READY
 ===================== */
 client.once(Events.ClientReady, async () => {
   await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
   console.log(`🧭 Belaf despierta como ${client.user.tag}`);
+  setInterval(sendTops, 10 * 60 * 1000);
 });
 
-client.login(TOKEN).then(() => console.log("🔑 Intentando conectar con Discord..."));
+client.login(TOKEN);
