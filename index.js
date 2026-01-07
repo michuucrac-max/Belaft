@@ -93,6 +93,7 @@ const client = new Client({
 SLASH COMMANDS
 ===================== */
 const commands = [
+  // antiguos
   new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
   new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
   new SlashCommandBuilder()
@@ -102,6 +103,15 @@ const commands = [
       o.setName("modo").setDescription("Modo de venta").setRequired(true)
         .addChoices({ name: "Uno", value: "one" }, { name: "Todo", value: "all" })
     ),
+  new SlashCommandBuilder()
+    .setName("setchannelreliquies")
+    .setDescription("Configurar drops")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+  new SlashCommandBuilder()
+    .setName("setchanneltops")
+    .setDescription("Configurar tops")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+  // nuevos
   new SlashCommandBuilder()
     .setName("setmoney")
     .setDescription("Dar dinero a un usuario (Admin)")
@@ -174,7 +184,6 @@ client.on(Events.InteractionCreate, async interaction => {
     const user = getStatus(interaction.user.id);
     if (!Object.keys(user.inventory).length)
       return interaction.reply({ ephemeral: true, content: "🎒 Vacío." });
-
     const list = Object.values(user.inventory).map(i => `${i.icon} ${i.name} x${i.qty}`).join("\n");
     return interaction.reply({ ephemeral: true, content: `🎒 **Inventario**\n${list}` });
   }
@@ -214,7 +223,7 @@ client.on(Events.InteractionCreate, async interaction => {
     return interaction.update({ content: `💰 Vendido **${itemName}** por ${gain} monedas.`, components: [] });
   }
 
-  /* ===== ADMIN COMMANDS: set/removemoney/seemoney ===== */
+  /* ===== ADMIN COMMANDS ===== */
   if (interaction.isChatInputCommand() && ["setmoney","removemoney","seemoney"].includes(interaction.commandName)) {
     const target = interaction.options.getUser("usuario");
     const amount = interaction.options.getNumber("cantidad") || 0;
@@ -237,9 +246,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
     user.inventory[artifactName].qty--;
     if(user.inventory[artifactName].qty<=0) delete user.inventory[artifactName];
-    if(!tgt.inventory[artifactName]) tgt.inventory[artifactName] = { ...user.inventory[artifactName], qty: 0 };
-    tgt.inventory[artifactName] ? tgt.inventory[artifactName].qty++ : tgt.inventory[artifactName].qty=1;
-
+    if(!tgt.inventory[artifactName]) tgt.inventory[artifactName]={...user.inventory[artifactName], qty:0};
+    tgt.inventory[artifactName]?tgt.inventory[artifactName].qty++:tgt.inventory[artifactName].qty=1;
     saveStatus();
     return interaction.reply({ ephemeral: true, content: `🎁 Artefacto **${artifactName}** regalado a ${target}` });
   }
@@ -290,15 +298,12 @@ client.on(Events.MessageCreate,message=>{
 
   // === EVENTO ALEATORIO C4D4V3R ===
   const chance=Math.random();
-  if(chance<0.02){ // 2% de probabilidad
-    const gold=Math.floor(Math.random()*50+10); // 10-60 monedas
+  if(chance<0.02){ // 2%
+    const gold=Math.floor(Math.random()*50+10); 
     const menu=new StringSelectMenuBuilder()
       .setCustomId(`cadaver_choice_${message.author.id}`)
       .setPlaceholder("Elegir acción")
-      .addOptions([
-        { label:`Quedarte con ${gold} monedas`,value:"take" },
-        { label:"Dejarlo",value:"leave" }
-      ]);
+      .addOptions([{ label:`Quedarte con ${gold} monedas`,value:"take" },{ label:"Dejarlo",value:"leave" }]);
 
     message.reply({ ephemeral:true, content:`💀 Has encontrado el c4d4v3r de un explorador con ${gold} monedas. ¿Qué deseas hacer?`, components:[new ActionRowBuilder().addComponents(menu)] });
   }
@@ -307,11 +312,10 @@ client.on(Events.MessageCreate,message=>{
 client.on(Events.StringSelectMenu,interaction=>{
   if(!interaction.customId.startsWith("cadaver_choice_")) return;
   const user=getStatus(interaction.user.id);
-  const gold=Math.floor(Math.random()*50+10); // Recalculamos solo por si acaso
+  const gold=Math.floor(Math.random()*50+10);
   if(interaction.values[0]==="take"){
     user.money+=gold;
-    // Chance de transformarse en narehate
-    if(Math.random()<0.01){ // 1%
+    if(Math.random()<0.01){ // 1% chance narehate
       const guildMember=interaction.member;
       if(!guildMember.roles.cache.has(ranks.narehate)){
         guildMember.roles.add(ranks.narehate);
