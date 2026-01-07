@@ -129,8 +129,7 @@ const commands = [
   new SlashCommandBuilder()
     .setName("gift")
     .setDescription("Regalar un artefacto a alguien")
-    .addUserOption(o => o.setName("usuario").setDescription("Usuario").setRequired(true))
-    .addStringOption(o => o.setName("artefacto").setDescription("Artefacto a regalar").setRequired(true)),
+    .addUserOption(o => o.setName("usuario").setDescription("Usuario").setRequired(true)),
   new SlashCommandBuilder()
     .setName("rankup")
     .setDescription("Subir de rango pagando con monedas obtenidas"),
@@ -165,6 +164,37 @@ READY
 client.once(Events.ClientReady, async () => {
   await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
   console.log(`🧭 Belaf despierta como ${client.user.tag}`);
+
+  // =====================
+  // AUTO TOPS CADA 10 MINUTOS
+  // =====================
+  setInterval(async () => {
+    if (!config.channels.tops) return;
+
+    const guild = client.guilds.cache.first();
+    if (!guild) return;
+
+    const members = await guild.members.fetch();
+    const topUsers = [];
+
+    members.forEach(m => {
+      if (m.user.bot) return;
+      const st = getStatus(m.id);
+      topUsers.push({ tag: m.user.tag, money: st.money });
+    });
+
+    topUsers.sort((a, b) => b.money - a.money);
+    const top10 = topUsers.slice(0, 10);
+
+    const embed = new EmbedBuilder()
+      .setTitle("🏆 TOP Exploradores")
+      .setDescription(top10.map((u, i) => `**${i + 1}.** ${u.tag} — 💰 ${u.money}`).join("\n"))
+      .setFooter({ text: "Gaburon supervisa los tops" });
+
+    const ch = guild.channels.cache.get(config.channels.tops);
+    if (ch) await ch.send({ embeds: [embed], content: "@everyone @here" });
+
+  }, 10 * 60 * 1000); // cada 10 minutos
 });
 
 /* =====================
@@ -296,91 +326,58 @@ client.on(Events.InteractionCreate, async interaction => {
     return interaction.reply({ephemeral:true, content:`✅ Subiste a **${nextRole}** pagando ${cost} monedas`});
   }
 
-  /* ===== TOPS ===== */
-if (interaction.isChatInputCommand() && interaction.commandName === "tops") {
-  const chId = config.channels.tops;
-  if (!chId) return interaction.reply({ ephemeral: true, content: "❌ Canal de tops no configurado" });
-
-  // Crear un array de usuarios con dinero, ignorando bots y asegurando status
-  const guild = interaction.guild;
-  const members = await guild.members.fetch();
-  const topUsers = [];
-
-  members.forEach(m => {
-    if (m.user.bot) return;
-    const st = getStatus(m.id);
-    topUsers.push({ tag: m.user.tag, money: st.money });
-  });
-
-  // Orden descendente por dinero
-  topUsers.sort((a, b) => b.money - a.money);
-
-  // Limitar a top 10
-  const top10 = topUsers.slice(0, 10);
-
-  // Crear embed
-  const embed = new EmbedBuilder()
-    .setTitle("🏆 TOP 10 Exploradores")
-    .setDescription(top10.map((u, i) => `**${i + 1}.** ${u.tag} — 💰 ${u.money}`).join("\n"))
-    .setFooter({ text: "Gaburon supervisa los tops" });
-
-  const ch = guild.channels.cache.get(chId);
-  if (ch) await ch.send({ embeds: [embed], content: "@everyone @here" });
-
-  return interaction.reply({ ephemeral: true, content: "✅ Top actualizado" });
-}
-  
   /* ===== SETITEM ===== */
-if(interaction.isChatInputCommand() && interaction.commandName==="setitem"){
-  const target = interaction.options.getUser("usuario");
-  if(!target) return interaction.reply({ ephemeral:true, content:"❌ Usuario no encontrado" });
+  if(interaction.isChatInputCommand() && interaction.commandName==="setitem"){
+    const target = interaction.options.getUser("usuario");
+    if(!target) return interaction.reply({ ephemeral:true, content:"❌ Usuario no encontrado" });
 
-  const menu=new StringSelectMenuBuilder()
-    .setCustomId(`setitem_${target.id}`)
-    .setPlaceholder("Selecciona artefacto")
-    .addOptions([...objects.class4,...objects.class3,...objects.class2,...objects.class1,...objects.special,...objects.ultra].map(o=>({
-      label:o.name,
-      value:o.name,
-      description:`💰 ${o.value || o.price || 0}`
-    })));
+    const menu=new StringSelectMenuBuilder()
+      .setCustomId(`setitem_${target.id}`)
+      .setPlaceholder("Selecciona artefacto")
+      .addOptions([...objects.class4,...objects.class3,...objects.class2,...objects.class1,...objects.special,...objects.ultra].map(o=>({
+        label:o.name,
+        value:o.name,
+        description:`💰 ${o.value || o.price || 0}`
+      })));
 
-  return interaction.reply({ ephemeral:true, components:[new ActionRowBuilder().addComponents(menu)] });
-}
+    return interaction.reply({ ephemeral:true, components:[new ActionRowBuilder().addComponents(menu)] });
+  }
 
-if(interaction.isStringSelectMenu() && interaction.customId.startsWith("setitem_")){
-  const targetId=interaction.customId.replace("setitem_","");
-  const target=interaction.guild.members.cache.get(targetId)?.user;
-  if(!target) return interaction.update({ content:"❌ Usuario no encontrado", components:[] });
+  if(interaction.isStringSelectMenu() && interaction.customId.startsWith("setitem_")){
+    const targetId=interaction.customId.replace("setitem_","");
+    const target=interaction.guild.members.cache.get(targetId)?.user;
+    if(!target) return interaction.update({ content:"❌ Usuario no encontrado", components:[] });
 
-  const user=getStatus(target.id);
-  const itemName=interaction.values[0];
-  const obj=[...objects.class4,...objects.class3,...objects.class2,...objects.class1,...objects.special,...objects.ultra].find(o=>o.name===itemName);
-  if(!obj) return interaction.update({ content:"❌ Artefacto no encontrado", components:[] });
+    const user=getStatus(target.id);
+    const itemName=interaction.values[0];
+    const obj=[...objects.class4,...objects.class3,...objects.class2,...objects.class1,...objects.special,...objects.ultra].find(o=>o.name===itemName);
+    if(!obj) return interaction.update({ content:"❌ Artefacto no encontrado", components:[] });
 
-  if(!user.inventory[itemName]) user.inventory[itemName]={...obj,qty:0};
-  user.inventory[itemName].qty++;
-  saveStatus();
-  return interaction.update({ content:`✅ Artefacto **${itemName}** agregado a ${target}`, components:[] });
-}
+    if(!user.inventory[itemName]) user.inventory[itemName]={...obj,qty:0};
+    user.inventory[itemName].qty++;
+    saveStatus();
+    return interaction.update({ content:`✅ Artefacto **${itemName}** agregado a ${target}`, components:[] });
+  }
 
-/* ===== CREATEARTEFACT ===== */
-if(interaction.isChatInputCommand() && interaction.commandName==="createartefact"){
-  const categoria = interaction.options.getString("categoria");
-  const nombre = interaction.options.getString("nombre");
-  const icono = interaction.options.getString("icono");
-  const precio = interaction.options.getNumber("precio");
+  /* ===== CREATEARTEFACT ===== */
+  if(interaction.isChatInputCommand() && interaction.commandName==="createartefact"){
+    const categoria = interaction.options.getString("categoria");
+    const nombre = interaction.options.getString("nombre");
+    const icono = interaction.options.getString("icono");
+    const precio = interaction.options.getNumber("precio");
 
-  if(!objects[categoria]) return interaction.reply({ ephemeral:true, content:"❌ Categoría inválida" });
+    if(!objects[categoria]) return interaction.reply({ ephemeral:true, content:"❌ Categoría inválida" });
 
-  objects[categoria].push({ name:nombre, icon:icono, price:precio });
-  saveObjects();
-  return interaction.reply({ ephemeral:true, content:`✨ Artefacto **${nombre}** creado en categoría **${categoria}** con precio ${precio}` });
-    }
+    objects[categoria].push({ name:nombre, icon:icono, price:precio });
+    saveObjects();
+    return interaction.reply({ ephemeral:true, content:`✨ Artefacto **${nombre}** creado en categoría **${categoria}** con precio ${precio}` });
+  }
+
 });
 
-// =====================
-// DROP SYSTEM
-// =====================
+/* =====================
+DROP SYSTEM
+===================== */
 client.on(Events.MessageCreate, message=>{
   if(message.author.bot || !message.guild) return;
   if(!config.channels.reliquies.includes(message.channel.id)) return;
@@ -403,7 +400,7 @@ client.on(Events.MessageCreate, message=>{
   message.reply(`🧭 Encontraste **${item.icon} ${item.name}**`);
 });
 
-// =====================
-// LOGIN
-// =====================
+/* =====================
+LOGIN
+===================== */
 client.login(TOKEN);
