@@ -1,29 +1,35 @@
 {
   "class4": [
     { "name": "Libro Antiguo", "icon": "📕", "value": 5 },
-    { "name": "Fragmento Oxidado", "icon": "🪨", "value": 10 }
+    { "name": "Fragmento Oxidado", "icon": "🪨", "value": 10 },
+    { "name": "metal", "icon": "🔋", "value": 15 }
   ],
 
   "class3": [
-    { "name": "Reliquia Menor", "icon": "🗿", "value": 20 },
-    { "name": "Cristal Abismal", "icon": "🔮", "value": 30 }
+    { "name": "Reliquia Menor", "icon": "🗿", "value": 25 },
+    { "name": "Cristal Abisal", "icon": "🔮", "value": 40 },
+    { "name": "madera", "icon": "🌲", "value": 17 }
   ],
 
   "class2": [
-    { "name": "Artefacto Raro", "icon": "⚙️", "value": 50 }
+    { "name": "Artefacto Raro", "icon": "⚙️", "value": 60 },
+    { "name": "campana llorosa", "icon": "🎐", "value": 75 }
   ],
 
   "class1": [
-    { "name": "Tesoro Antiguo", "icon": "💠", "value": 75 }
+    { "name": "Tesoro Antiguo", "icon": "💠", "value": 80 },
+    { "name": "hueso bendito", "icon": "🦴", "value": 95 }
   ],
 
   "special": [
-    { "name": "Reliquia Especial", "icon": "✨", "value": 100 }
+    { "name": "Reliquia Especial", "icon": "✨", "value": 100 },
+    { "name": "espina de orb percer", "icon": "🦔", "value": 150 },
+    { "name": "runa de obsidian", "icon": "⚜️", "value": 200 }
   ],
 
   "ultra": [
     {
-      "name": "Reliquia Primordial del Abismo",
+      "name": "Corazon abisal",
       "icon": "🌑",
       "price": 100000,
       "soulbound": true
