@@ -194,7 +194,7 @@ client.once(Events.ClientReady, async () => {
     const ch = guild.channels.cache.get(config.channels.tops);
     if (ch) await ch.send({ embeds: [embed], content: "@everyone @here" });
 
-  }, 60 * 60 * 1000); // cada 10 minutos
+  }, 720 * 60 * 1000); // cada 10 minutos
 });
 
 /* =====================
