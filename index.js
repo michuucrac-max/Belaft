@@ -13,12 +13,14 @@ ChannelType,
 PermissionsBitField,
 EmbedBuilder
 } from "discord.js";
+
 import fs from "fs";
 import express from "express";
 
 /* ===================== ENV ===================== */
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
+const GUILD_ID = process.env.GUILD_ID;
 const PORT = process.env.PORT || 3000;
 
 /* ===================== EXPRESS ===================== */
@@ -47,21 +49,10 @@ const saveStatus = () => fs.writeFileSync(statusPath, JSON.stringify(status, nul
 const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 const saveObjects = () => fs.writeFileSync(objectsPath, JSON.stringify(objects, null, 2));
 
-/* ===================== UTILS ===================== */
-function normalize(t) {
-return t.toLowerCase()
-.normalize("NFD")
-.replace(/[\u0300-\u036f]/g, "")
-.replace(/[^\p{L}\p{N}\s]/gu, "")
-.trim();
-}
-
-function getRoleFlexible(guild, name) {
-return guild.roles.cache.find(r => normalize(r.name).includes(normalize(name)));
-}
-
+/* ===================== STATUS ===================== */
 function getStatus(id) {
 if (!status[id]) status[id] = { money: 0, inventory: {} };
+if (!status[id].inventory) status[id].inventory = {};
 return status[id];
 }
 
@@ -76,9 +67,21 @@ GatewayIntentBits.MessageContent
 partials: [Partials.Channel]
 });
 
+/* ===================== ROLES ===================== */
+const ranks = {
+bell: "🔔 bell",
+rojo: "🔴 silbato rojo",
+azul: "🔵 silbato azul",
+lunar: "🌙 silbato lunar",
+negro: "⚫ silbato negro",
+blanco: "⚪ silbato blanco"
+};
+
 /* ===================== COMMANDS ===================== */
 const commands = [
+
 new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
+
 new SlashCommandBuilder().setName("mymoney").setDescription("Ver dinero"),
 
 new SlashCommandBuilder()
@@ -95,7 +98,7 @@ o.setName("modo")
 
 new SlashCommandBuilder()
 .setName("setchannelreliquies")
-.setDescription("Configurar canal de drops")
+.setDescription("Configurar canal drops")
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
 new SlashCommandBuilder()
@@ -132,24 +135,28 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 /* ===================== READY ===================== */
 client.once(Events.ClientReady, async () => {
-await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-console.log(`🧭 Bot listo como ${client.user.tag}`);
+
+await rest.put(
+Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
+{ body: commands }
+);
+
+console.log(`🧭 Belaf listo como ${client.user.tag}`);
 });
 
 /* ===================== INTERACTIONS ===================== */
 client.on(Events.InteractionCreate, async interaction => {
 try {
 
-if (
-!interaction.isChatInputCommand() &&
-!interaction.isStringSelectMenu() &&
-!interaction.isChannelSelectMenu()
-) return;
+if (!interaction.isChatInputCommand() && !interaction.isStringSelectMenu() && !interaction.isChannelSelectMenu())
+return;
 
-/* SET CHANNEL */
+/* ===================== CHANNEL ===================== */
 if (interaction.isChatInputCommand() && interaction.commandName === "setchannelreliquies") {
+
 const menu = new ChannelSelectMenuBuilder()
 .setCustomId("set_reliquies")
+.setPlaceholder("Selecciona canal")
 .addChannelTypes(ChannelType.GuildText);
 
 return interaction.reply({
@@ -161,14 +168,16 @@ components: [new ActionRowBuilder().addComponents(menu)]
 if (interaction.isChannelSelectMenu() && interaction.customId === "set_reliquies") {
 config.channels.reliquies = interaction.values[0];
 saveConfig();
-return interaction.update({ content: "Canal configurado", components: [] });
+return interaction.update({ content: "📜 Canal configurado", components: [] });
 }
 
-/* INVENTORY */
+/* ===================== INVENTORY ===================== */
 if (interaction.commandName === "inventory") {
 const u = getStatus(interaction.user.id);
 const items = Object.values(u.inventory);
-if (!items.length) return interaction.reply({ ephemeral: true, content: "Vacío" });
+
+if (!items.length)
+return interaction.reply({ ephemeral: true, content: "Vacío" });
 
 return interaction.reply({
 ephemeral: true,
@@ -176,39 +185,13 @@ content: items.map(i => `${i.icon} ${i.name} x${i.qty}`).join("\n")
 });
 }
 
-/* MONEY */
+/* ===================== MONEY ===================== */
 if (interaction.commandName === "mymoney") {
-return interaction.reply({
-ephemeral: true,
-content: `💰 ${getStatus(interaction.user.id).money}`
-});
+const u = getStatus(interaction.user.id);
+return interaction.reply({ ephemeral: true, content: `💰 ${u.money}` });
 }
 
-/* ADMIN MONEY */
-if (["setmoney","removemoney","seemoney"].includes(interaction.commandName)) {
-const target = interaction.options.getUser("usuario");
-const amount = interaction.options.getNumber("cantidad") || 0;
-const u = getStatus(target.id);
-
-if (interaction.commandName === "setmoney") {
-u.money += amount;
-saveStatus();
-return interaction.reply({ ephemeral: true, content: `+${amount}` });
-}
-
-if (interaction.commandName === "removemoney") {
-u.money -= amount;
-if (u.money < 0) u.money = 0;
-saveStatus();
-return interaction.reply({ ephemeral: true, content: `-${amount}` });
-}
-
-if (interaction.commandName === "seemoney") {
-return interaction.reply({ ephemeral: true, content: `${u.money}` });
-}
-}
-
-/* SELL */
+/* ===================== SELL ===================== */
 if (interaction.commandName === "sell") {
 const u = getStatus(interaction.user.id);
 const mode = interaction.options.getString("modo");
@@ -218,8 +201,9 @@ return interaction.reply({ ephemeral: true, content: "Vacío" });
 
 if (mode === "all") {
 let gain = 0;
+
 for (const i of Object.values(u.inventory))
-gain += Number(i.price ?? i.value ?? 0) * i.qty;
+gain += Number(i.price ?? 0) * i.qty;
 
 u.money += gain;
 u.inventory = {};
@@ -241,13 +225,14 @@ components: [new ActionRowBuilder().addComponents(menu)]
 });
 }
 
-/* SELL MENU */
+/* ===================== SELL MENU ===================== */
 if (interaction.isStringSelectMenu() && interaction.customId === "sell") {
 const u = getStatus(interaction.user.id);
 const item = u.inventory[interaction.values[0]];
+
 if (!item) return interaction.update({ content: "Error", components: [] });
 
-const price = Number(item.price ?? item.value ?? 0);
+const price = Number(item.price ?? 0);
 
 item.qty--;
 if (item.qty <= 0) delete u.inventory[item.name];
@@ -258,48 +243,56 @@ saveStatus();
 return interaction.update({ content: `💰 +${price}`, components: [] });
 }
 
-/* RANKUP */
+/* ===================== RANKUP ===================== */
 if (interaction.commandName === "rankup") {
 const member = interaction.member;
 const u = getStatus(member.id);
 
-const roles = ["bell","silbato rojo","silbato azul","silbato lunar","silbato negro","silbato blanco"];
+const roles = ["bell","rojo","azul","lunar","negro","blanco"];
 const costs = [100,250,500,750,1500,3000];
 
 let idx = -1;
+
 for (let i = roles.length - 1; i >= 0; i--) {
-const role = getRoleFlexible(interaction.guild, roles[i]);
+const role = interaction.guild.roles.cache.find(r =>
+r.name.toLowerCase().includes(roles[i])
+);
 if (role && member.roles.cache.has(role.id)) {
 idx = i;
 break;
 }
 }
 
-if (idx === roles.length - 1)
+if (idx >= roles.length - 1)
 return interaction.reply({ ephemeral: true, content: "Max rango" });
 
-const next = getRoleFlexible(interaction.guild, roles[idx + 1]);
-if (!next)
-return interaction.reply({ ephemeral: true, content: "Rol no encontrado" });
+const nextRole = interaction.guild.roles.cache.find(r =>
+r.name.toLowerCase().includes(roles[idx + 1])
+);
+
+if (!nextRole)
+return interaction.reply({ ephemeral: true, content: "No role" });
 
 if (u.money < costs[idx + 1])
-return interaction.reply({ ephemeral: true, content: "No tienes dinero" });
+return interaction.reply({ ephemeral: true, content: "No dinero" });
 
 u.money -= costs[idx + 1];
-await member.roles.add(next);
+await member.roles.add(nextRole);
 
 saveStatus();
-return interaction.reply({ ephemeral: true, content: `Subiste a ${next.name}` });
+
+return interaction.reply({ ephemeral: true, content: `Subiste a ${nextRole.name}` });
 }
 
-/* CREATE ITEM */
+/* ===================== CREATE ITEM ===================== */
 if (interaction.commandName === "createartefact") {
 const c = interaction.options.getString("categoria");
 const n = interaction.options.getString("nombre");
 const icon = interaction.options.getString("icono");
 const price = interaction.options.getNumber("precio");
 
-if (!objects[c]) return interaction.reply({ ephemeral: true, content: "Categoría inválida" });
+if (!objects[c])
+return interaction.reply({ ephemeral: true, content: "Categoría inválida" });
 
 objects[c].push({ name: n, icon, price });
 saveObjects();
@@ -307,44 +300,31 @@ saveObjects();
 return interaction.reply({ ephemeral: true, content: `Creado ${n}` });
 }
 
-} catch (err) {
-console.error(err);
-interaction.reply({ content: "Error interno", ephemeral: true }).catch(()=>{});
+} catch (e) {
+console.error(e);
 }
 });
 
-/* ===================== DROPS (PROBABILIDAD REAL) ===================== */
-client.on(Events.MessageCreate, message => {
-try {
+/* ===================== DROPS ===================== */
+client.on(Events.MessageCreate, async message => {
 if (message.author.bot || !message.guild) return;
 if (message.channel.id !== config.channels.reliquies) return;
 
-if (Math.random() > 0.15) return;
+if (Math.random() > 0.12) return;
 
 const pools = [
-{ pool: objects.ultra, chance: 1 },
-{ pool: objects.special, chance: 5 },
-{ pool: objects.class1, chance: 10 },
-{ pool: objects.class2, chance: 20 },
-{ pool: objects.class3, chance: 30 },
-{ pool: objects.class4, chance: 34 }
+objects.ultra,
+objects.special,
+objects.class1,
+objects.class2,
+objects.class3,
+objects.class4
 ];
 
-let rand = Math.random() * 100;
-let acc = 0;
-let selected = objects.class4;
+const pool = pools[Math.floor(Math.random() * pools.length)];
+if (!pool.length) return;
 
-for (const p of pools) {
-acc += p.chance;
-if (rand <= acc) {
-selected = p.pool;
-break;
-}
-}
-
-if (!selected.length) return;
-
-const item = selected[Math.floor(Math.random() * selected.length)];
+const item = pool[Math.floor(Math.random() * pool.length)];
 const u = getStatus(message.author.id);
 
 if (!u.inventory[item.name]) u.inventory[item.name] = { ...item, qty: 0 };
@@ -352,14 +332,14 @@ u.inventory[item.name].qty++;
 
 saveStatus();
 
+try {
+await message.author.send(`🧭 ${item.icon} ${item.name}`);
+} catch {
 message.reply(`🧭 ${item.icon} ${item.name}`);
-
-} catch (e) {
-console.error(e);
 }
 });
 
-/* ===================== ERRORS ===================== */
+/* ===================== ERROR HANDLING ===================== */
 process.on("unhandledRejection", console.error);
 process.on("uncaughtException", console.error);
 client.on("error", console.error);
