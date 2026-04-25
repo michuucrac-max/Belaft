@@ -33,7 +33,7 @@ const objectsPath = "./objects.json";
 
 const config = fs.existsSync(configPath)
 ? JSON.parse(fs.readFileSync(configPath, "utf8"))
-: { channels: { reliquies: [], trade: null, sell: null, tops: null } };
+: { channels: { reliquies: null, tops: null } };
 
 const objects = fs.existsSync(objectsPath)
 ? JSON.parse(fs.readFileSync(objectsPath, "utf8"))
@@ -47,21 +47,21 @@ const saveStatus = () => fs.writeFileSync(statusPath, JSON.stringify(status, nul
 const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 const saveObjects = () => fs.writeFileSync(objectsPath, JSON.stringify(objects, null, 2));
 
-/* ===================== ROLES ===================== */
-const ranks = {
-bell: "1456176950849572979",
-silbato_rojo: "1456178133240778763",
-silbato_azul: "1456178299364573348",
-silbato_lunar: "1456179008625447105",
-silbato_negro: "1456178700096635002",
-silbato_blanco: "1456179085364695133",
-narehate: "1456180289465483396"
-};
+/* ===================== UTILS ===================== */
+function normalize(t) {
+return t.toLowerCase()
+.normalize("NFD")
+.replace(/[\u0300-\u036f]/g, "")
+.replace(/[^\p{L}\p{N}\s]/gu, "")
+.trim();
+}
 
-/* ===================== STATUS ===================== */
+function getRoleFlexible(guild, name) {
+return guild.roles.cache.find(r => normalize(r.name).includes(normalize(name)));
+}
+
 function getStatus(id) {
-if (!status[id]) status[id] = { money: 0, inventory: {}, messages: 0 };
-saveStatus();
+if (!status[id]) status[id] = { money: 0, inventory: {} };
 return status[id];
 }
 
@@ -76,45 +76,69 @@ GatewayIntentBits.MessageContent
 partials: [Partials.Channel]
 });
 
+/* ===================== COMMANDS ===================== */
+const commands = [
+new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
+new SlashCommandBuilder().setName("mymoney").setDescription("Ver dinero"),
+
+new SlashCommandBuilder()
+.setName("sell")
+.setDescription("Vender artefactos")
+.addStringOption(o =>
+o.setName("modo")
+.setRequired(true)
+.addChoices(
+{ name: "Uno", value: "one" },
+{ name: "Todo", value: "all" }
+)
+),
+
+new SlashCommandBuilder()
+.setName("setchannelreliquies")
+.setDescription("Configurar canal de drops")
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
+new SlashCommandBuilder()
+.setName("setmoney")
+.addUserOption(o => o.setName("usuario").setRequired(true))
+.addNumberOption(o => o.setName("cantidad").setRequired(true))
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
+new SlashCommandBuilder()
+.setName("removemoney")
+.addUserOption(o => o.setName("usuario").setRequired(true))
+.addNumberOption(o => o.setName("cantidad").setRequired(true))
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
+new SlashCommandBuilder()
+.setName("seemoney")
+.addUserOption(o => o.setName("usuario").setRequired(true))
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
+new SlashCommandBuilder()
+.setName("rankup")
+.setDescription("Subir rango"),
+
+new SlashCommandBuilder()
+.setName("createartefact")
+.addStringOption(o => o.setName("categoria").setRequired(true))
+.addStringOption(o => o.setName("nombre").setRequired(true))
+.addStringOption(o => o.setName("icono").setRequired(true))
+.addNumberOption(o => o.setName("precio").setRequired(true))
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
+];
+
+const rest = new REST({ version: "10" }).setToken(TOKEN);
+
 /* ===================== READY ===================== */
 client.once(Events.ClientReady, async () => {
 await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-console.log(`🧭 Belaf despierta como ${client.user.tag}`);
-
-// TOPS
-setInterval(async () => {
-if (!config.channels.tops) return;
-
-const guild = client.guilds.cache.first();
-if (!guild) return;
-
-const members = await guild.members.fetch();
-const topUsers = [];
-
-members.forEach(m => {
-if (m.user.bot) return;
-const st = getStatus(m.id);
-topUsers.push({ tag: m.user.tag, money: st.money });
-});
-
-topUsers.sort((a, b) => b.money - a.money);
-const top10 = topUsers.slice(0, 10);
-
-const embed = new EmbedBuilder()
-.setTitle("🏆 TOP Exploradores")
-.setDescription(
-top10.map((u, i) => `**${i + 1}.** ${u.tag} — 💰 ${u.money}`).join("\n")
-)
-.setFooter({ text: "Gaburon supervisa los tops" });
-
-const ch = guild.channels.cache.get(config.channels.tops);
-if (ch) await ch.send({ embeds: [embed], content: "@everyone @here" });
-
-}, 720 * 60 * 1000);
+console.log(`🧭 Bot listo como ${client.user.tag}`);
 });
 
 /* ===================== INTERACTIONS ===================== */
 client.on(Events.InteractionCreate, async interaction => {
+try {
 
 if (
 !interaction.isChatInputCommand() &&
@@ -123,15 +147,10 @@ if (
 ) return;
 
 /* SET CHANNEL */
-if (interaction.isChatInputCommand() && interaction.commandName.startsWith("setchannel")) {
-const id = interaction.commandName.replace("setchannel", "");
-
+if (interaction.isChatInputCommand() && interaction.commandName === "setchannelreliquies") {
 const menu = new ChannelSelectMenuBuilder()
-.setCustomId(`set_${id}`)
-.setPlaceholder("Selecciona canal")
-.addChannelTypes(ChannelType.GuildText)
-.setMinValues(1)
-.setMaxValues(id === "reliquies" ? 6 : 1);
+.setCustomId("set_reliquies")
+.addChannelTypes(ChannelType.GuildText);
 
 return interaction.reply({
 ephemeral: true,
@@ -139,79 +158,82 @@ components: [new ActionRowBuilder().addComponents(menu)]
 });
 }
 
-if (interaction.isChannelSelectMenu() && interaction.customId.startsWith("set_")) {
-const id = interaction.customId.replace("set_", "");
-
-if (id === "reliquies") config.channels.reliquies = interaction.values;
-if (id === "tops") config.channels.tops = interaction.values[0];
-
+if (interaction.isChannelSelectMenu() && interaction.customId === "set_reliquies") {
+config.channels.reliquies = interaction.values[0];
 saveConfig();
-return interaction.update({ content: "📜 Canal configurado.", components: [] });
+return interaction.update({ content: "Canal configurado", components: [] });
 }
 
 /* INVENTORY */
 if (interaction.commandName === "inventory") {
-const user = getStatus(interaction.user.id);
-
-if (!Object.keys(user.inventory).length)
-return interaction.reply({ ephemeral: true, content: "🎒 Vacío." });
-
-const list = Object.values(user.inventory)
-.map(i => `${i.icon} ${i.name} x${i.qty}`)
-.join("\n");
+const u = getStatus(interaction.user.id);
+const items = Object.values(u.inventory);
+if (!items.length) return interaction.reply({ ephemeral: true, content: "Vacío" });
 
 return interaction.reply({
 ephemeral: true,
-content: `🎒 Inventario\n${list}`
+content: items.map(i => `${i.icon} ${i.name} x${i.qty}`).join("\n")
 });
 }
 
 /* MONEY */
 if (interaction.commandName === "mymoney") {
-const user = getStatus(interaction.user.id);
-
 return interaction.reply({
 ephemeral: true,
-content: `💰 ${user.money} monedas`
+content: `💰 ${getStatus(interaction.user.id).money}`
 });
 }
 
-/* SELL ALL */
+/* ADMIN MONEY */
+if (["setmoney","removemoney","seemoney"].includes(interaction.commandName)) {
+const target = interaction.options.getUser("usuario");
+const amount = interaction.options.getNumber("cantidad") || 0;
+const u = getStatus(target.id);
+
+if (interaction.commandName === "setmoney") {
+u.money += amount;
+saveStatus();
+return interaction.reply({ ephemeral: true, content: `+${amount}` });
+}
+
+if (interaction.commandName === "removemoney") {
+u.money -= amount;
+if (u.money < 0) u.money = 0;
+saveStatus();
+return interaction.reply({ ephemeral: true, content: `-${amount}` });
+}
+
+if (interaction.commandName === "seemoney") {
+return interaction.reply({ ephemeral: true, content: `${u.money}` });
+}
+}
+
+/* SELL */
 if (interaction.commandName === "sell") {
-const user = getStatus(interaction.user.id);
+const u = getStatus(interaction.user.id);
 const mode = interaction.options.getString("modo");
 
-if (!Object.keys(user.inventory).length)
-return interaction.reply({ ephemeral: true, content: "❌ No tienes objetos." });
+if (!Object.keys(u.inventory).length)
+return interaction.reply({ ephemeral: true, content: "Vacío" });
 
 if (mode === "all") {
 let gain = 0;
+for (const i of Object.values(u.inventory))
+gain += Number(i.price ?? i.value ?? 0) * i.qty;
 
-for (const i of Object.values(user.inventory)) {
-const price = Number(i.price ?? i.value ?? 0);
-gain += price * i.qty;
-}
-
-user.money += gain;
-user.inventory = {};
+u.money += gain;
+u.inventory = {};
 saveStatus();
 
-return interaction.reply({
-ephemeral: true,
-content: `💰 Vendido todo el inventario por ${gain} monedas`
-});
+return interaction.reply({ ephemeral: true, content: `💰 ${gain}` });
 }
 
 const menu = new StringSelectMenuBuilder()
-.setCustomId(`sell_${mode}`)
-.setPlaceholder("Selecciona objeto")
-.addOptions(
-Object.values(user.inventory).map(i => ({
+.setCustomId("sell")
+.addOptions(Object.values(u.inventory).map(i => ({
 label: i.name,
-description: `x${i.qty} | 💰 ${i.price ?? i.value ?? 0}`,
 value: i.name
-}))
-);
+})));
 
 return interaction.reply({
 ephemeral: true,
@@ -219,67 +241,128 @@ components: [new ActionRowBuilder().addComponents(menu)]
 });
 }
 
-/* SELL SELECT */
-if (interaction.isStringSelectMenu() && interaction.customId.startsWith("sell_")) {
-const mode = interaction.customId.replace("sell_", "");
-const itemName = interaction.values[0];
-const user = getStatus(interaction.user.id);
-const item = user.inventory[itemName];
+/* SELL MENU */
+if (interaction.isStringSelectMenu() && interaction.customId === "sell") {
+const u = getStatus(interaction.user.id);
+const item = u.inventory[interaction.values[0]];
+if (!item) return interaction.update({ content: "Error", components: [] });
 
-let gain = 0;
-
-if (mode === "one") {
 const price = Number(item.price ?? item.value ?? 0);
+
 item.qty--;
-gain = price;
-} else {
-const price = Number(item.price ?? item.value ?? 0);
-gain = item.qty * price;
-delete user.inventory[itemName];
-}
+if (item.qty <= 0) delete u.inventory[item.name];
 
-if (item.qty <= 0) delete user.inventory[itemName];
-
-user.money += gain;
+u.money += price;
 saveStatus();
 
-return interaction.update({
-content: `💰 Vendido ${itemName} por ${gain} monedas.`,
-components: []
-});
+return interaction.update({ content: `💰 +${price}`, components: [] });
 }
 
-/* ADMIN MONEY */
-if (["setmoney", "removemoney", "seemoney"].includes(interaction.commandName)) {
-const target = interaction.options.getUser("usuario");
-const amount = interaction.options.getNumber("cantidad") || 0;
-const user = getStatus(target.id);
+/* RANKUP */
+if (interaction.commandName === "rankup") {
+const member = interaction.member;
+const u = getStatus(member.id);
 
-if (interaction.commandName === "setmoney") {
-user.money += amount;
+const roles = ["bell","silbato rojo","silbato azul","silbato lunar","silbato negro","silbato blanco"];
+const costs = [100,250,500,750,1500,3000];
+
+let idx = -1;
+for (let i = roles.length - 1; i >= 0; i--) {
+const role = getRoleFlexible(interaction.guild, roles[i]);
+if (role && member.roles.cache.has(role.id)) {
+idx = i;
+break;
+}
+}
+
+if (idx === roles.length - 1)
+return interaction.reply({ ephemeral: true, content: "Max rango" });
+
+const next = getRoleFlexible(interaction.guild, roles[idx + 1]);
+if (!next)
+return interaction.reply({ ephemeral: true, content: "Rol no encontrado" });
+
+if (u.money < costs[idx + 1])
+return interaction.reply({ ephemeral: true, content: "No tienes dinero" });
+
+u.money -= costs[idx + 1];
+await member.roles.add(next);
+
 saveStatus();
-return interaction.reply({
-ephemeral: true,
-content: `💰 Se dieron ${amount} monedas a ${target.tag}`
-});
+return interaction.reply({ ephemeral: true, content: `Subiste a ${next.name}` });
 }
 
-if (interaction.commandName === "removemoney") {
-user.money -= amount;
-if (user.money < 0) user.money = 0;
+/* CREATE ITEM */
+if (interaction.commandName === "createartefact") {
+const c = interaction.options.getString("categoria");
+const n = interaction.options.getString("nombre");
+const icon = interaction.options.getString("icono");
+const price = interaction.options.getNumber("precio");
+
+if (!objects[c]) return interaction.reply({ ephemeral: true, content: "Categoría inválida" });
+
+objects[c].push({ name: n, icon, price });
+saveObjects();
+
+return interaction.reply({ ephemeral: true, content: `Creado ${n}` });
+}
+
+} catch (err) {
+console.error(err);
+interaction.reply({ content: "Error interno", ephemeral: true }).catch(()=>{});
+}
+});
+
+/* ===================== DROPS (PROBABILIDAD REAL) ===================== */
+client.on(Events.MessageCreate, message => {
+try {
+if (message.author.bot || !message.guild) return;
+if (message.channel.id !== config.channels.reliquies) return;
+
+if (Math.random() > 0.15) return;
+
+const pools = [
+{ pool: objects.ultra, chance: 1 },
+{ pool: objects.special, chance: 5 },
+{ pool: objects.class1, chance: 10 },
+{ pool: objects.class2, chance: 20 },
+{ pool: objects.class3, chance: 30 },
+{ pool: objects.class4, chance: 34 }
+];
+
+let rand = Math.random() * 100;
+let acc = 0;
+let selected = objects.class4;
+
+for (const p of pools) {
+acc += p.chance;
+if (rand <= acc) {
+selected = p.pool;
+break;
+}
+}
+
+if (!selected.length) return;
+
+const item = selected[Math.floor(Math.random() * selected.length)];
+const u = getStatus(message.author.id);
+
+if (!u.inventory[item.name]) u.inventory[item.name] = { ...item, qty: 0 };
+u.inventory[item.name].qty++;
+
 saveStatus();
-return interaction.reply({
-ephemeral: true,
-content: `💰 Se quitaron ${amount} monedas a ${target.tag}`
-});
-}
 
-if (interaction.commandName === "seemoney") {
-return interaction.reply({
-ephemeral: true,
-content: `💰 ${target.tag} tiene ${user.money} monedas`
-});
-}
-}
+message.reply(`🧭 ${item.icon} ${item.name}`);
 
+} catch (e) {
+console.error(e);
+}
 });
+
+/* ===================== ERRORS ===================== */
+process.on("unhandledRejection", console.error);
+process.on("uncaughtException", console.error);
+client.on("error", console.error);
+
+/* ===================== LOGIN ===================== */
+client.login(TOKEN);
