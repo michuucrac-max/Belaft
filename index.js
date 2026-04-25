@@ -16,23 +16,17 @@ EmbedBuilder
 import fs from "fs";
 import express from "express";
 
-/* =====================
-ENV
-===================== */
+/* ===================== ENV ===================== */
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const PORT = process.env.PORT || 3000;
 
-/* =====================
-EXPRESS
-===================== */
+/* ===================== EXPRESS ===================== */
 const app = express();
 app.get("/", (_, res) => res.send("Belaf observa el Abismo 🧭"));
 app.listen(PORT, () => console.log(`🌐 Express activo en ${PORT}`));
 
-/* =====================
-FILES
-===================== */
+/* ===================== FILES ===================== */
 const configPath = "./config.json";
 const statusPath = "./status.json";
 const objectsPath = "./objects.json";
@@ -53,9 +47,7 @@ const saveStatus = () => fs.writeFileSync(statusPath, JSON.stringify(status, nul
 const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 const saveObjects = () => fs.writeFileSync(objectsPath, JSON.stringify(objects, null, 2));
 
-/* =====================
-RANKS
-===================== */
+/* ===================== RANKS ===================== */
 const ranks = {
 bell: "1456176950849572979",
 silbato_rojo: "1456178133240778763",
@@ -66,18 +58,14 @@ silbato_blanco: "1456179085364695133",
 narehate: "1456180289465483396"
 };
 
-/* =====================
-STATUS
-===================== */
+/* ===================== STATUS ===================== */
 function getStatus(id) {
 if (!status[id]) status[id] = { money: 0, inventory: {}, messages: 0 };
 saveStatus();
 return status[id];
 }
 
-/* =====================
-CLIENT
-===================== */
+/* ===================== CLIENT ===================== */
 const client = new Client({
 intents: [
 GatewayIntentBits.Guilds,
@@ -88,9 +76,7 @@ GatewayIntentBits.MessageContent
 partials: [Partials.Channel]
 });
 
-/* =====================
-COMMANDS
-===================== */
+/* ===================== COMMANDS ===================== */
 const commands = [
 new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
 new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
@@ -98,32 +84,78 @@ new SlashCommandBuilder()
 .setName("sell")
 .setDescription("Vender reliquias")
 .addStringOption(o =>
-o.setName("modo").setDescription("Modo").setRequired(true)
+o.setName("modo").setDescription("Modo de venta").setRequired(true)
 .addChoices({ name: "Uno", value: "one" }, { name: "Todo", value: "all" })
 ),
-new SlashCommandBuilder().setName("rankup").setDescription("Subir rango")
+new SlashCommandBuilder()
+.setName("setchannelreliquies")
+.setDescription("Configurar drops")
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+new SlashCommandBuilder()
+.setName("setchanneltops")
+.setDescription("Configurar tops")
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+new SlashCommandBuilder()
+.setName("setmoney")
+.setDescription("Dar dinero")
+.addUserOption(o => o.setName("usuario").setRequired(true))
+.addNumberOption(o => o.setName("cantidad").setRequired(true))
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+new SlashCommandBuilder()
+.setName("removemoney")
+.setDescription("Quitar dinero")
+.addUserOption(o => o.setName("usuario").setRequired(true))
+.addNumberOption(o => o.setName("cantidad").setRequired(true))
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+new SlashCommandBuilder()
+.setName("seemoney")
+.setDescription("Ver dinero")
+.addUserOption(o => o.setName("usuario").setRequired(true))
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+new SlashCommandBuilder()
+.setName("gift")
+.setDescription("Regalar artefacto")
+.addUserOption(o => o.setName("usuario").setRequired(true)),
+new SlashCommandBuilder()
+.setName("rankup")
+.setDescription("Subir de rango"),
+new SlashCommandBuilder()
+.setName("setitem")
+.setDescription("Dar artefacto")
+.addUserOption(o => o.setName("usuario").setRequired(true))
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+new SlashCommandBuilder()
+.setName("removeitem")
+.setDescription("Quitar artefacto")
+.addUserOption(o => o.setName("usuario").setRequired(true))
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+new SlashCommandBuilder()
+.setName("createartefact")
+.setDescription("Crear artefacto")
+.addStringOption(o => o.setName("categoria").setRequired(true))
+.addStringOption(o => o.setName("nombre").setRequired(true))
+.addStringOption(o => o.setName("icono").setRequired(true))
+.addNumberOption(o => o.setName("precio").setRequired(true))
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
 ];
 
-/* =====================
-REGISTER
-===================== */
+/* ===================== REGISTER ===================== */
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 client.once(Events.ClientReady, async () => {
 await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-console.log(`🧭 Belaf listo como ${client.user.tag}`);
+console.log(`🧭 Belaf despierta como ${client.user.tag}`);
 });
 
-/* =====================
-INTERACTIONS
-===================== */
+/* ===================== INTERACTIONS ===================== */
 client.on(Events.InteractionCreate, async interaction => {
 if (!interaction.isChatInputCommand()) return;
 
-if (interaction.commandName === "inventory") {
 const user = getStatus(interaction.user.id);
+
+if (interaction.commandName === "inventory") {
 if (!Object.keys(user.inventory).length)
-return interaction.reply({ content: "🎒 Vacío", ephemeral: true });
+return interaction.reply({ content: "🎒 Vacío.", ephemeral: true });
 
 const list = Object.values(user.inventory)
 .map(i => `${i.icon} ${i.name} x${i.qty}`)
@@ -133,13 +165,11 @@ return interaction.reply({ content: `🎒 Inventario\n${list}`, ephemeral: true 
 }
 
 if (interaction.commandName === "mymoney") {
-const user = getStatus(interaction.user.id);
 return interaction.reply({ content: `💰 ${user.money} monedas`, ephemeral: true });
 }
 
 if (interaction.commandName === "rankup") {
 const member = interaction.member;
-const st = getStatus(member.id);
 
 const roleOrder = ["bell","silbato_rojo","silbato_azul","silbato_lunar","silbato_negro","silbato_blanco"];
 const rankCosts = [100,250,500,750,1500,3000];
@@ -154,17 +184,16 @@ break;
 }
 
 if(currentRoleIndex === roleOrder.length - 1)
-return interaction.reply({ content:"✅ Máximo rango", ephemeral:true });
+return interaction.reply({ content:"✅ Ya tienes el máximo rango", ephemeral:true });
 
 const nextRole = roleOrder[currentRoleIndex + 1];
 const cost = rankCosts[currentRoleIndex + 1];
 
-if(st.money < cost)
-return interaction.reply({ content:`❌ Necesitas ${cost}`, ephemeral:true });
+if(user.money < cost)
+return interaction.reply({ content:`❌ Necesitas ${cost} monedas`, ephemeral:true });
 
-st.money -= cost;
+user.money -= cost;
 await member.roles.add(ranks[nextRole]);
-
 saveStatus();
 
 return interaction.reply({ content:`✅ Subiste a ${nextRole}`, ephemeral:true });
@@ -172,31 +201,5 @@ return interaction.reply({ content:`✅ Subiste a ${nextRole}`, ephemeral:true }
 
 });
 
-/* =====================
-DROP
-===================== */
-client.on(Events.MessageCreate, message => {
-if (message.author.bot || !message.guild) return;
-
-const user = getStatus(message.author.id);
-user.messages++;
-
-if (user.messages % 10 !== 0) return;
-
-const pool = objects.class4;
-if (!pool.length) return;
-
-const item = pool[Math.floor(Math.random() * pool.length)];
-
-if (!user.inventory[item.name]) user.inventory[item.name] = { ...item, qty: 0 };
-user.inventory[item.name].qty++;
-
-saveStatus();
-
-message.reply(`🧭 Encontraste ${item.icon} ${item.name}`);
-});
-
-/* =====================
-LOGIN
-===================== */
+/* ===================== LOGIN ===================== */
 client.login(TOKEN);
