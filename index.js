@@ -23,7 +23,7 @@ const PORT = process.env.PORT || 3000;
 
 /* ===================== EXPRESS ===================== */
 const app = express();
-app.get("/", (_, res) => res.send(`Belaf observa el Abismo 🧭`));
+app.get("/", (_, res) => res.send("Belaf observa el Abismo 🧭"));
 app.listen(PORT, () => console.log(`🌐 Express activo en ${PORT}`));
 
 /* ===================== FILES ===================== */
@@ -47,19 +47,9 @@ const saveStatus = () => fs.writeFileSync(statusPath, JSON.stringify(status, nul
 const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 const saveObjects = () => fs.writeFileSync(objectsPath, JSON.stringify(objects, null, 2));
 
-/* ===================== RANKS FLEXIBLES ===================== */
-const ranks = {
-bell: "bell",
-silbato_rojo: "silbato rojo",
-silbato_azul: "silbato azul",
-silbato_lunar: "silbato lunar",
-silbato_negro: "silbato negro",
-silbato_blanco: "silbato blanco",
-narehate: "narehate"
-};
-
-function normalize(text) {
-return text.toLowerCase()
+/* ===================== UTILS ===================== */
+function normalize(t) {
+return t.toLowerCase()
 .normalize("NFD")
 .replace(/[\u0300-\u036f]/g, "")
 .replace(/[^\p{L}\p{N}\s]/gu, "")
@@ -70,9 +60,8 @@ function getRoleFlexible(guild, name) {
 return guild.roles.cache.find(r => normalize(r.name).includes(normalize(name)));
 }
 
-/* ===================== STATUS ===================== */
 function getStatus(id) {
-if (!status[id]) status[id] = { money: 0, inventory: {}, messages: 0 };
+if (!status[id]) status[id] = { money: 0, inventory: {} };
 return status[id];
 }
 
@@ -90,11 +79,11 @@ partials: [Partials.Channel]
 /* ===================== COMMANDS ===================== */
 const commands = [
 new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
-new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
+new SlashCommandBuilder().setName("mymoney").setDescription("Ver dinero"),
 
 new SlashCommandBuilder()
 .setName("sell")
-.setDescription("Vender reliquias")
+.setDescription("Vender artefactos")
 .addStringOption(o =>
 o.setName("modo")
 .setRequired(true)
@@ -107,11 +96,6 @@ o.setName("modo")
 new SlashCommandBuilder()
 .setName("setchannelreliquies")
 .setDescription("Configurar canal de drops")
-.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-
-new SlashCommandBuilder()
-.setName("setchanneltops")
-.setDescription("Configurar canal tops")
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
 new SlashCommandBuilder()
@@ -149,21 +133,23 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 /* ===================== READY ===================== */
 client.once(Events.ClientReady, async () => {
 await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-console.log(`🧭 Belaf listo como ${client.user.tag}`);
+console.log(`🧭 Bot listo como ${client.user.tag}`);
 });
 
 /* ===================== INTERACTIONS ===================== */
 client.on(Events.InteractionCreate, async interaction => {
 try {
 
-if (!interaction.isChatInputCommand() && !interaction.isStringSelectMenu() && !interaction.isChannelSelectMenu()) return;
+if (
+!interaction.isChatInputCommand() &&
+!interaction.isStringSelectMenu() &&
+!interaction.isChannelSelectMenu()
+) return;
 
 /* SET CHANNEL */
-if (interaction.isChatInputCommand() && interaction.commandName.startsWith("setchannel")) {
-const id = interaction.commandName.replace("setchannel", "");
-
+if (interaction.isChatInputCommand() && interaction.commandName === "setchannelreliquies") {
 const menu = new ChannelSelectMenuBuilder()
-.setCustomId(`set_${id}`)
+.setCustomId("set_reliquies")
 .addChannelTypes(ChannelType.GuildText);
 
 return interaction.reply({
@@ -172,18 +158,17 @@ components: [new ActionRowBuilder().addComponents(menu)]
 });
 }
 
-if (interaction.isChannelSelectMenu() && interaction.customId.startsWith("set_")) {
-const id = interaction.customId.replace("set_", "");
-config.channels[id] = interaction.values[0];
+if (interaction.isChannelSelectMenu() && interaction.customId === "set_reliquies") {
+config.channels.reliquies = interaction.values[0];
 saveConfig();
-return interaction.update({ content: "📜 Canal configurado", components: [] });
+return interaction.update({ content: "Canal configurado", components: [] });
 }
 
 /* INVENTORY */
 if (interaction.commandName === "inventory") {
 const u = getStatus(interaction.user.id);
 const items = Object.values(u.inventory);
-if (!items.length) return interaction.reply({ ephemeral: true, content: "🎒 Vacío" });
+if (!items.length) return interaction.reply({ ephemeral: true, content: "Vacío" });
 
 return interaction.reply({
 ephemeral: true,
@@ -203,23 +188,23 @@ content: `💰 ${getStatus(interaction.user.id).money}`
 if (["setmoney","removemoney","seemoney"].includes(interaction.commandName)) {
 const target = interaction.options.getUser("usuario");
 const amount = interaction.options.getNumber("cantidad") || 0;
-const user = getStatus(target.id);
+const u = getStatus(target.id);
 
 if (interaction.commandName === "setmoney") {
-user.money += amount;
+u.money += amount;
 saveStatus();
 return interaction.reply({ ephemeral: true, content: `+${amount}` });
 }
 
 if (interaction.commandName === "removemoney") {
-user.money -= amount;
-if (user.money < 0) user.money = 0;
+u.money -= amount;
+if (u.money < 0) u.money = 0;
 saveStatus();
 return interaction.reply({ ephemeral: true, content: `-${amount}` });
 }
 
 if (interaction.commandName === "seemoney") {
-return interaction.reply({ ephemeral: true, content: `${user.money}` });
+return interaction.reply({ ephemeral: true, content: `${u.money}` });
 }
 }
 
@@ -229,7 +214,7 @@ const u = getStatus(interaction.user.id);
 const mode = interaction.options.getString("modo");
 
 if (!Object.keys(u.inventory).length)
-return interaction.reply({ ephemeral: true, content: "❌ Vacío" });
+return interaction.reply({ ephemeral: true, content: "Vacío" });
 
 if (mode === "all") {
 let gain = 0;
@@ -244,7 +229,7 @@ return interaction.reply({ ephemeral: true, content: `💰 ${gain}` });
 }
 
 const menu = new StringSelectMenuBuilder()
-.setCustomId(`sell_${mode}`)
+.setCustomId("sell")
 .addOptions(Object.values(u.inventory).map(i => ({
 label: i.name,
 value: i.name
@@ -257,16 +242,15 @@ components: [new ActionRowBuilder().addComponents(menu)]
 }
 
 /* SELL MENU */
-if (interaction.isStringSelectMenu() && interaction.customId.startsWith("sell_")) {
+if (interaction.isStringSelectMenu() && interaction.customId === "sell") {
 const u = getStatus(interaction.user.id);
-const name = interaction.values[0];
-const item = u.inventory[name];
-
-if (!item) return interaction.update({ content: "❌ Error", components: [] });
+const item = u.inventory[interaction.values[0]];
+if (!item) return interaction.update({ content: "Error", components: [] });
 
 const price = Number(item.price ?? item.value ?? 0);
+
 item.qty--;
-if (item.qty <= 0) delete u.inventory[name];
+if (item.qty <= 0) delete u.inventory[item.name];
 
 u.money += price;
 saveStatus();
@@ -277,31 +261,31 @@ return interaction.update({ content: `💰 +${price}`, components: [] });
 /* RANKUP */
 if (interaction.commandName === "rankup") {
 const member = interaction.member;
-const st = getStatus(member.id);
+const u = getStatus(member.id);
 
-const order = ["bell","silbato_rojo","silbato_azul","silbato_lunar","silbato_negro","silbato_blanco"];
+const roles = ["bell","silbato rojo","silbato azul","silbato lunar","silbato negro","silbato blanco"];
 const costs = [100,250,500,750,1500,3000];
 
 let idx = -1;
-for (let i = order.length - 1; i >= 0; i--) {
-const role = getRoleFlexible(interaction.guild, ranks[order[i]]);
+for (let i = roles.length - 1; i >= 0; i--) {
+const role = getRoleFlexible(interaction.guild, roles[i]);
 if (role && member.roles.cache.has(role.id)) {
 idx = i;
 break;
 }
 }
 
-if (idx === order.length - 1)
+if (idx === roles.length - 1)
 return interaction.reply({ ephemeral: true, content: "Max rango" });
 
-const next = getRoleFlexible(interaction.guild, ranks[order[idx + 1]]);
+const next = getRoleFlexible(interaction.guild, roles[idx + 1]);
 if (!next)
 return interaction.reply({ ephemeral: true, content: "Rol no encontrado" });
 
-if (st.money < costs[idx + 1])
+if (u.money < costs[idx + 1])
 return interaction.reply({ ephemeral: true, content: "No tienes dinero" });
 
-st.money -= costs[idx + 1];
+u.money -= costs[idx + 1];
 await member.roles.add(next);
 
 saveStatus();
@@ -312,12 +296,12 @@ return interaction.reply({ ephemeral: true, content: `Subiste a ${next.name}` })
 if (interaction.commandName === "createartefact") {
 const c = interaction.options.getString("categoria");
 const n = interaction.options.getString("nombre");
-const i = interaction.options.getString("icono");
-const p = interaction.options.getNumber("precio");
+const icon = interaction.options.getString("icono");
+const price = interaction.options.getNumber("precio");
 
-if (!objects[c]) return interaction.reply({ ephemeral: true, content: "❌ Categoría inválida" });
+if (!objects[c]) return interaction.reply({ ephemeral: true, content: "Categoría inválida" });
 
-objects[c].push({ name: n, icon: i, price: p });
+objects[c].push({ name: n, icon, price });
 saveObjects();
 
 return interaction.reply({ ephemeral: true, content: `Creado ${n}` });
@@ -325,20 +309,19 @@ return interaction.reply({ ephemeral: true, content: `Creado ${n}` });
 
 } catch (err) {
 console.error(err);
-interaction.reply({ content: "❌ Error interno", ephemeral: true }).catch(()=>{});
+interaction.reply({ content: "Error interno", ephemeral: true }).catch(()=>{});
 }
 });
 
-/* ===================== DROPS POR PROBABILIDAD ===================== */
+/* ===================== DROPS (PROBABILIDAD REAL) ===================== */
 client.on(Events.MessageCreate, message => {
 try {
 if (message.author.bot || !message.guild) return;
 if (message.channel.id !== config.channels.reliquies) return;
 
-/* SOLO PROBABILIDAD */
 if (Math.random() > 0.15) return;
 
-const chances = [
+const pools = [
 { pool: objects.ultra, chance: 1 },
 { pool: objects.special, chance: 5 },
 { pool: objects.class1, chance: 10 },
@@ -351,10 +334,10 @@ let rand = Math.random() * 100;
 let acc = 0;
 let selected = objects.class4;
 
-for (const c of chances) {
-acc += c.chance;
+for (const p of pools) {
+acc += p.chance;
 if (rand <= acc) {
-selected = c.pool;
+selected = p.pool;
 break;
 }
 }
