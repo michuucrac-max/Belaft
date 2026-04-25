@@ -13,6 +13,7 @@ ChannelType,
 PermissionsBitField,
 EmbedBuilder
 } from "discord.js";
+
 import fs from "fs";
 import express from "express";
 
@@ -23,8 +24,12 @@ const PORT = process.env.PORT || 3000;
 
 /* ===================== EXPRESS ===================== */
 const app = express();
+
 app.get("/", (_, res) => res.send("Belaf observa el Abismo 🧭"));
-app.listen(PORT, () => console.log(🌐 Express activo en ${PORT}));
+
+app.listen(PORT, () =>
+console.log(`🌐 Express activo en ${PORT}`)
+);
 
 /* ===================== FILES ===================== */
 const configPath = "./config.json";
@@ -43,9 +48,14 @@ const status = fs.existsSync(statusPath)
 ? JSON.parse(fs.readFileSync(statusPath, "utf8"))
 : {};
 
-const saveStatus = () => fs.writeFileSync(statusPath, JSON.stringify(status, null, 2));
-const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-const saveObjects = () => fs.writeFileSync(objectsPath, JSON.stringify(objects, null, 2));
+const saveStatus = () =>
+fs.writeFileSync(statusPath, JSON.stringify(status, null, 2));
+
+const saveConfig = () =>
+fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+
+const saveObjects = () =>
+fs.writeFileSync(objectsPath, JSON.stringify(objects, null, 2));
 
 /* ===================== ROLES ===================== */
 const ranks = {
@@ -60,8 +70,10 @@ narehate: "1456180289465483396"
 
 /* ===================== STATUS ===================== */
 function getStatus(id) {
-if (!status[id]) status[id] = { money: 0, inventory: {}, messages: 0 };
+if (!status[id]) {
+status[id] = { money: 0, inventory: {}, messages: 0 };
 saveStatus();
+}
 return status[id];
 }
 
@@ -76,12 +88,19 @@ GatewayIntentBits.MessageContent
 partials: [Partials.Channel]
 });
 
+/* ===================== COMMANDS (placeholder seguro) ===================== */
+const commands = [];
+
+/* ===================== REST ===================== */
+const rest = new REST({ version: "10" }).setToken(TOKEN);
+
 /* ===================== READY ===================== */
 client.once(Events.ClientReady, async () => {
 await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-console.log(🧭 Belaf despierta como ${client.user.tag});
 
-// TOPS
+console.log(`🧭 Belaf despierta como ${client.user.tag}`);
+
+/* TOPS */
 setInterval(async () => {
 if (!config.channels.tops) return;
 
@@ -103,13 +122,14 @@ const top10 = topUsers.slice(0, 10);
 const embed = new EmbedBuilder()
 .setTitle("🏆 TOP Exploradores")
 .setDescription(
-top10.map((u, i) => **${i + 1}.** ${u.tag} — 💰 ${u.money}).join("\n")
+top10.map((u, i) => `**${i + 1}.** ${u.tag} — 💰 ${u.money}`).join("\n")
 )
 .setFooter({ text: "Gaburon supervisa los tops" });
 
 const ch = guild.channels.cache.get(config.channels.tops);
-if (ch) await ch.send({ embeds: [embed], content: "@everyone @here" });
-
+if (ch) {
+await ch.send({ embeds: [embed], content: "@everyone @here" });
+}
 }, 720 * 60 * 1000);
 });
 
@@ -122,12 +142,15 @@ if (
 !interaction.isChannelSelectMenu()
 ) return;
 
-/* SET CHANNEL */
-if (interaction.isChatInputCommand() && interaction.commandName.startsWith("setchannel")) {
+/* ===================== SET CHANNEL ===================== */
+if (
+interaction.isChatInputCommand() &&
+interaction.commandName.startsWith("setchannel")
+) {
 const id = interaction.commandName.replace("setchannel", "");
 
 const menu = new ChannelSelectMenuBuilder()
-.setCustomId(set_${id})
+.setCustomId(`set_${id}`)
 .setPlaceholder("Selecciona canal")
 .addChannelTypes(ChannelType.GuildText)
 .setMinValues(1)
@@ -139,17 +162,23 @@ components: [new ActionRowBuilder().addComponents(menu)]
 });
 }
 
-if (interaction.isChannelSelectMenu() && interaction.customId.startsWith("set_")) {
+if (
+interaction.isChannelSelectMenu() &&
+interaction.customId.startsWith("set_")
+) {
 const id = interaction.customId.replace("set_", "");
 
 if (id === "reliquies") config.channels.reliquies = interaction.values;
 if (id === "tops") config.channels.tops = interaction.values[0];
 
 saveConfig();
-return interaction.update({ content: "📜 Canal configurado.", components: [] });
+return interaction.update({
+content: "📜 Canal configurado.",
+components: []
+});
 }
 
-/* INVENTORY */
+/* ===================== INVENTORY ===================== */
 if (interaction.commandName === "inventory") {
 const user = getStatus(interaction.user.id);
 
@@ -157,32 +186,35 @@ if (!Object.keys(user.inventory).length)
 return interaction.reply({ ephemeral: true, content: "🎒 Vacío." });
 
 const list = Object.values(user.inventory)
-.map(i => ${i.icon} ${i.name} x${i.qty})
+.map(i => `${i.icon} ${i.name} x${i.qty}`)
 .join("\n");
 
 return interaction.reply({
 ephemeral: true,
-content: 🎒 Inventario\n${list}
+content: `🎒 Inventario\n${list}`
 });
 }
 
-/* MONEY */
+/* ===================== MONEY ===================== */
 if (interaction.commandName === "mymoney") {
 const user = getStatus(interaction.user.id);
 
 return interaction.reply({
 ephemeral: true,
-content: 💰 ${user.money} monedas
+content: `💰 ${user.money} monedas`
 });
 }
 
-/* SELL ALL */
+/* ===================== SELL ===================== */
 if (interaction.commandName === "sell") {
 const user = getStatus(interaction.user.id);
 const mode = interaction.options.getString("modo");
 
 if (!Object.keys(user.inventory).length)
-return interaction.reply({ ephemeral: true, content: "❌ No tienes objetos." });
+return interaction.reply({
+ephemeral: true,
+content: "❌ No tienes objetos."
+});
 
 if (mode === "all") {
 let gain = 0;
@@ -198,17 +230,17 @@ saveStatus();
 
 return interaction.reply({
 ephemeral: true,
-content: 💰 Vendido todo el inventario por ${gain} monedas
+content: `💰 Vendido todo el inventario por ${gain} monedas`
 });
 }
 
 const menu = new StringSelectMenuBuilder()
-.setCustomId(sell_${mode})
+.setCustomId(`sell_${mode}`)
 .setPlaceholder("Selecciona objeto")
 .addOptions(
 Object.values(user.inventory).map(i => ({
 label: i.name,
-description: x${i.qty} | 💰 ${i.price ?? i.value ?? 0},
+description: `x${i.qty} | 💰 ${i.price ?? i.value ?? 0}`,
 value: i.name
 }))
 );
@@ -219,8 +251,11 @@ components: [new ActionRowBuilder().addComponents(menu)]
 });
 }
 
-/* SELL SELECT */
-if (interaction.isStringSelectMenu() && interaction.customId.startsWith("sell_")) {
+/* ===================== SELL SELECT ===================== */
+if (
+interaction.isStringSelectMenu() &&
+interaction.customId.startsWith("sell_")
+) {
 const mode = interaction.customId.replace("sell_", "");
 const itemName = interaction.values[0];
 const user = getStatus(interaction.user.id);
@@ -244,13 +279,15 @@ user.money += gain;
 saveStatus();
 
 return interaction.update({
-content: 💰 Vendido ${itemName} por ${gain} monedas.,
+content: `💰 Vendido ${itemName} por ${gain} monedas.`,
 components: []
 });
 }
 
-/* ADMIN MONEY */
-if (["setmoney", "removemoney", "seemoney"].includes(interaction.commandName)) {
+/* ===================== ADMIN MONEY ===================== */
+if (
+["setmoney", "removemoney", "seemoney"].includes(interaction.commandName)
+) {
 const target = interaction.options.getUser("usuario");
 const amount = interaction.options.getNumber("cantidad") || 0;
 const user = getStatus(target.id);
@@ -258,9 +295,10 @@ const user = getStatus(target.id);
 if (interaction.commandName === "setmoney") {
 user.money += amount;
 saveStatus();
+
 return interaction.reply({
 ephemeral: true,
-content: 💰 Se dieron ${amount} monedas a ${target.tag}
+content: `💰 Se dieron ${amount} monedas a ${target.tag}`
 });
 }
 
@@ -268,18 +306,20 @@ if (interaction.commandName === "removemoney") {
 user.money -= amount;
 if (user.money < 0) user.money = 0;
 saveStatus();
+
 return interaction.reply({
 ephemeral: true,
-content: 💰 Se quitaron ${amount} monedas a ${target.tag}
+content: `💰 Se quitaron ${amount} monedas a ${target.tag}`
 });
 }
 
 if (interaction.commandName === "seemoney") {
 return interaction.reply({
 ephemeral: true,
-content: 💰 ${target.tag} tiene ${user.money} monedas
+content: `💰 ${target.tag} tiene ${user.money} monedas`
 });
 }
 }
 
-});
+/* ===================== LOGIN ===================== */
+client.login(TOKEN);
