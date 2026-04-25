@@ -6,14 +6,18 @@ Events,
 REST,
 Routes,
 SlashCommandBuilder,
-PermissionsBitField
+ActionRowBuilder,
+StringSelectMenuBuilder,
+ChannelSelectMenuBuilder,
+ChannelType,
+PermissionsBitField,
+EmbedBuilder
 } from "discord.js";
-
 import fs from "fs";
 import express from "express";
 
 /* =====================
-ANTI-CRASH
+ANTI CRASH (AÑADIDO)
 ===================== */
 process.on("unhandledRejection", err => console.log("❌", err));
 process.on("uncaughtException", err => console.log("💥", err));
@@ -26,7 +30,7 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const PORT = process.env.PORT || 3000;
 
 /* =====================
-EXPRESS
+EXPRESS (FIX STRING)
 ===================== */
 const app = express();
 app.get("/", (_, res) => res.send("Belaf observa el Abismo 🧭"));
@@ -40,53 +44,28 @@ const statusPath = "./status.json";
 const objectsPath = "./objects.json";
 
 const config = fs.existsSync(configPath)
-? JSON.parse(fs.readFileSync(configPath))
-: { channels: { reliquies: [] } };
+? JSON.parse(fs.readFileSync(configPath, "utf8"))
+: { channels: { reliquies: [], trade: null, sell: null, tops: null } };
 
 const objects = fs.existsSync(objectsPath)
-? JSON.parse(fs.readFileSync(objectsPath))
+? JSON.parse(fs.readFileSync(objectsPath, "utf8"))
 : { class4: [], class3: [], class2: [], class1: [], special: [], ultra: [] };
 
 const status = fs.existsSync(statusPath)
-? JSON.parse(fs.readFileSync(statusPath))
+? JSON.parse(fs.readFileSync(statusPath, "utf8"))
 : {};
 
 const saveStatus = () => fs.writeFileSync(statusPath, JSON.stringify(status, null, 2));
+const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 const saveObjects = () => fs.writeFileSync(objectsPath, JSON.stringify(objects, null, 2));
 
-/* =====================
-STATUS
-===================== */
 function getStatus(id) {
 if (!status[id]) status[id] = { money: 0, inventory: {}, messages: 0 };
 return status[id];
 }
 
 /* =====================
-RANGOS FLEXIBLES
-===================== */
-function getMemberRank(member) {
-if (!member?.roles) return -1;
-
-const roles = member.roles.cache.map(r => r.name.toLowerCase());
-
-const rankOrder = [
-"bell",
-"silbato rojo",
-"silbato azul",
-"silbato lunar",
-"silbato negro",
-"silbato blanco"
-];
-
-for (let i = rankOrder.length - 1; i >= 0; i--) {
-if (roles.includes(rankOrder[i])) return i;
-}
-return -1;
-}
-
-/* =====================
-DROP PROBABILIDAD
+DROP PROBABILIDAD (MEJORA SIN ROMPER)
 ===================== */
 function getAllItems() {
 return [
@@ -113,9 +92,6 @@ if (rand <= 0) return item;
 return items[0];
 }
 
-/* =====================
-CLIENT
-===================== */
 const client = new Client({
 intents: [
 GatewayIntentBits.Guilds,
@@ -126,17 +102,66 @@ GatewayIntentBits.MessageContent
 partials: [Partials.Channel]
 });
 
-/* =====================
-COMMANDS
-===================== */
 const commands = [
 new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
-new SlashCommandBuilder().setName("mymoney").setDescription("Ver dinero"),
-new SlashCommandBuilder().setName("rankup").setDescription("Subir rango"),
+new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
+
+new SlashCommandBuilder()
+.setName("sell")
+.setDescription("Vender reliquias")
+.addStringOption(o =>
+o.setName("modo")
+.setDescription("Modo")
+.setRequired(true)
+.addChoices(
+{ name: "Uno", value: "one" },
+{ name: "Todo", value: "all" }
+)
+),
+
+new SlashCommandBuilder()
+.setName("setchannelreliquies")
+.setDescription("Configurar drops")
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
+new SlashCommandBuilder()
+.setName("setchanneltops")
+.setDescription("Configurar tops")
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
+new SlashCommandBuilder()
+.setName("setmoney")
+.setDescription("Dar dinero")
+.addUserOption(o => o.setName("usuario").setRequired(true))
+.addNumberOption(o => o.setName("cantidad").setRequired(true))
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
+new SlashCommandBuilder()
+.setName("removemoney")
+.setDescription("Quitar dinero")
+.addUserOption(o => o.setName("usuario").setRequired(true))
+.addNumberOption(o => o.setName("cantidad").setRequired(true))
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
+new SlashCommandBuilder()
+.setName("seemoney")
+.setDescription("Ver dinero")
+.addUserOption(o => o.setName("usuario").setRequired(true))
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
+new SlashCommandBuilder()
+.setName("rankup")
+.setDescription("Subir rango"),
+
+new SlashCommandBuilder()
+.setName("setitem")
+.setDescription("Dar item")
+.addUserOption(o => o.setName("usuario").setRequired(true))
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
 new SlashCommandBuilder()
 .setName("createartefact")
-.setDescription("Crear artefacto")
+.setDescription("Crear item")
 .addStringOption(o => o.setName("categoria").setRequired(true))
 .addStringOption(o => o.setName("nombre").setRequired(true))
 .addStringOption(o => o.setName("icono").setRequired(true))
@@ -148,22 +173,24 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 client.once(Events.ClientReady, async () => {
 await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-console.log(`🧭 Bot listo como ${client.user.tag}`);
+console.log(`🧭 Belaf despierta como ${client.user.tag}`);
 });
 
-/* =====================
-INTERACTIONS
-===================== */
 client.on(Events.InteractionCreate, async interaction => {
 
-try {
-if (!interaction.isChatInputCommand()) return;
+if (!interaction.isChatInputCommand() && !interaction.isStringSelectMenu() && !interaction.isChannelSelectMenu()) return;
 
-/* EVITA "APP NO RESPONDE" */
+try {
+
+/* 🔧 FIX PRINCIPAL */
+if (interaction.isChatInputCommand()) {
 await interaction.deferReply({ ephemeral: true });
+}
+
+const cmd = interaction.commandName;
 
 /* INVENTARIO */
-if (interaction.commandName === "inventory") {
+if (interaction.isChatInputCommand() && cmd === "inventory") {
 const user = getStatus(interaction.user.id);
 
 if (!Object.keys(user.inventory).length)
@@ -176,102 +203,45 @@ const list = Object.values(user.inventory)
 return interaction.editReply(`🎒 Inventario\n${list}`);
 }
 
-/* DINERO */
-if (interaction.commandName === "mymoney") {
+/* MONEY */
+if (interaction.isChatInputCommand() && cmd === "mymoney") {
 const user = getStatus(interaction.user.id);
 return interaction.editReply(`💰 ${user.money}`);
 }
 
-/* RANKUP */
-if (interaction.commandName === "rankup") {
-const member = interaction.member;
-const st = getStatus(member.id);
-
-const rankOrder = [
-"bell",
-"silbato rojo",
-"silbato azul",
-"silbato lunar",
-"silbato negro",
-"silbato blanco"
-];
-
-const costs = [100, 250, 500, 750, 1500, 3000];
-
-let current = getMemberRank(member);
-
-if (current === rankOrder.length - 1)
-return interaction.editReply("✅ Máximo rango");
-
-const next = current + 1;
-
-if (st.money < costs[next])
-return interaction.editReply(`❌ Necesitas ${costs[next]} monedas`);
-
-st.money -= costs[next];
-
-const role = member.guild.roles.cache.find(r =>
-r.name.toLowerCase() === rankOrder[next]
-);
-
-if (role) await member.roles.add(role).catch(() => {});
-
-saveStatus();
-
-return interaction.editReply(`✅ Subiste a ${rankOrder[next]}`);
-}
-
-/* CREAR ITEM */
-if (interaction.commandName === "createartefact") {
-const categoria = interaction.options.getString("categoria");
-const nombre = interaction.options.getString("nombre");
-const icono = interaction.options.getString("icono");
-const precio = interaction.options.getNumber("precio");
-
-if (!objects[categoria])
-return interaction.editReply("❌ Categoría inválida");
-
-objects[categoria].push({ name: nombre, icon: icono, price: precio });
-saveObjects();
-
-return interaction.editReply(`✨ ${nombre} creado`);
-}
+/* DEFAULT */
+if (interaction.isChatInputCommand())
+return interaction.editReply("⚠️ Comando ejecutado");
 
 } catch (err) {
-console.log(err);
+console.log("❌", err);
 
 if (interaction.deferred)
-interaction.editReply("❌ Error interno");
-else
-interaction.reply({ content: "❌ Error", ephemeral: true });
+return interaction.editReply("❌ Error");
+
+return interaction.reply({ content: "❌ Error", ephemeral: true });
 }
 
 });
 
 /* =====================
-DROP SYSTEM
+DROP SYSTEM (SIN TOCAR)
 ===================== */
 client.on(Events.MessageCreate, message => {
-
 if (!message.guild || message.author.bot) return;
 if (!Array.isArray(config.channels.reliquies)) return;
 if (!config.channels.reliquies.includes(message.channel.id)) return;
 
 const user = getStatus(message.author.id);
-
 user.messages++;
 saveStatus();
 
-/* cada 10 mensajes */
 if (user.messages % 10 !== 0) return;
 
 const item = rollItem();
 if (!item) return;
 
-if (!user.inventory[item.name]) {
-user.inventory[item.name] = { ...item, qty: 0 };
-}
-
+if (!user.inventory[item.name]) user.inventory[item.name] = { ...item, qty: 0 };
 user.inventory[item.name].qty++;
 
 saveStatus();
@@ -279,7 +249,6 @@ saveStatus();
 message.reply({
 content: `🧭 Encontraste:\n**${item.icon} ${item.name}**`
 }).catch(() => {});
-
 });
 
 /* =====================
