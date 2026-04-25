@@ -6,27 +6,17 @@ Events,
 REST,
 Routes,
 SlashCommandBuilder,
-ActionRowBuilder,
-StringSelectMenuBuilder,
-ChannelSelectMenuBuilder,
-ChannelType,
-PermissionsBitField,
-EmbedBuilder
+PermissionsBitField
 } from "discord.js";
 
 import fs from "fs";
 import express from "express";
 
 /* =====================
-ANTI CRASH (IMPORTANTE)
+ANTI-CRASH
 ===================== */
-process.on("unhandledRejection", err => {
-console.log("❌ Unhandled Rejection:", err);
-});
-
-process.on("uncaughtException", err => {
-console.log("💥 Uncaught Exception:", err);
-});
+process.on("unhandledRejection", err => console.log("❌", err));
+process.on("uncaughtException", err => console.log("💥", err));
 
 /* =====================
 ENV
@@ -43,40 +33,37 @@ app.get("/", (_, res) => res.send("Belaf observa el Abismo 🧭"));
 app.listen(PORT, () => console.log(`🌐 Express activo en ${PORT}`));
 
 /* =====================
-FILES SAFE LOAD
+FILES
 ===================== */
 const configPath = "./config.json";
 const statusPath = "./status.json";
 const objectsPath = "./objects.json";
 
 const config = fs.existsSync(configPath)
-? JSON.parse(fs.readFileSync(configPath, "utf8"))
-: { channels: { reliquies: [], tops: null } };
+? JSON.parse(fs.readFileSync(configPath))
+: { channels: { reliquies: [] } };
 
 const objects = fs.existsSync(objectsPath)
-? JSON.parse(fs.readFileSync(objectsPath, "utf8"))
+? JSON.parse(fs.readFileSync(objectsPath))
 : { class4: [], class3: [], class2: [], class1: [], special: [], ultra: [] };
 
 const status = fs.existsSync(statusPath)
-? JSON.parse(fs.readFileSync(statusPath, "utf8"))
+? JSON.parse(fs.readFileSync(statusPath))
 : {};
 
 const saveStatus = () => fs.writeFileSync(statusPath, JSON.stringify(status, null, 2));
-const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 const saveObjects = () => fs.writeFileSync(objectsPath, JSON.stringify(objects, null, 2));
 
 /* =====================
-SAFE STATUS
+STATUS
 ===================== */
 function getStatus(id) {
-if (!status[id]) {
-status[id] = { money: 0, inventory: {}, messages: 0 };
-}
+if (!status[id]) status[id] = { money: 0, inventory: {}, messages: 0 };
 return status[id];
 }
 
 /* =====================
-RANK SYSTEM FLEXIBLE
+RANGOS FLEXIBLES
 ===================== */
 function getMemberRank(member) {
 if (!member?.roles) return -1;
@@ -99,7 +86,7 @@ return -1;
 }
 
 /* =====================
-DROP SYSTEM (PROBABILIDAD)
+DROP PROBABILIDAD
 ===================== */
 function getAllItems() {
 return [
@@ -117,13 +104,12 @@ const items = getAllItems();
 if (!items.length) return null;
 
 const total = items.reduce((a, b) => a + b.rarity, 0);
-let random = Math.random() * total;
+let rand = Math.random() * total;
 
 for (const item of items) {
-random -= item.rarity;
-if (random <= 0) return item;
+rand -= item.rarity;
+if (rand <= 0) return item;
 }
-
 return items[0];
 }
 
@@ -141,24 +127,16 @@ partials: [Partials.Channel]
 });
 
 /* =====================
-SLASH COMMANDS
+COMMANDS
 ===================== */
 const commands = [
 new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
-new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
-
-new SlashCommandBuilder()
-.setName("rankup")
-.setDescription("Subir rango"),
-
-new SlashCommandBuilder()
-.setName("setitem")
-.setDescription("Dar item")
-.addUserOption(o => o.setName("usuario").setRequired(true)),
+new SlashCommandBuilder().setName("mymoney").setDescription("Ver dinero"),
+new SlashCommandBuilder().setName("rankup").setDescription("Subir rango"),
 
 new SlashCommandBuilder()
 .setName("createartefact")
-.setDescription("Crear item")
+.setDescription("Crear artefacto")
 .addStringOption(o => o.setName("categoria").setRequired(true))
 .addStringOption(o => o.setName("nombre").setRequired(true))
 .addStringOption(o => o.setName("icono").setRequired(true))
@@ -166,51 +144,47 @@ new SlashCommandBuilder()
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
 ];
 
-/* =====================
-REST
-===================== */
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 client.once(Events.ClientReady, async () => {
 await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-console.log(`🧭 Belaf activo como ${client.user.tag}`);
+console.log(`🧭 Bot listo como ${client.user.tag}`);
 });
 
+/* =====================
+INTERACTIONS
+===================== */
 client.on(Events.InteractionCreate, async interaction => {
 
-if (!interaction.isChatInputCommand() && !interaction.isStringSelectMenu()) return;
+try {
+if (!interaction.isChatInputCommand()) return;
 
-/* =====================
-INVENTORY
-===================== */
-if (interaction.isChatInputCommand() && interaction.commandName === "inventory") {
+/* EVITA "APP NO RESPONDE" */
+await interaction.deferReply({ ephemeral: true });
+
+/* INVENTARIO */
+if (interaction.commandName === "inventory") {
 const user = getStatus(interaction.user.id);
 
 if (!Object.keys(user.inventory).length)
-return interaction.reply({ ephemeral: true, content: "🎒 Vacío" });
+return interaction.editReply("🎒 Vacío");
 
 const list = Object.values(user.inventory)
 .map(i => `${i.icon} ${i.name} x${i.qty}`)
 .join("\n");
 
-return interaction.reply({ ephemeral: true, content: `🎒 Inventario\n${list}` });
+return interaction.editReply(`🎒 Inventario\n${list}`);
 }
 
-/* =====================
-MONEY
-===================== */
-if (interaction.isChatInputCommand() && interaction.commandName === "mymoney") {
+/* DINERO */
+if (interaction.commandName === "mymoney") {
 const user = getStatus(interaction.user.id);
-return interaction.reply({ ephemeral: true, content: `💰 ${user.money}` });
+return interaction.editReply(`💰 ${user.money}`);
 }
 
-/* =====================
-RANKUP SAFE
-===================== */
-if (interaction.isChatInputCommand() && interaction.commandName === "rankup") {
+/* RANKUP */
+if (interaction.commandName === "rankup") {
 const member = interaction.member;
-if (!member) return;
-
 const st = getStatus(member.id);
 
 const rankOrder = [
@@ -227,15 +201,12 @@ const costs = [100, 250, 500, 750, 1500, 3000];
 let current = getMemberRank(member);
 
 if (current === rankOrder.length - 1)
-return interaction.reply({ ephemeral: true, content: "✅ Máximo rango" });
+return interaction.editReply("✅ Máximo rango");
 
 const next = current + 1;
 
 if (st.money < costs[next])
-return interaction.reply({
-ephemeral: true,
-content: `❌ Necesitas ${costs[next]} monedas`
-});
+return interaction.editReply(`❌ Necesitas ${costs[next]} monedas`);
 
 st.money -= costs[next];
 
@@ -243,21 +214,14 @@ const role = member.guild.roles.cache.find(r =>
 r.name.toLowerCase() === rankOrder[next]
 );
 
-if (role) {
-await member.roles.add(role).catch(() => {});
-}
+if (role) await member.roles.add(role).catch(() => {});
 
 saveStatus();
 
-return interaction.reply({
-ephemeral: true,
-content: `✅ Subiste a ${rankOrder[next]}`
-});
+return interaction.editReply(`✅ Subiste a ${rankOrder[next]}`);
 }
 
-/* =====================
-CREATE ARTEFACT
-===================== */
+/* CREAR ITEM */
 if (interaction.commandName === "createartefact") {
 const categoria = interaction.options.getString("categoria");
 const nombre = interaction.options.getString("nombre");
@@ -265,25 +229,31 @@ const icono = interaction.options.getString("icono");
 const precio = interaction.options.getNumber("precio");
 
 if (!objects[categoria])
-return interaction.reply({ ephemeral: true, content: "❌ Categoría inválida" });
+return interaction.editReply("❌ Categoría inválida");
 
 objects[categoria].push({ name: nombre, icon: icono, price: precio });
 saveObjects();
 
-return interaction.reply({
-ephemeral: true,
-content: `✨ ${nombre} creado`
-});
+return interaction.editReply(`✨ ${nombre} creado`);
+}
+
+} catch (err) {
+console.log(err);
+
+if (interaction.deferred)
+interaction.editReply("❌ Error interno");
+else
+interaction.reply({ content: "❌ Error", ephemeral: true });
 }
 
 });
 
 /* =====================
-DROP SYSTEM SAFE
+DROP SYSTEM
 ===================== */
 client.on(Events.MessageCreate, message => {
-if (!message.guild || message.author.bot) return;
 
+if (!message.guild || message.author.bot) return;
 if (!Array.isArray(config.channels.reliquies)) return;
 if (!config.channels.reliquies.includes(message.channel.id)) return;
 
@@ -292,6 +262,7 @@ const user = getStatus(message.author.id);
 user.messages++;
 saveStatus();
 
+/* cada 10 mensajes */
 if (user.messages % 10 !== 0) return;
 
 const item = rollItem();
@@ -306,13 +277,12 @@ user.inventory[item.name].qty++;
 saveStatus();
 
 message.reply({
-content: `🧭 Reliquia encontrada:\n**${item.icon} ${item.name}**`
+content: `🧭 Encontraste:\n**${item.icon} ${item.name}**`
 }).catch(() => {});
+
 });
 
 /* =====================
-LOGIN SAFE
+LOGIN
 ===================== */
-client.login(TOKEN).catch(err => {
-console.log("❌ Login error:", err);
-});
+client.login(TOKEN).catch(err => console.log("❌ Login:", err));
