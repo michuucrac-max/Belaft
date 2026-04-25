@@ -31,7 +31,7 @@ app.get("/", (_, res) => res.send("Belaf observa el Abismo 🧭"));
 app.listen(PORT, () => console.log(`🌐 Express activo en ${PORT}`));
 
 /* =====================
-FILES / CONFIG
+FILES
 ===================== */
 const configPath = "./config.json";
 const statusPath = "./status.json";
@@ -54,25 +54,59 @@ const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config, nul
 const saveObjects = () => fs.writeFileSync(objectsPath, JSON.stringify(objects, null, 2));
 
 /* =====================
-ROLES / RANKS
+RANK SYSTEM FLEXIBLE
 ===================== */
-const ranks = {
-bell: "1456176950849572979",
-silbato_rojo: "1456178133240778763",
-silbato_azul: "1456178299364573348",
-silbato_lunar: "1456179008625447105",
-silbato_negro: "1456178700096635002",
-silbato_blanco: "1456179085364695133",
-narehate: "1456180289465483396"
-};
+function getMemberRank(member) {
+const roles = member.roles.cache.map(r => r.name.toLowerCase());
+
+const rankOrder = [
+"bell",
+"silbato rojo",
+"silbato azul",
+"silbato lunar",
+"silbato negro",
+"silbato blanco"
+];
+
+for (let i = rankOrder.length - 1; i >= 0; i--) {
+if (roles.includes(rankOrder[i])) return i;
+}
+return -1;
+}
 
 /* =====================
-STATUS FUNCTION
+STATUS
 ===================== */
 function getStatus(id) {
 if (!status[id]) status[id] = { money: 0, inventory: {}, messages: 0 };
 saveStatus();
 return status[id];
+}
+
+/* =====================
+DROP SYSTEM (PROBABILIDAD)
+===================== */
+function getAllItems() {
+return [
+...objects.class4.map(i => ({ ...i, rarity: 70 })),
+...objects.class3.map(i => ({ ...i, rarity: 20 })),
+...objects.class2.map(i => ({ ...i, rarity: 8 })),
+...objects.class1.map(i => ({ ...i, rarity: 4 })),
+...objects.special.map(i => ({ ...i, rarity: 2 })),
+...objects.ultra.map(i => ({ ...i, rarity: 0.5 }))
+];
+}
+
+function rollItem() {
+const items = getAllItems();
+const total = items.reduce((a, b) => a + b.rarity, 0);
+let random = Math.random() * total;
+
+for (const item of items) {
+random -= item.rarity;
+if (random <= 0) return item;
+}
+return items[0];
 }
 
 /* =====================
@@ -94,67 +128,72 @@ SLASH COMMANDS
 const commands = [
 new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
 new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
+
 new SlashCommandBuilder()
 .setName("sell")
 .setDescription("Vender reliquias")
 .addStringOption(o =>
-o.setName("modo").setDescription("Modo de venta").setRequired(true)
-.addChoices({ name: "Uno", value: "one" }, { name: "Todo", value: "all" })
+o.setName("modo")
+.setDescription("Modo")
+.setRequired(true)
+.addChoices(
+{ name: "Uno", value: "one" },
+{ name: "Todo", value: "all" }
+)
 ),
+
 new SlashCommandBuilder()
 .setName("setchannelreliquies")
 .setDescription("Configurar drops")
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
 new SlashCommandBuilder()
 .setName("setchanneltops")
 .setDescription("Configurar tops")
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
 new SlashCommandBuilder()
 .setName("setmoney")
-.setDescription("Dar dinero a un usuario (Admin)")
-.addUserOption(o => o.setName("usuario").setDescription("Usuario").setRequired(true))
-.addNumberOption(o => o.setName("cantidad").setDescription("Cantidad a dar").setRequired(true))
+.setDescription("Dar dinero")
+.addUserOption(o => o.setName("usuario").setRequired(true))
+.addNumberOption(o => o.setName("cantidad").setRequired(true))
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
 new SlashCommandBuilder()
 .setName("removemoney")
-.setDescription("Quitar dinero a un usuario (Admin)")
-.addUserOption(o => o.setName("usuario").setDescription("Usuario").setRequired(true))
-.addNumberOption(o => o.setName("cantidad").setDescription("Cantidad a quitar").setRequired(true))
+.setDescription("Quitar dinero")
+.addUserOption(o => o.setName("usuario").setRequired(true))
+.addNumberOption(o => o.setName("cantidad").setRequired(true))
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
 new SlashCommandBuilder()
 .setName("seemoney")
-.setDescription("Ver dinero de un usuario (Admin)")
-.addUserOption(o => o.setName("usuario").setDescription("Usuario").setRequired(true))
+.setDescription("Ver dinero")
+.addUserOption(o => o.setName("usuario").setRequired(true))
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-new SlashCommandBuilder()
-.setName("gift")
-.setDescription("Regalar un artefacto a alguien")
-.addUserOption(o => o.setName("usuario").setDescription("Usuario").setRequired(true)),
+
 new SlashCommandBuilder()
 .setName("rankup")
-.setDescription("Subir de rango pagando con monedas obtenidas"),
+.setDescription("Subir rango"),
+
 new SlashCommandBuilder()
 .setName("setitem")
-.setDescription("Dar un artefacto a un usuario (Admin)")
-.addUserOption(o => o.setName("usuario").setDescription("Usuario").setRequired(true))
+.setDescription("Dar item")
+.addUserOption(o => o.setName("usuario").setRequired(true))
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-new SlashCommandBuilder()
-.setName("removeitem")
-.setDescription("Remover un artefacto de un usuario (Admin)")
-.addUserOption(o => o.setName("usuario").setDescription("Usuario").setRequired(true))
-.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
 new SlashCommandBuilder()
 .setName("createartefact")
-.setDescription("Crear un nuevo artefacto en objects.json (Admin)")
-.addStringOption(o => o.setName("categoria").setDescription("Categoría").setRequired(true))
-.addStringOption(o => o.setName("nombre").setDescription("Nombre del artefacto").setRequired(true))
-.addStringOption(o => o.setName("icono").setDescription("Emoji/Icono del artefacto").setRequired(true))
-.addNumberOption(o => o.setName("precio").setDescription("Precio del artefacto").setRequired(true))
+.setDescription("Crear item")
+.addStringOption(o => o.setName("categoria").setRequired(true))
+.addStringOption(o => o.setName("nombre").setRequired(true))
+.addStringOption(o => o.setName("icono").setRequired(true))
+.addNumberOption(o => o.setName("precio").setRequired(true))
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
 ];
 
 /* =====================
-REST REGISTER
+REST
 ===================== */
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
@@ -163,69 +202,19 @@ READY
 ===================== */
 client.once(Events.ClientReady, async () => {
 await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-console.log(`🧭 Belaf despierta como ${client.user.tag}`);
-
-setInterval(async () => {
-if (!config.channels.tops) return;
-
-const guild = client.guilds.cache.first();
-if (!guild) return;
-
-const members = await guild.members.fetch();
-const topUsers = [];
-
-members.forEach(m => {
-if (m.user.bot) return;
-const st = getStatus(m.id);
-topUsers.push({ tag: m.user.tag, money: st.money });
+console.log(`🧭 Belaf listo como ${client.user.tag}`);
 });
 
-topUsers.sort((a, b) => b.money - a.money);
-const top10 = topUsers.slice(0, 10);
-
-const embed = new EmbedBuilder()
-.setTitle("🏆 TOP Exploradores")
-.setDescription(top10.map((u, i) => `${i + 1}. ${u.tag} — 💰 ${u.money}`).join("\n"))
-.setFooter({ text: "Gaburon supervisa los tops" });
-
-const ch = guild.channels.cache.get(config.channels.tops);
-if (ch) await ch.send({ embeds: [embed], content: "@everyone @here" });
-
-}, 720 * 60 * 1000);
-});
+client.on(Events.InteractionCreate, async interaction => {
 
 /* =====================
-INTERACTIONS (FIXED STRINGS)
+INVENTORY
 ===================== */
-client.on(Events.InteractionCreate, async interaction => {
-if (!interaction.isChatInputCommand() && !interaction.isStringSelectMenu() && !interaction.isChannelSelectMenu()) return;
-
-// SET CHANNELS
-if (interaction.isChatInputCommand() && interaction.commandName.startsWith("setchannel")) {
-const id = interaction.commandName.replace("setchannel", "");
-const menu = new ChannelSelectMenuBuilder()
-.setCustomId(`set_${id}`)
-.setPlaceholder("Selecciona canal")
-.addChannelTypes(ChannelType.GuildText)
-.setMinValues(1)
-.setMaxValues(id === "reliquies" ? 6 : 1);
-
-return interaction.reply({ ephemeral: true, components: [new ActionRowBuilder().addComponents(menu)] });
-}
-
-if (interaction.isChannelSelectMenu() && interaction.customId.startsWith("set_")) {
-const id = interaction.customId.replace("set_", "");
-if (id === "reliquies") config.channels.reliquies = interaction.values;
-if (id === "tops") config.channels.tops = interaction.values[0];
-saveConfig();
-return interaction.update({ content: "📜 Canal configurado.", components: [] });
-}
-
-// INVENTORY
 if (interaction.commandName === "inventory") {
 const user = getStatus(interaction.user.id);
+
 if (!Object.keys(user.inventory).length)
-return interaction.reply({ ephemeral: true, content: "🎒 Vacío." });
+return interaction.reply({ ephemeral: true, content: "🎒 Vacío" });
 
 const list = Object.values(user.inventory)
 .map(i => `${i.icon} ${i.name} x${i.qty}`)
@@ -234,112 +223,64 @@ const list = Object.values(user.inventory)
 return interaction.reply({ ephemeral: true, content: `🎒 Inventario\n${list}` });
 }
 
-// MONEY
+/* =====================
+MONEY
+===================== */
 if (interaction.commandName === "mymoney") {
 const user = getStatus(interaction.user.id);
-return interaction.reply({ ephemeral: true, content: `💰 ${user.money} monedas` });
+return interaction.reply({ ephemeral: true, content: `💰 ${user.money}` });
 }
 
-// SELL MENU
-if (interaction.commandName === "sell") {
-const user = getStatus(interaction.user.id);
-const mode = interaction.options.getString("modo");
+/* =====================
+RANKUP FLEXIBLE
+===================== */
+if (interaction.commandName === "rankup") {
+const member = interaction.member;
+const st = getStatus(member.id);
 
-if (!Object.keys(user.inventory).length)
-return interaction.reply({ ephemeral: true, content: "❌ No tienes objetos." });
+const rankOrder = [
+"bell",
+"silbato rojo",
+"silbato azul",
+"silbato lunar",
+"silbato negro",
+"silbato blanco"
+];
 
-if (mode === "all") {
-let gain = 0;
-for (const i of Object.values(user.inventory)) {
-const price = Number(i.price ?? i.value ?? 0);
-gain += price * i.qty;
-}
-user.money += gain;
-user.inventory = {};
-saveStatus();
-return interaction.reply({ ephemeral: true, content: `💰 Vendido todo el inventario por ${gain} monedas` });
-}
+const costs = [100, 250, 500, 750, 1500, 3000];
 
-const menu = new StringSelectMenuBuilder()
-.setCustomId(`sell_${mode}`)
-.setPlaceholder("Selecciona objeto")
-.addOptions(Object.values(user.inventory).map(i => ({
-label: i.name,
-description: `x${i.qty} | 💰 ${i.price ?? i.value ?? 0}`,
-value: i.name
-})));
+let current = getMemberRank(member);
 
-return interaction.reply({ ephemeral: true, components: [new ActionRowBuilder().addComponents(menu)] });
-}
+if (current === rankOrder.length - 1)
+return interaction.reply({ ephemeral: true, content: "✅ Máximo rango" });
 
-// SELL ACTION
-if (interaction.isStringSelectMenu() && interaction.customId.startsWith("sell_")) {
-const mode = interaction.customId.replace("sell_", "");
-const itemName = interaction.values[0];
-const user = getStatus(interaction.user.id);
-const item = user.inventory[itemName];
+const next = current + 1;
 
-let gain = 0;
+if (st.money < costs[next])
+return interaction.reply({
+ephemeral: true,
+content: `❌ Necesitas ${costs[next]} monedas`
+});
 
-if (mode === "one") {
-const price = Number(item.price ?? item.value ?? 0);
-item.qty--;
-gain = price;
-} else {
-const price = Number(item.price ?? item.value ?? 0);
-gain = item.qty * price;
-delete user.inventory[itemName];
-}
+st.money -= costs[next];
 
-if (item.qty <= 0) delete user.inventory[itemName];
-
-user.money += gain;
-saveStatus();
-
-return interaction.update({ content: `💰 Vendido ${itemName} por ${gain} monedas.`, components: [] });
-}
-
-/* ===== SETITEM FIX ===== */
-if (interaction.commandName === "setitem") {
-const target = interaction.options.getUser("usuario");
-
-const menu = new StringSelectMenuBuilder()
-.setCustomId(`setitem_${target.id}`)
-.setPlaceholder("Selecciona artefacto")
-.addOptions(
-[...objects.class4, ...objects.class3, ...objects.class2, ...objects.class1, ...objects.special, ...objects.ultra]
-.map(o => ({
-label: o.name,
-value: o.name,
-description: `💰 ${o.value ?? o.price ?? 0}`
-}))
+const role = member.guild.roles.cache.find(r =>
+r.name.toLowerCase() === rankOrder[next]
 );
 
-return interaction.reply({ ephemeral: true, components: [new ActionRowBuilder().addComponents(menu)] });
-}
-
-if (interaction.isStringSelectMenu() && interaction.customId.startsWith("setitem_")) {
-const targetId = interaction.customId.replace("setitem_", "");
-const target = interaction.guild.members.cache.get(targetId)?.user;
-if (!target) return interaction.update({ content: "❌ Usuario no encontrado", components: [] });
-
-const user = getStatus(target.id);
-const itemName = interaction.values[0];
-
-const obj = [...objects.class4, ...objects.class3, ...objects.class2, ...objects.class1, ...objects.special, ...objects.ultra]
-.find(o => o.name === itemName);
-
-if (!obj) return interaction.update({ content: "❌ Artefacto no encontrado", components: [] });
-
-if (!user.inventory[itemName]) user.inventory[itemName] = { ...obj, qty: 0 };
-user.inventory[itemName].qty++;
+if (role) await member.roles.add(role);
 
 saveStatus();
 
-return interaction.update({ content: `✅ Artefacto ${itemName} agregado a ${target}`, components: [] });
+return interaction.reply({
+ephemeral: true,
+content: `✅ Subiste a ${rankOrder[next]}`
+});
 }
 
-/* CREATE ARTEFACT FIX */
+/* =====================
+CREATE ARTEFACT
+===================== */
 if (interaction.commandName === "createartefact") {
 const categoria = interaction.options.getString("categoria");
 const nombre = interaction.options.getString("nombre");
@@ -354,20 +295,19 @@ saveObjects();
 
 return interaction.reply({
 ephemeral: true,
-content: `✨ Artefacto ${nombre} creado en categoría ${categoria} con precio ${precio}`
+content: `✨ ${nombre} creado`
 });
 }
-
-});
 
 /* =====================
 DROP SYSTEM
 ===================== */
+});
+
 client.on(Events.MessageCreate, message => {
 if (message.author.bot || !message.guild) return;
 if (!config.channels.reliquies.includes(message.channel.id)) return;
 
-const depth = config.channels.reliquies.indexOf(message.channel.id);
 const user = getStatus(message.author.id);
 
 user.messages++;
@@ -375,29 +315,19 @@ saveStatus();
 
 if (user.messages % 10 !== 0) return;
 
-const pools = [
-objects.class4,
-objects.class3,
-objects.class2,
-objects.special,
-objects.special,
-objects.special
-];
-
-const pool = pools[depth] ?? objects.class4;
-if (!pool.length) return;
-
-const item = pool[Math.floor(Math.random() * pool.length)];
+const item = rollItem();
+if (!item) return;
 
 if (!user.inventory[item.name]) {
 user.inventory[item.name] = { ...item, qty: 0 };
 }
+
 user.inventory[item.name].qty++;
 
 saveStatus();
 
 message.reply({
-content: `🧭 ¡Has encontrado un objeto!\n**${item.icon} ${item.name}** x1`
+content: `🧭 Reliquia encontrada:\n**${item.icon} ${item.name}**`
 });
 });
 
