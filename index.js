@@ -10,8 +10,7 @@ ActionRowBuilder,
 StringSelectMenuBuilder,
 ChannelSelectMenuBuilder,
 ChannelType,
-PermissionsBitField,
-EmbedBuilder
+PermissionsBitField
 } from "discord.js";
 import fs from "fs";
 import express from "express";
@@ -39,7 +38,7 @@ const objectsPath = "./objects.json";
 
 const config = fs.existsSync(configPath)
 ? JSON.parse(fs.readFileSync(configPath))
-: { channels: { reliquies: null, tops: null } };
+: { channels: { reliquies: null } };
 
 const objects = fs.existsSync(objectsPath)
 ? JSON.parse(fs.readFileSync(objectsPath))
@@ -105,15 +104,21 @@ new SlashCommandBuilder()
 .setName("sell")
 .setDescription("Vender reliquias")
 .addStringOption(o =>
-o.setName("modo").setRequired(true)
-.addChoices({ name:"Uno",value:"one" },{ name:"Todo",value:"all" })
+o.setName("modo")
+.setRequired(true)
+.addChoices(
+{ name:"Uno", value:"one" },
+{ name:"Todo", value:"all" }
+)
 ),
 
-new SlashCommandBuilder().setName("setchannelreliquies")
-.setDescription("Canal drops")
+new SlashCommandBuilder()
+.setName("setchannelreliquies")
+.setDescription("Configurar canal drops")
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
-new SlashCommandBuilder().setName("rankup")
+new SlashCommandBuilder()
+.setName("rankup")
 .setDescription("Subir rango")
 ];
 
@@ -181,20 +186,27 @@ return interaction.reply({ephemeral:true,content:"❌ Vacío"});
 
 if (mode==="all") {
 let gain=0;
-for(const i of Object.values(u.inventory)) gain+=(i.price??0)*i.qty;
+for(const i of Object.values(u.inventory))
+gain += Number(i.price ?? i.value ?? 0) * i.qty;
+
 u.money+=gain;
 u.inventory={};
 saveStatus();
+
 return interaction.reply({ephemeral:true,content:`💰 ${gain}`});
 }
 
 const menu=new StringSelectMenuBuilder()
 .setCustomId(`sell_${mode}`)
 .addOptions(Object.values(u.inventory).map(i=>({
-label:i.name,value:i.name
+label:i.name,
+value:i.name
 })));
 
-return interaction.reply({ephemeral:true,components:[new ActionRowBuilder().addComponents(menu)]});
+return interaction.reply({
+ephemeral:true,
+components:[new ActionRowBuilder().addComponents(menu)]
+});
 }
 
 /* SELL MENU */
@@ -203,10 +215,11 @@ const u=getStatus(interaction.user.id);
 const name=interaction.values[0];
 const item=u.inventory[name];
 
-if(!item) return interaction.update({content:"❌ Error",components:[]});
+if(!item)
+return interaction.update({content:"❌ Error",components:[]});
 
-const price=item.price??0;
-let gain=price;
+const price = Number(item.price ?? item.value ?? 0);
+let gain = price;
 
 item.qty--;
 if(item.qty<=0) delete u.inventory[name];
@@ -231,42 +244,42 @@ const role=getRoleFlexible(interaction.guild,ranks[order[i]]);
 if(role && member.roles.cache.has(role.id)){idx=i;break;}
 }
 
-if(idx===order.length-1) return interaction.reply({ephemeral:true,content:"Max rango"});
+if(idx===order.length-1)
+return interaction.reply({ephemeral:true,content:"Max rango"});
 
 const next=getRoleFlexible(interaction.guild,ranks[order[idx+1]]);
-if(!next) return interaction.reply({ephemeral:true,content:"Rol no encontrado"});
+if(!next)
+return interaction.reply({ephemeral:true,content:"Rol no encontrado"});
 
-if(st.money<costs[idx+1]) return interaction.reply({ephemeral:true,content:"No tienes dinero"});
+if(st.money<costs[idx+1])
+return interaction.reply({ephemeral:true,content:"No tienes dinero"});
 
 st.money-=costs[idx+1];
 await member.roles.add(next);
 
 saveStatus();
+
 return interaction.reply({ephemeral:true,content:`Subiste a ${next.name}`});
 }
 
 } catch (err) {
 console.error(err);
-if (interaction.replied || interaction.deferred) {
-interaction.followUp({ content:"❌ Error interno", ephemeral:true });
-} else {
-interaction.reply({ content:"❌ Error interno", ephemeral:true });
-}
+interaction.reply({ content:"❌ Error interno", ephemeral:true }).catch(()=>{});
 }
 });
 
 /* =====================
-DROP SYSTEM
+DROP SYSTEM (PROBABILIDAD)
 ===================== */
 client.on(Events.MessageCreate, message => {
 try {
 if(message.author.bot || !message.guild) return;
 if(message.channel.id !== config.channels.reliquies) return;
 
-const u=getStatus(message.author.id);
-u.messages++;
+/* PROBABILIDAD REAL */
+const DROP_CHANCE = 0.15; // 15%
 
-if(u.messages%10!==0) return;
+if (Math.random() > DROP_CHANCE) return;
 
 const chances=[
 {pool:objects.ultra,chance:1},
@@ -288,12 +301,16 @@ if(!pool.length) return;
 
 const item=pool[Math.floor(Math.random()*pool.length)];
 
+const u=getStatus(message.author.id);
+
 if(!u.inventory[item.name]) u.inventory[item.name]={...item,qty:0};
 u.inventory[item.name].qty++;
 
 saveStatus();
 
-message.reply({content:`🧭 ${item.icon} ${item.name}`});
+message.reply({
+content:`🧭 ¡Encontraste!\n${item.icon} ${item.name}`
+});
 
 } catch(e){ console.error(e); }
 });
