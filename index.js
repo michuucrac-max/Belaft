@@ -32,16 +32,16 @@ const statusPath = "./status.json";
 const objectsPath = "./objects.json";
 
 const config = fs.existsSync(configPath)
-  ? JSON.parse(fs.readFileSync(configPath, "utf8"))
-  : { channels: { reliquies: [], trade: null, sell: null, tops: null } };
+? JSON.parse(fs.readFileSync(configPath, "utf8"))
+: { channels: { reliquies: [], trade: null, sell: null, tops: null } };
 
 const objects = fs.existsSync(objectsPath)
-  ? JSON.parse(fs.readFileSync(objectsPath, "utf8"))
-  : { class4: [], class3: [], class2: [], class1: [], special: [], ultra: [] };
+? JSON.parse(fs.readFileSync(objectsPath, "utf8"))
+: { class4: [], class3: [], class2: [], class1: [], special: [], ultra: [] };
 
 const status = fs.existsSync(statusPath)
-  ? JSON.parse(fs.readFileSync(statusPath, "utf8"))
-  : {};
+? JSON.parse(fs.readFileSync(statusPath, "utf8"))
+: {};
 
 const saveStatus = () => fs.writeFileSync(statusPath, JSON.stringify(status, null, 2));
 const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
@@ -60,281 +60,226 @@ narehate: "1456180289465483396"
 
 /* ===================== STATUS ===================== */
 function getStatus(id) {
-  if (!status[id]) status[id] = { money: 0, inventory: {}, messages: 0 };
-  return status[id];
+if (!status[id]) status[id] = { money: 0, inventory: {}, messages: 0 };
+saveStatus();
+return status[id];
 }
 
 /* ===================== CLIENT ===================== */
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ],
-  partials: [Partials.Channel]
+intents: [
+GatewayIntentBits.Guilds,
+GatewayIntentBits.GuildMembers,
+GatewayIntentBits.GuildMessages,
+GatewayIntentBits.MessageContent
+],
+partials: [Partials.Channel]
 });
-
-/* ===================== SLASH COMMANDS ===================== */
-const commands = [
-  new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
-  new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
-
-  new SlashCommandBuilder()
-    .setName("sell")
-    .setDescription("Vender objetos")
-    .addStringOption(o =>
-      o.setName("modo")
-        .setDescription("Modo")
-        .setRequired(true)
-        .addChoices(
-          { name: "Uno", value: "one" },
-          { name: "Todo", value: "all" }
-        )
-    ),
-
-  new SlashCommandBuilder()
-    .setName("rankup")
-    .setDescription("Subir de rango"),
-
-  new SlashCommandBuilder()
-    .setName("setmoney")
-    .setDescription("Dar dinero")
-    .addUserOption(o => o.setName("usuario").setRequired(true))
-    .addNumberOption(o => o.setName("cantidad").setRequired(true))
-    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
-];
-
-/* ===================== REST ===================== */
-const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 /* ===================== READY ===================== */
 client.once(Events.ClientReady, async () => {
-  await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+console.log(`🧭 Belaf despierta como ${client.user.tag}`);
 
-  console.log(`🧭 Belaf despierta como ${client.user.tag}`);
+// TOPS
+setInterval(async () => {
+if (!config.channels.tops) return;
 
-  /* TOPS */
-  setInterval(async () => {
-    if (!config.channels.tops) return;
+const guild = client.guilds.cache.first();
+if (!guild) return;
 
-    const guild = client.guilds.cache.first();
-    if (!guild) return;
+const members = await guild.members.fetch();
+const topUsers = [];
 
-    const members = await guild.members.fetch();
-
-    const topUsers = [];
-    members.forEach(m => {
-      if (m.user.bot) return;
-      const st = getStatus(m.id);
-      topUsers.push({ tag: m.user.tag, money: st.money });
-    });
-
-    topUsers.sort((a, b) => b.money - a.money);
-    const top10 = topUsers.slice(0, 10);
-
-    const embed = new EmbedBuilder()
-      .setTitle("🏆 TOP Exploradores")
-      .setDescription(
-        top10.map((u, i) => `**${i + 1}.** ${u.tag} — 💰 ${u.money}`).join("\n")
-      );
-
-    const ch = guild.channels.cache.get(config.channels.tops);
-    if (ch) ch.send({ embeds: [embed] });
-
-  }, 600000);
+members.forEach(m => {
+if (m.user.bot) return;
+const st = getStatus(m.id);
+topUsers.push({ tag: m.user.tag, money: st.money });
 });
+
+topUsers.sort((a, b) => b.money - a.money);
+const top10 = topUsers.slice(0, 10);
+
+const embed = new EmbedBuilder()
+.setTitle("🏆 TOP Exploradores")
+.setDescription(
+top10.map((u, i) => `**${i + 1}.** ${u.tag} — 💰 ${u.money}`).join("\n")
+)
+.setFooter({ text: "Gaburon supervisa los tops" });
+
+const ch = guild.channels.cache.get(config.channels.tops);
+if (ch) await ch.send({ embeds: [embed], content: "@everyone @here" });
+
+}, 720 * 60 * 1000);
+});
+
 /* ===================== INTERACTIONS ===================== */
 client.on(Events.InteractionCreate, async interaction => {
 
-  if (!interaction.isChatInputCommand() &&
-      !interaction.isStringSelectMenu() &&
-      !interaction.isChannelSelectMenu()) return;
+if (
+!interaction.isChatInputCommand() &&
+!interaction.isStringSelectMenu() &&
+!interaction.isChannelSelectMenu()
+) return;
 
-  const user = getStatus(interaction.user.id);
+/* SET CHANNEL */
+if (interaction.isChatInputCommand() && interaction.commandName.startsWith("setchannel")) {
+const id = interaction.commandName.replace("setchannel", "");
 
-  /* ================= INVENTORY ================= */
-  if (interaction.commandName === "inventory") {
-    if (!Object.keys(user.inventory).length)
-      return interaction.reply({ ephemeral: true, content: "🎒 Vacío." });
+const menu = new ChannelSelectMenuBuilder()
+.setCustomId(`set_${id}`)
+.setPlaceholder("Selecciona canal")
+.addChannelTypes(ChannelType.GuildText)
+.setMinValues(1)
+.setMaxValues(id === "reliquies" ? 6 : 1);
 
-    const list = Object.values(user.inventory)
-      .map(i => `${i.icon} ${i.name} x${i.qty}`)
-      .join("\n");
+return interaction.reply({
+ephemeral: true,
+components: [new ActionRowBuilder().addComponents(menu)]
+});
+}
 
-    return interaction.reply({
-      ephemeral: true,
-      content: `🎒 Inventario\n${list}`
-    });
-  }
+if (interaction.isChannelSelectMenu() && interaction.customId.startsWith("set_")) {
+const id = interaction.customId.replace("set_", "");
 
-  /* ================= MONEY ================= */
-  if (interaction.commandName === "mymoney") {
-    return interaction.reply({
-      ephemeral: true,
-      content: `💰 ${user.money} monedas`
-    });
-  }
+if (id === "reliquies") config.channels.reliquies = interaction.values;
+if (id === "tops") config.channels.tops = interaction.values[0];
 
-  /* ================= SELL ================= */
-  if (interaction.commandName === "sell") {
-    const mode = interaction.options.getString("modo");
+saveConfig();
+return interaction.update({ content: "📜 Canal configurado.", components: [] });
+}
 
-    if (!Object.keys(user.inventory).length)
-      return interaction.reply({ ephemeral: true, content: "❌ No tienes objetos." });
+/* INVENTORY */
+if (interaction.commandName === "inventory") {
+const user = getStatus(interaction.user.id);
 
-    if (mode === "all") {
-      let gain = 0;
+if (!Object.keys(user.inventory).length)
+return interaction.reply({ ephemeral: true, content: "🎒 Vacío." });
 
-      for (const i of Object.values(user.inventory)) {
-        const price = Number(i.price ?? i.value ?? 0);
-        gain += price * i.qty;
-      }
+const list = Object.values(user.inventory)
+.map(i => `${i.icon} ${i.name} x${i.qty}`)
+.join("\n");
 
-      user.money += gain;
-      user.inventory = {};
-      saveStatus();
+return interaction.reply({
+ephemeral: true,
+content: `🎒 Inventario\n${list}`
+});
+}
 
-      return interaction.reply({
-        ephemeral: true,
-        content: `💰 Vendido todo por ${gain} monedas`
-      });
-    }
+/* MONEY */
+if (interaction.commandName === "mymoney") {
+const user = getStatus(interaction.user.id);
 
-    const menu = new StringSelectMenuBuilder()
-      .setCustomId(`sell_one`)
-      .setPlaceholder("Selecciona objeto")
-      .addOptions(
-        Object.values(user.inventory).map(i => ({
-          label: i.name,
-          description: `x${i.qty} | 💰 ${i.price ?? i.value ?? 0}`,
-          value: i.name
-        }))
-      );
+return interaction.reply({
+ephemeral: true,
+content: `💰 ${user.money} monedas`
+});
+}
 
-    return interaction.reply({
-      ephemeral: true,
-      components: [new ActionRowBuilder().addComponents(menu)]
-    });
-  }
+/* SELL ALL */
+if (interaction.commandName === "sell") {
+const user = getStatus(interaction.user.id);
+const mode = interaction.options.getString("modo");
 
-  /* ================= SELL SELECT ================= */
-  if (interaction.isStringSelectMenu() && interaction.customId === "sell_one") {
+if (!Object.keys(user.inventory).length)
+return interaction.reply({ ephemeral: true, content: "❌ No tienes objetos." });
 
-    const itemName = interaction.values[0];
-    const item = user.inventory[itemName];
+if (mode === "all") {
+let gain = 0;
 
-    if (!item) return interaction.update({ content: "❌ Error item", components: [] });
+for (const i of Object.values(user.inventory)) {
+const price = Number(i.price ?? i.value ?? 0);
+gain += price * i.qty;
+}
 
-    const price = Number(item.price ?? item.value ?? 0);
+user.money += gain;
+user.inventory = {};
+saveStatus();
 
-    item.qty -= 1;
-    user.money += price;
+return interaction.reply({
+ephemeral: true,
+content: `💰 Vendido todo el inventario por ${gain} monedas`
+});
+}
 
-    if (item.qty <= 0) delete user.inventory[itemName];
+const menu = new StringSelectMenuBuilder()
+.setCustomId(`sell_${mode}`)
+.setPlaceholder("Selecciona objeto")
+.addOptions(
+Object.values(user.inventory).map(i => ({
+label: i.name,
+description: `x${i.qty} | 💰 ${i.price ?? i.value ?? 0}`,
+value: i.name
+}))
+);
 
-    saveStatus();
+return interaction.reply({
+ephemeral: true,
+components: [new ActionRowBuilder().addComponents(menu)]
+});
+}
 
-    return interaction.update({
-      content: `💰 Vendido ${itemName} por ${price}`,
-      components: []
-    });
-  }
+/* SELL SELECT */
+if (interaction.isStringSelectMenu() && interaction.customId.startsWith("sell_")) {
+const mode = interaction.customId.replace("sell_", "");
+const itemName = interaction.values[0];
+const user = getStatus(interaction.user.id);
+const item = user.inventory[itemName];
 
-  /* ================= RANKUP FIXED ================= */
-  if (interaction.commandName === "rankup") {
+let gain = 0;
 
-    const member = interaction.member;
+if (mode === "one") {
+const price = Number(item.price ?? item.value ?? 0);
+item.qty--;
+gain = price;
+} else {
+const price = Number(item.price ?? item.value ?? 0);
+gain = item.qty * price;
+delete user.inventory[itemName];
+}
 
-    const order = [
-      "silbato_rojo",
-      "silbato_azul",
-      "silbato_lunar",
-      "silbato_negro",
-      "silbato_blanco",
-      "narehate"
-    ];
+if (item.qty <= 0) delete user.inventory[itemName];
 
-    const costs = [100, 300, 600, 1200, 2500, 5000];
+user.money += gain;
+saveStatus();
 
-    let index = -1;
+return interaction.update({
+content: `💰 Vendido ${itemName} por ${gain} monedas.`,
+components: []
+});
+}
 
-    for (let i = 0; i < order.length; i++) {
-      const role = interaction.guild.roles.cache.get(ranks[order[i]]);
-      if (role && member.roles.cache.has(role.id)) index = i;
-    }
+/* ADMIN MONEY */
+if (["setmoney", "removemoney", "seemoney"].includes(interaction.commandName)) {
+const target = interaction.options.getUser("usuario");
+const amount = interaction.options.getNumber("cantidad") || 0;
+const user = getStatus(target.id);
 
-    if (index === order.length - 1)
-      return interaction.reply({ ephemeral: true, content: "🏆 Ya estás al máximo rango" });
+if (interaction.commandName === "setmoney") {
+user.money += amount;
+saveStatus();
+return interaction.reply({
+ephemeral: true,
+content: `💰 Se dieron ${amount} monedas a ${target.tag}`
+});
+}
 
-    const nextRole = order[index + 1];
-    const cost = costs[index + 1];
+if (interaction.commandName === "removemoney") {
+user.money -= amount;
+if (user.money < 0) user.money = 0;
+saveStatus();
+return interaction.reply({
+ephemeral: true,
+content: `💰 Se quitaron ${amount} monedas a ${target.tag}`
+});
+}
 
-    if (user.money < cost)
-      return interaction.reply({ ephemeral: true, content: `❌ Necesitas ${cost} monedas` });
-
-    user.money -= cost;
-
-    const role = interaction.guild.roles.cache.get(ranks[nextRole]);
-
-    await member.roles.add(role);
-
-    saveStatus();
-
-    return interaction.reply({
-      ephemeral: true,
-      content: `🎖️ Subiste a ${nextRole}`
-    });
-  }
+if (interaction.commandName === "seemoney") {
+return interaction.reply({
+ephemeral: true,
+content: `💰 ${target.tag} tiene ${user.money} monedas`
+});
+}
+}
 
 });
-
-/* ===================== DROP SYSTEM (PROBABILIDAD REAL + DM) ===================== */
-client.on(Events.MessageCreate, async message => {
-
-  if (message.author.bot || !message.guild) return;
-
-  if (!config.channels.reliquies.includes(message.channel.id)) return;
-
-  const user = getStatus(message.author.id);
-
-  /* 🔥 PROBABILIDAD REAL (NO POR CONTADOR) */
-  const chance = Math.random();
-
-  // 8% drop base
-  if (chance > 0.08) return;
-
-  const pool = [
-    ...objects.class4,
-    ...objects.class3,
-    ...objects.class2,
-    ...objects.special
-  ];
-
-  if (!pool.length) return;
-
-  const item = pool[Math.floor(Math.random() * pool.length)];
-
-  if (!user.inventory[item.name]) {
-    user.inventory[item.name] = { ...item, qty: 0 };
-  }
-
-  user.inventory[item.name].qty += 1;
-
-  saveStatus();
-
-  /* ===================== DM SYSTEM ===================== */
-  try {
-    await message.author.send(
-      `🧭 Has encontrado un artefacto:\n**${item.icon} ${item.name} x1**`
-    );
-  } catch {
-    // fallback anti error silencioso
-    message.channel.send(
-      `🧭 ${message.author}, encontraste **${item.icon} ${item.name} x1**`
-    );
-  }
-});
-
-/* ===================== LOGIN ===================== */
-client.login(TOKEN);
