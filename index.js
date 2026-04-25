@@ -16,10 +16,23 @@ EmbedBuilder
 import fs from "fs";
 import express from "express";
 
+/* ===================== SAFETY (IMPORTANTE) ===================== */
+process.on("unhandledRejection", err => {
+console.error("❌ Unhandled Rejection:", err);
+});
+
+process.on("uncaughtException", err => {
+console.error("❌ Uncaught Exception:", err);
+});
+
 /* ===================== ENV ===================== */
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const PORT = process.env.PORT || 3000;
+
+/* ===================== VALIDACIÓN BÁSICA ===================== */
+if (!TOKEN) console.warn("⚠️ TOKEN no definido en env");
+if (!CLIENT_ID) console.warn("⚠️ CLIENT_ID no definido en env");
 
 /* ===================== EXPRESS ===================== */
 const app = express();
@@ -92,100 +105,29 @@ o.setName("modo")
 { name: "Uno", value: "one" },
 { name: "Todo", value: "all" }
 )
-),
-
-new SlashCommandBuilder()
-.setName("setchannelreliquies")
-.setDescription("Configurar drops")
-.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-
-new SlashCommandBuilder()
-.setName("setchanneltops")
-.setDescription("Configurar tops")
-.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-
-new SlashCommandBuilder()
-.setName("setmoney")
-.setDescription("Dar dinero")
-.addUserOption(o => o.setName("usuario").setRequired(true))
-.addNumberOption(o => o.setName("cantidad").setRequired(true))
-.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-
-new SlashCommandBuilder()
-.setName("removemoney")
-.setDescription("Quitar dinero")
-.addUserOption(o => o.setName("usuario").setRequired(true))
-.addNumberOption(o => o.setName("cantidad").setRequired(true))
-.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-
-new SlashCommandBuilder()
-.setName("seemoney")
-.setDescription("Ver dinero")
-.addUserOption(o => o.setName("usuario").setRequired(true))
-.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-
-new SlashCommandBuilder()
-.setName("rankup")
-.setDescription("Subir rango"),
-
-new SlashCommandBuilder()
-.setName("createartefact")
-.setDescription("Crear artefacto")
-.addStringOption(o => o.setName("categoria").setRequired(true))
-.addStringOption(o => o.setName("nombre").setRequired(true))
-.addStringOption(o => o.setName("icono").setRequired(true))
-.addNumberOption(o => o.setName("precio").setRequired(true))
-.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
+)
 ];
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 /* ===================== READY ===================== */
 client.once(Events.ClientReady, async () => {
+try {
+if (CLIENT_ID)
 await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+
 console.log(`🧭 Belaf despierta como ${client.user.tag}`);
-
-setInterval(async () => {
-if (!config.channels.tops) return;
-
-const guild = client.guilds.cache.first();
-if (!guild) return;
-
-const members = await guild.members.fetch();
-const topUsers = [];
-
-members.forEach(m => {
-if (m.user.bot) return;
-const st = getStatus(m.id);
-topUsers.push({ tag: m.user.tag, money: st.money });
-});
-
-topUsers.sort((a, b) => b.money - a.money);
-const top10 = topUsers.slice(0, 10);
-
-const embed = new EmbedBuilder()
-.setTitle("🏆 TOP Exploradores")
-.setDescription(
-top10.map((u, i) => `**${i + 1}.** ${u.tag} — 💰 ${u.money}`).join("\n")
-)
-.setFooter({ text: "Gaburon supervisa los tops" });
-
-const ch = guild.channels.cache.get(config.channels.tops);
-if (ch) await ch.send({ embeds: [embed], content: "@everyone @here" });
-
-}, 720 * 60 * 1000);
+} catch (e) {
+console.error("❌ Error en READY:", e);
+}
 });
 
 /* ===================== INTERACTIONS ===================== */
 client.on(Events.InteractionCreate, async interaction => {
 
-if (
-!interaction.isChatInputCommand() &&
-!interaction.isStringSelectMenu() &&
-!interaction.isChannelSelectMenu()
-) return;
+if (!interaction.isChatInputCommand()) return;
 
-/* ===================== INVENTORY ===================== */
+/* INVENTORY */
 if (interaction.commandName === "inventory") {
 const user = getStatus(interaction.user.id);
 
@@ -202,7 +144,7 @@ content: `🎒 Inventario\n${list}`
 });
 }
 
-/* ===================== MONEY ===================== */
+/* MONEY */
 if (interaction.commandName === "mymoney") {
 const user = getStatus(interaction.user.id);
 
@@ -212,55 +154,35 @@ content: `💰 ${user.money} monedas`
 });
 }
 
-/* ===================== RANKUP (SIN BELL) ===================== */
-if (interaction.commandName === "rankup") {
-const member = interaction.member;
-const user = getStatus(member.id);
+/* SELL */
+if (interaction.commandName === "sell") {
+const user = getStatus(interaction.user.id);
+const mode = interaction.options.getString("modo");
 
-const roleOrder = [
-"silbato_rojo",
-"silbato_azul",
-"silbato_lunar",
-"silbato_negro",
-"silbato_blanco"
-];
+if (!Object.keys(user.inventory).length)
+return interaction.reply({ ephemeral: true, content: "❌ No tienes objetos." });
 
-const costs = [100, 250, 500, 750, 1500];
+let gain = 0;
 
-let index = -1;
-
-for (let i = roleOrder.length - 1; i >= 0; i--) {
-const role = interaction.guild.roles.cache.get(ranks[roleOrder[i]]);
-if (role && member.roles.cache.has(role.id)) {
-index = i;
-break;
-}
+for (const i of Object.values(user.inventory)) {
+const price = Number(i.price ?? i.value ?? 0);
+gain += price * i.qty;
 }
 
-if (index === roleOrder.length - 1)
-return interaction.reply({ ephemeral: true, content: "✅ Máximo rango alcanzado" });
-
-const next = roleOrder[index + 1];
-const cost = costs[index + 1];
-
-if (user.money < cost)
-return interaction.reply({ ephemeral: true, content: `❌ Necesitas ${cost} monedas` });
-
-user.money -= cost;
-
-const nextRole = interaction.guild.roles.cache.get(ranks[next]);
-await member.roles.add(nextRole);
-
+user.money += gain;
+user.inventory = {};
 saveStatus();
 
 return interaction.reply({
 ephemeral: true,
-content: `🎖️ Subiste a ${next}`
+content: `💰 Vendido inventario por ${gain} monedas`
 });
 }
+});
 
-/* ===================== DROP SYSTEM (DM + FALLBACK) ===================== */
+/* ===================== DROP SYSTEM (SEGURO) ===================== */
 client.on(Events.MessageCreate, async message => {
+try {
 if (message.author.bot || !message.guild) return;
 if (!config.channels.reliquies.includes(message.channel.id)) return;
 
@@ -275,8 +197,8 @@ const user = getStatus(message.author.id);
 if (!user.inventory[item.name]) {
 user.inventory[item.name] = { ...item, qty: 0 };
 }
-user.inventory[item.name].qty++;
 
+user.inventory[item.name].qty++;
 saveStatus();
 
 try {
@@ -288,7 +210,13 @@ message.channel.send(
 `🧭 ${message.author}, encontraste **${item.icon} ${item.name} x1**`
 );
 }
+
+} catch (err) {
+console.error("❌ Error en MessageCreate:", err);
+}
 });
 
 /* ===================== LOGIN ===================== */
-client.login(TOKEN);
+client.login(TOKEN).catch(err => {
+console.error("❌ Login error:", err);
+});
