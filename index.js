@@ -18,9 +18,10 @@ import fs from "fs";
 import express from "express";
 
 /* ===================== */
-process.on("unhandledRejection", err => console.log("❌", err));
-process.on("uncaughtException", err => console.log("💥", err));
+process.on("unhandledRejection", console.log);
+process.on("uncaughtException", console.log);
 
+/* ===================== */
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const PORT = process.env.PORT || 3000;
@@ -56,6 +57,7 @@ if (!status[id]) status[id] = { money: 0, inventory: {}, messages: 0 };
 return status[id];
 }
 
+/* ===================== RANGOS */
 function getMemberRank(member) {
 const roles = member.roles.cache.map(r => r.name.toLowerCase());
 const order = ["bell","silbato rojo","silbato azul","silbato lunar","silbato negro","silbato blanco"];
@@ -66,7 +68,7 @@ if (roles.includes(order[i])) return i;
 return -1;
 }
 
-/* DROP PROB */
+/* ===================== DROP PROB */
 function getAllItems() {
 return [
 ...objects.class4.map(i => ({ ...i, rarity: 70 })),
@@ -92,7 +94,7 @@ if (rand <= 0) return item;
 return items[0];
 }
 
-/* CLIENT */
+/* ===================== CLIENT */
 const client = new Client({
 intents: [
 GatewayIntentBits.Guilds,
@@ -109,7 +111,7 @@ new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
 
 new SlashCommandBuilder()
 .setName("sell")
-.setDescription("Vender")
+.setDescription("Vender objetos")
 .addStringOption(o =>
 o.setName("modo").setRequired(true)
 .addChoices({ name:"Uno",value:"one" },{ name:"Todo",value:"all" })
@@ -131,27 +133,66 @@ const rest = new REST({ version:"10" }).setToken(TOKEN);
 
 client.once(Events.ClientReady, async ()=>{
 await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-console.log(`🧭 Belaf listo ${client.user.tag}`);
+console.log(`🧭 Belaf listo como ${client.user.tag}`);
 });
 
 client.on(Events.InteractionCreate, async interaction => {
 
 try {
 
-if (interaction.isChatInputCommand()) {
-await interaction.deferReply({ ephemeral:true });
+/* ===================== MENÚS */
+if (interaction.isStringSelectMenu()) {
+
+if (interaction.customId.startsWith("sell_")) {
+
+const mode = interaction.customId.replace("sell_", "");
+const user = getStatus(interaction.user.id);
+const name = interaction.values[0];
+const item = user.inventory[name];
+
+if (!item)
+return interaction.update({ content:"❌ Objeto inválido", components:[] });
+
+let gain = 0;
+
+if (mode === "one") {
+gain = (item.price ?? 0);
+item.qty--;
+} else {
+gain = item.qty * (item.price ?? 0);
+delete user.inventory[name];
 }
+
+if (item.qty <= 0) delete user.inventory[name];
+
+user.money += gain;
+saveStatus();
+
+return interaction.update({
+content:`💰 Vendiste ${name} por ${gain}`,
+components:[]
+});
+}
+
+return;
+}
+
+/* ===================== COMANDOS */
+if (!interaction.isChatInputCommand()) return;
+
+await interaction.deferReply({ ephemeral:true });
 
 const cmd = interaction.commandName;
 
 /* INVENTORY */
 if (cmd==="inventory"){
 const user = getStatus(interaction.user.id);
+
 if (!Object.keys(user.inventory).length)
 return interaction.editReply("🎒 Vacío");
 
 const list = Object.values(user.inventory)
-.map(i=>`${i.icon} ${i.name} x${i.qty}`)
+.map(i=>`${i.icon} ${i.name} x${i.qty} — 💰 ${i.price ?? 0}`)
 .join("\n");
 
 return interaction.editReply(`🎒 Inventario\n${list}`);
@@ -184,35 +225,16 @@ return interaction.editReply(`💰 Vendido todo por ${gain}`);
 
 const menu = new StringSelectMenuBuilder()
 .setCustomId(`sell_${mode}`)
+.setPlaceholder("Selecciona objeto")
 .addOptions(Object.values(user.inventory).map(i=>({
 label:i.name,
 value:i.name,
-description:`x${i.qty}`
+description:`x${i.qty} | 💰 ${i.price ?? 0}`
 })));
 
 return interaction.editReply({
 content:"Selecciona objeto",
 components:[new ActionRowBuilder().addComponents(menu)]
-});
-}
-
-/* SELL MENU */
-if (interaction.isStringSelectMenu() && interaction.customId.startsWith("sell_")){
-const user = getStatus(interaction.user.id);
-const name = interaction.values[0];
-const item = user.inventory[name];
-
-let gain = (item.price??0);
-
-item.qty--;
-if (item.qty<=0) delete user.inventory[name];
-
-user.money+=gain;
-saveStatus();
-
-return interaction.update({
-content:`💰 Vendiste ${name} por ${gain}`,
-components:[]
 });
 }
 
@@ -227,21 +249,21 @@ const costs = [100,250,500,750,1500,3000];
 let current = getMemberRank(member);
 
 if (current===order.length-1)
-return interaction.editReply("Máximo rango");
+return interaction.editReply("🏆 Máximo rango");
 
 const next=current+1;
 
 if (st.money<costs[next])
-return interaction.editReply(`Faltan ${costs[next]-st.money}`);
+return interaction.editReply(`❌ Te faltan ${costs[next]-st.money}`);
 
 st.money-=costs[next];
 
 const role = member.guild.roles.cache.find(r=>r.name.toLowerCase()===order[next]);
-if (role) await member.roles.add(role);
+if (role) await member.roles.add(role).catch(()=>{});
 
 saveStatus();
 
-return interaction.editReply(`Subiste a ${order[next]}`);
+return interaction.editReply(`🎖️ Subiste a ${order[next]}`);
 }
 
 /* CREATE */
@@ -251,17 +273,24 @@ const n=interaction.options.getString("nombre");
 const i=interaction.options.getString("icono");
 const p=interaction.options.getNumber("precio");
 
-if(!objects[c]) return interaction.editReply("Categoría inválida");
+if(!objects[c]) return interaction.editReply("❌ Categoría inválida");
 
 objects[c].push({ name:n, icon:i, price:p });
 saveObjects();
 
-return interaction.editReply(`Creado ${n}`);
+return interaction.editReply(`✨ Creado ${n}`);
 }
 
+/* DEFAULT */
+return interaction.editReply("⚠️ Comando no reconocido");
+
 } catch(e){
-console.log(e);
-if (interaction.deferred) interaction.editReply("Error");
+console.log("❌", e);
+
+if (interaction.deferred)
+return interaction.editReply("❌ Error interno");
+
+return interaction.reply({ content:"❌ Error", ephemeral:true });
 }
 
 });
@@ -291,9 +320,9 @@ saveStatus();
 
 message.reply({
 content:`🧭 Encontraste ${item.icon} ${item.name}`
-});
+}).catch(()=>{});
 
 });
 
-/* LOGIN */
-client.login(TOKEN);
+/* ===================== LOGIN */
+client.login(TOKEN).catch(err => console.log("❌ Login:", err));
