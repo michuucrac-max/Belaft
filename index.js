@@ -13,8 +13,7 @@ ActionRowBuilder,
 StringSelectMenuBuilder,
 ChannelSelectMenuBuilder,
 ChannelType,
-PermissionsBitField,
-EmbedBuilder
+PermissionsBitField
 } from "discord.js";
 
 import fs from "fs";
@@ -49,7 +48,7 @@ const objectsPath = "./objects.json";
 
 const config = fs.existsSync(configPath)
 ? JSON.parse(fs.readFileSync(configPath, "utf8"))
-: { channels: { reliquies: [], tops: null } };
+: { channel: null };
 
 const objects = fs.existsSync(objectsPath)
 ? JSON.parse(fs.readFileSync(objectsPath, "utf8"))
@@ -63,7 +62,7 @@ const saveStatus = () => fs.writeFileSync(statusPath, JSON.stringify(status, nul
 const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 
 function getStatus(id) {
-if (!status[id]) status[id] = { money: 0, inventory: {}, messages: 0 };
+if (!status[id]) status[id] = { money: 0, inventory: {} };
 return status[id];
 }
 
@@ -90,31 +89,28 @@ return -1;
 }
 
 /* =====================
-DROP POR PROBABILIDAD
+PROBABILIDAD DROP
 ===================== */
-function getAllItems() {
-return [
-...objects.class4.map(i => ({ ...i, rarity: 70 })),
-...objects.class3.map(i => ({ ...i, rarity: 20 })),
-...objects.class2.map(i => ({ ...i, rarity: 8 })),
-...objects.class1.map(i => ({ ...i, rarity: 4 })),
-...objects.special.map(i => ({ ...i, rarity: 2 })),
-...objects.ultra.map(i => ({ ...i, rarity: 0.5 }))
-];
-}
-
 function rollItem() {
-const items = getAllItems();
-if (!items.length) return null;
+const all = [
+...objects.class4.map(i => ({ ...i, chance: 70 })),
+...objects.class3.map(i => ({ ...i, chance: 20 })),
+...objects.class2.map(i => ({ ...i, chance: 8 })),
+...objects.class1.map(i => ({ ...i, chance: 4 })),
+...objects.special.map(i => ({ ...i, chance: 2 })),
+...objects.ultra.map(i => ({ ...i, chance: 0.5 }))
+];
 
-const total = items.reduce((a, b) => a + b.rarity, 0);
+if (!all.length) return null;
+
+const total = all.reduce((a,b)=>a+b.chance,0);
 let rand = Math.random() * total;
 
-for (const item of items) {
-rand -= item.rarity;
+for (const item of all) {
+rand -= item.chance;
 if (rand <= 0) return item;
 }
-return items[0];
+return null;
 }
 
 /* =====================
@@ -143,27 +139,27 @@ new SlashCommandBuilder()
 .addStringOption(o =>
 o.setName("modo").setRequired(true)
 .addChoices(
-{ name: "Uno", value: "one" },
-{ name: "Todo", value: "all" }
+{ name:"Uno", value:"one" },
+{ name:"Todo", value:"all" }
 )
 ),
 
 new SlashCommandBuilder()
 .setName("setchannelreliquies")
-.setDescription("Configurar canales de reliquias")
+.setDescription("Configurar canal de drops")
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
 new SlashCommandBuilder()
 .setName("rankup")
-.setDescription("Subir de rango")
+.setDescription("Subir rango")
 ];
 
 /* =====================
 REGISTER
 ===================== */
-const rest = new REST({ version: "10" }).setToken(TOKEN);
+const rest = new REST({ version:"10" }).setToken(TOKEN);
 
-client.once(Events.ClientReady, async () => {
+client.once(Events.ClientReady, async ()=>{
 await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
 console.log(`🧭 Belaf listo como ${client.user.tag}`);
 });
@@ -175,40 +171,38 @@ client.on(Events.InteractionCreate, async interaction => {
 
 try {
 
-/* ===== SET CHANNEL RELIQUIES ===== */
+/* SET CHANNEL */
 if (interaction.isChatInputCommand() && interaction.commandName === "setchannelreliquies") {
 
 const menu = new ChannelSelectMenuBuilder()
-.setCustomId("set_reliquies")
-.setPlaceholder("Selecciona canales")
+.setCustomId("set_channel")
 .addChannelTypes(ChannelType.GuildText)
 .setMinValues(1)
-.setMaxValues(6);
+.setMaxValues(1);
 
 return interaction.reply({
-ephemeral: true,
-components: [new ActionRowBuilder().addComponents(menu)]
+ephemeral:true,
+components:[new ActionRowBuilder().addComponents(menu)]
 });
 }
 
-/* ===== GUARDAR CANALES ===== */
-if (interaction.isChannelSelectMenu() && interaction.customId === "set_reliquies") {
+if (interaction.isChannelSelectMenu() && interaction.customId === "set_channel") {
 
-config.channels.reliquies = interaction.values;
+config.channel = interaction.values[0];
 saveConfig();
 
 return interaction.update({
-content: "✅ Canales configurados",
-components: []
+content:"✅ Canal configurado",
+components:[]
 });
 }
 
-/* ===== MENÚ SELL ===== */
+/* MENÚ SELL */
 if (interaction.isStringSelectMenu()) {
 
 if (interaction.customId.startsWith("sell_")) {
 
-const mode = interaction.customId.replace("sell_", "");
+const mode = interaction.customId.replace("sell_","");
 const user = getStatus(interaction.user.id);
 const name = interaction.values[0];
 const item = user.inventory[name];
@@ -240,7 +234,7 @@ components:[]
 return;
 }
 
-/* ===== COMANDOS ===== */
+/* COMANDOS */
 if (!interaction.isChatInputCommand()) return;
 
 await interaction.deferReply({ ephemeral:true });
@@ -248,60 +242,60 @@ await interaction.deferReply({ ephemeral:true });
 const cmd = interaction.commandName;
 
 /* INVENTORY */
-if (cmd === "inventory") {
+if (cmd==="inventory"){
 const user = getStatus(interaction.user.id);
 
 if (!Object.keys(user.inventory).length)
 return interaction.editReply("🎒 Vacío");
 
 const list = Object.values(user.inventory)
-.map(i => `${i.icon} ${i.name} x${i.qty}`)
+.map(i=>`${i.icon} ${i.name} x${i.qty}`)
 .join("\n");
 
 return interaction.editReply(`🎒 Inventario\n${list}`);
 }
 
 /* MONEY */
-if (cmd === "mymoney") {
+if (cmd==="mymoney"){
 const user = getStatus(interaction.user.id);
 return interaction.editReply(`💰 ${user.money}`);
 }
 
 /* SELL */
-if (cmd === "sell") {
+if (cmd==="sell"){
 const user = getStatus(interaction.user.id);
 const mode = interaction.options.getString("modo");
 
 if (!Object.keys(user.inventory).length)
 return interaction.editReply("❌ No tienes objetos");
 
-if (mode === "all") {
-let gain = 0;
-for (const i of Object.values(user.inventory)) {
-gain += (i.price ?? 0) * i.qty;
+if (mode==="all"){
+let gain=0;
+for (const i of Object.values(user.inventory)){
+gain += (i.price??0)*i.qty;
 }
-user.money += gain;
-user.inventory = {};
+user.money+=gain;
+user.inventory={};
 saveStatus();
-return interaction.editReply(`💰 Vendiste todo por ${gain}`);
+return interaction.editReply(`💰 Vendido todo por ${gain}`);
 }
 
 const menu = new StringSelectMenuBuilder()
 .setCustomId(`sell_${mode}`)
-.addOptions(Object.values(user.inventory).map(i => ({
-label: i.name,
-value: i.name,
-description: `x${i.qty}`
+.addOptions(Object.values(user.inventory).map(i=>({
+label:i.name,
+value:i.name,
+description:`x${i.qty}`
 })));
 
 return interaction.editReply({
-content: "Selecciona objeto",
-components: [new ActionRowBuilder().addComponents(menu)]
+content:"Selecciona objeto",
+components:[new ActionRowBuilder().addComponents(menu)]
 });
 }
 
 /* RANKUP */
-if (cmd === "rankup") {
+if (cmd==="rankup"){
 const member = interaction.member;
 const st = getStatus(member.id);
 
@@ -313,7 +307,7 @@ return interaction.editReply("🏆 Máximo rango");
 const next = current + 1;
 
 if (st.money < rankCosts[next])
-return interaction.editReply(`❌ Te faltan ${rankCosts[next] - st.money}`);
+return interaction.editReply(`❌ Te faltan ${rankCosts[next]-st.money}`);
 
 st.money -= rankCosts[next];
 
@@ -330,7 +324,7 @@ return interaction.editReply(`🎖️ Subiste a ${rankOrder[next]}`);
 
 return interaction.editReply("⚠️ Comando desconocido");
 
-} catch (e) {
+} catch(e){
 console.log(e);
 
 if (interaction.deferred)
@@ -342,19 +336,18 @@ return interaction.reply({ content:"❌ Error", ephemeral:true });
 });
 
 /* =====================
-DROP SYSTEM
+DROP SYSTEM (PROBABILIDAD + DM)
 ===================== */
-client.on(Events.MessageCreate, message => {
+client.on(Events.MessageCreate, async message => {
 
 if (message.author.bot || !message.guild) return;
-if (!config.channels.reliquies.includes(message.channel.id)) return;
+if (!config.channel) return;
+if (message.channel.id !== config.channel) return;
+
+/* PROBABILIDAD DE DROP (10%) */
+if (Math.random() > 0.10) return;
 
 const user = getStatus(message.author.id);
-
-user.messages++;
-saveStatus();
-
-if (user.messages % 10 !== 0) return;
 
 const item = rollItem();
 if (!item) return;
@@ -366,9 +359,14 @@ user.inventory[item.name].qty++;
 
 saveStatus();
 
-message.reply({
-content:`🧭 ¡Has encontrado!\n**${item.icon} ${item.name}** x1`
-}).catch(()=>{});
+/* ENVIAR POR DM */
+try {
+await message.author.send(
+`🧭 ¡Encontraste una reliquia!\n${item.icon} ${item.name} x1`
+);
+} catch {
+message.reply("📩 Activa tus DMs para recibir reliquias");
+}
 
 });
 
