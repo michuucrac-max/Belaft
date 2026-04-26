@@ -10,8 +10,7 @@ ActionRowBuilder,
 StringSelectMenuBuilder,
 ChannelSelectMenuBuilder,
 ChannelType,
-PermissionsBitField,
-EmbedBuilder
+PermissionsBitField
 } from "discord.js";
 
 import fs from "fs";
@@ -110,7 +109,7 @@ GatewayIntentBits.MessageContent
 partials: [Partials.Channel]
 });
 
-/* ===================== COMMANDS (COMPLETOS) */
+/* ===================== COMMANDS */
 const commands = [
 
 new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
@@ -129,7 +128,7 @@ o.setName("modo").setRequired(true)
 
 new SlashCommandBuilder().setName("rankup").setDescription("Subir rango"),
 
-/* 💰 ADMIN */
+/* ADMIN */
 new SlashCommandBuilder()
 .setName("setmoney")
 .setDescription("Dar dinero")
@@ -150,7 +149,7 @@ new SlashCommandBuilder()
 .addUserOption(o=>o.setName("usuario").setRequired(true))
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
-/* ⚙️ CONFIG */
+/* CONFIG */
 new SlashCommandBuilder()
 .setName("setchannelreliquies")
 .setDescription("Canal de drops")
@@ -168,49 +167,46 @@ new SlashCommandBuilder()
 
 ];
 
-/* ===================== REGISTER */
+/* ===================== REGISTER (FIX REAL) */
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 client.once(Events.ClientReady, async () => {
 
-  console.log(`🧭 Belaf listo como ${client.user.tag}`);
+console.log(`🧭 Belaf listo como ${client.user.tag}`);
 
-  const data = commands.map(cmd => cmd.toJSON());
+const data = commands.map(cmd => cmd.toJSON());
 
-  for (const guild of client.guilds.cache.values()) {
+for (const guild of client.guilds.cache.values()) {
+try {
 
-    try {
+await rest.put(
+Routes.applicationGuildCommands(CLIENT_ID, guild.id),
+{ body: data }
+);
 
-      await rest.put(
-        Routes.applicationGuildCommands(CLIENT_ID, guild.id),
-        { body: data }
-      );
+console.log(`✅ Comandos cargados en: ${guild.name}`);
 
-      console.log(`✅ Comandos en: ${guild.name}`);
-
-    } catch (err) {
-      console.log(`❌ Error en ${guild.name}`, err);
-    }
-
-  }
+} catch (err) {
+console.log(`❌ Error en ${guild.name}`, err);
+}
+}
 
 });
 
+/* NUEVOS SERVIDORES */
 client.on(Events.GuildCreate, async (guild) => {
+try {
 
-  try {
+await rest.put(
+Routes.applicationGuildCommands(CLIENT_ID, guild.id),
+{ body: commands.map(cmd => cmd.toJSON()) }
+);
 
-    await rest.put(
-      Routes.applicationGuildCommands(CLIENT_ID, guild.id),
-      { body: commands.map(cmd => cmd.toJSON()) }
-    );
+console.log(`🆕 Registrado en: ${guild.name}`);
 
-    console.log(`🆕 Registrado en: ${guild.name}`);
-
-  } catch (err) {
-    console.log(err);
-  }
-
+} catch (err) {
+console.log(err);
+}
 });
 
 /* =====================
@@ -219,16 +215,15 @@ INTERACTIONS
 client.on(Events.InteractionCreate, async interaction => {
 try {
 
-/* ===== CHAT COMMAND ===== */
+/* ===== COMANDOS ===== */
 if (interaction.isChatInputCommand()) {
 
 const cmd = interaction.commandName;
 
-/* ===== CONFIG CHANNELS ===== */
+/* ===== CONFIG CANALES ===== */
 if (cmd === "setchannelreliquies" || cmd === "setchanneltops" || cmd === "setchannelrankup") {
 
 let key = "";
-
 if (cmd === "setchannelreliquies") key = "reliquies";
 if (cmd === "setchanneltops") key = "tops";
 if (cmd === "setchannelrankup") key = "rankup";
@@ -245,8 +240,10 @@ components: [new ActionRowBuilder().addComponents(menu)]
 });
 }
 
-/* ===== DEFER ===== */
+/* ===== DEFER SEGURO ===== */
+if (!interaction.deferred && !interaction.replied) {
 await interaction.deferReply({ ephemeral: true });
+}
 
 /* ===== INVENTORY ===== */
 if (cmd === "inventory") {
@@ -349,7 +346,7 @@ return interaction.editReply("🏆 Máximo rango");
 const next = current + 1;
 
 if (st.money < rankCosts[next])
-return interaction.editReply(`❌ Necesitas ${rankCosts[next]}`);
+return interaction.editReply(`❌ Necesitas ${rankCosts[next]} monedas`);
 
 st.money -= rankCosts[next];
 
@@ -361,7 +358,7 @@ if (role) await member.roles.add(role).catch(()=>{});
 
 saveStatus();
 
-/* ===== MENSAJE BONITO ===== */
+/* ===== MENSAJE BONITO EN CANAL ===== */
 if (config.channels?.rankup) {
 
 const ch = member.guild.channels.cache.get(config.channels.rankup);
@@ -369,11 +366,12 @@ const ch = member.guild.channels.cache.get(config.channels.rankup);
 if (ch) {
 const embed = {
 color: 0xf1c40f,
-title: "🎖️ ¡ASCENSO!",
-description: `${member} subió a **${rankOrder[next]}**`,
+title: "🎖️ ¡ASCENSO DE RANGO!",
+description: `✨ ${member} ha ascendido\n\n🏅 Nuevo rango: **${rankOrder[next]}**`,
 thumbnail: {
 url: member.user.displayAvatarURL({ dynamic: true })
 },
+footer: { text: "El Abismo observa tu progreso..." },
 timestamp: new Date()
 };
 
@@ -387,7 +385,7 @@ return interaction.editReply(`🎖️ Subiste a ${rankOrder[next]}`);
 return interaction.editReply("⚠️ Comando no reconocido");
 }
 
-/* ===== CHANNEL SELECT ===== */
+/* ===== SELECT CANAL ===== */
 if (interaction.isChannelSelectMenu()) {
 
 const id = interaction.customId.replace("set_", "");
@@ -412,7 +410,7 @@ components: []
 });
 }
 
-/* ===== SELL MENU ===== */
+/* ===== SELECT SELL ===== */
 if (interaction.isStringSelectMenu()) {
 
 if (!interaction.customId.startsWith("sell_")) return;
@@ -458,7 +456,7 @@ return interaction.reply({ content: "❌ Error", ephemeral: true });
 });
 
 /* =====================
-DROP SYSTEM (1 CANAL + PROB + DM)
+DROP SYSTEM (PROB + 1 CANAL + DM)
 ===================== */
 client.on(Events.MessageCreate, async message => {
 
@@ -466,7 +464,7 @@ if (message.author.bot || !message.guild) return;
 if (!config.channel) return;
 if (message.channel.id !== config.channel) return;
 
-/* 10% probabilidad */
+/* 🎲 Probabilidad 10% */
 if (Math.random() > 0.10) return;
 
 const user = getStatus(message.author.id);
@@ -480,16 +478,17 @@ user.inventory[item.name] = { ...item, qty: 0 };
 user.inventory[item.name].qty++;
 saveStatus();
 
+/* 📩 Enviar por DM */
 try {
 await message.author.send(`🧭 Encontraste:\n${item.icon} ${item.name}`);
 } catch {
-message.reply("📩 Activa tus DMs");
+message.reply("📩 Activa tus DMs para recibir objetos");
 }
 
 });
 
 /* =====================
-TOPS (CADA 6 HORAS)
+TOPS AUTOMÁTICOS (6 HORAS)
 ===================== */
 setInterval(async () => {
 
@@ -516,13 +515,19 @@ return `${medal} ${u.tag} — 💰 ${u.money}`;
 }).join("\n");
 
 const embed = {
-title: "🏆 TOP EXPLORADORES",
+title: "🏆 TOP EXPLORADORES DEL ABISMO",
 description: desc,
-color: 0x2b2d31
+color: 0x2b2d31,
+footer: { text: "Actualizado cada 6 horas" }
 };
 
 const ch = guild.channels.cache.get(config.channels.tops);
-if (ch) ch.send({ content: "@everyone @here", embeds: [embed] });
+if (ch) {
+ch.send({
+content: "@everyone @here",
+embeds: [embed]
+});
+}
 
 }, 6 * 60 * 60 * 1000);
 
