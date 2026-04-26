@@ -78,7 +78,7 @@ const rankOrder = [
 "silbato blanco"
 ];
 
-const rankCosts = [100, 250, 500, 750, 1500, 3000];
+const rankCosts = [0, 25000, 50000, 75000, 150000, 1200000];
 
 function getMemberRank(member) {
 const roles = member.roles.cache.map(r => r.name.toLowerCase());
@@ -169,11 +169,12 @@ INTERACTIONS
 ===================== */
 client.on(Events.InteractionCreate, async interaction => {
   try {
-    /* ========= SET CHANNEL (UN SOLO CANAL DE DROPS) ========= */
+
+    /* ========= SET CHANNEL RELIQUIES ========= */
     if (interaction.isChatInputCommand() && interaction.commandName === "setchannelreliquies") {
+
       const menu = new ChannelSelectMenuBuilder()
         .setCustomId("set_reliquies")
-        .setPlaceholder("Selecciona el canal de drops")
         .addChannelTypes(ChannelType.GuildText)
         .setMinValues(1)
         .setMaxValues(1);
@@ -184,22 +185,52 @@ client.on(Events.InteractionCreate, async interaction => {
       });
     }
 
-    if (interaction.isChannelSelectMenu() && interaction.customId === "set_reliquies") {
-      // Guardamos UN solo canal (string)
-      config.channel = interaction.values[0];
-      saveConfig();
+    /* ========= SET CHANNEL TOPS ========= */
+    if (interaction.isChatInputCommand() && interaction.commandName === "setchanneltops") {
 
-      return interaction.update({
-        content: "✅ Canal de reliquias configurado",
-        components: []
+      const menu = new ChannelSelectMenuBuilder()
+        .setCustomId("set_tops")
+        .addChannelTypes(ChannelType.GuildText)
+        .setMinValues(1)
+        .setMaxValues(1);
+
+      return interaction.reply({
+        ephemeral: true,
+        components: [new ActionRowBuilder().addComponents(menu)]
       });
     }
 
-    /* ========= MENÚS (SELL / SETITEM / REMOVEITEM) ========= */
+    /* ========= SELECT MENUS ========= */
+    if (interaction.isChannelSelectMenu()) {
+
+      if (interaction.customId === "set_reliquies") {
+        config.channel = interaction.values[0];
+        saveConfig();
+
+        return interaction.update({
+          content: "✅ Canal de reliquias configurado",
+          components: []
+        });
+      }
+
+      if (interaction.customId === "set_tops") {
+        config.channels = config.channels || {};
+        config.channels.tops = interaction.values[0];
+        saveConfig();
+
+        return interaction.update({
+          content: "🏆 Canal de tops configurado",
+          components: []
+        });
+      }
+    }
+
+    /* ========= STRING MENUS ========= */
     if (interaction.isStringSelectMenu()) {
 
-      /* --- SELL MENU --- */
+      /* SELL */
       if (interaction.customId.startsWith("sell_")) {
+
         const mode = interaction.customId.replace("sell_", "");
         const user = getStatus(interaction.user.id);
         const itemName = interaction.values[0];
@@ -225,13 +256,14 @@ client.on(Events.InteractionCreate, async interaction => {
         saveStatus();
 
         return interaction.update({
-          content: `💰 Vendido ${itemName} por ${gain} monedas.`,
+          content: `💰 Vendido ${itemName} por ${gain} monedas`,
           components: []
         });
       }
 
-      /* --- SETITEM MENU --- */
+      /* SETITEM */
       if (interaction.customId.startsWith("setitem_")) {
+
         const targetId = interaction.customId.replace("setitem_", "");
         const target = interaction.guild.members.cache.get(targetId)?.user;
 
@@ -241,7 +273,7 @@ client.on(Events.InteractionCreate, async interaction => {
         const user = getStatus(target.id);
         const itemName = interaction.values[0];
 
-        const allObjs = [
+        const all = [
           ...objects.class4,
           ...objects.class3,
           ...objects.class2,
@@ -250,7 +282,7 @@ client.on(Events.InteractionCreate, async interaction => {
           ...objects.ultra
         ];
 
-        const obj = allObjs.find(o => o.name === itemName);
+        const obj = all.find(o => o.name === itemName);
         if (!obj)
           return interaction.update({ content: "❌ Artefacto no encontrado", components: [] });
 
@@ -265,8 +297,9 @@ client.on(Events.InteractionCreate, async interaction => {
         });
       }
 
-      /* --- REMOVEITEM MENU --- */
+      /* REMOVEITEM */
       if (interaction.customId.startsWith("removeitem_")) {
+
         const targetId = interaction.customId.replace("removeitem_", "");
         const target = interaction.guild.members.cache.get(targetId)?.user;
 
@@ -278,7 +311,7 @@ client.on(Events.InteractionCreate, async interaction => {
         const item = user.inventory[itemName];
 
         if (!item)
-          return interaction.update({ content: "❌ Ese usuario no tiene ese artefacto", components: [] });
+          return interaction.update({ content: "❌ No tiene ese objeto", components: [] });
 
         item.qty--;
         if (item.qty <= 0) delete user.inventory[itemName];
@@ -286,7 +319,7 @@ client.on(Events.InteractionCreate, async interaction => {
         saveStatus();
 
         return interaction.update({
-          content: `🗑️ Se removió ${itemName} a ${target.tag}`,
+          content: `🗑️ Eliminado ${itemName} a ${target.tag}`,
           components: []
         });
       }
@@ -301,12 +334,12 @@ client.on(Events.InteractionCreate, async interaction => {
 
     const cmd = interaction.commandName;
 
-    /* --- INVENTORY --- */
+    /* INVENTORY */
     if (cmd === "inventory") {
       const user = getStatus(interaction.user.id);
 
       if (!Object.keys(user.inventory).length)
-        return interaction.editReply("🎒 Vacío.");
+        return interaction.editReply("🎒 Vacío");
 
       const list = Object.values(user.inventory)
         .map(i => `${i.icon} ${i.name} x${i.qty}`)
@@ -315,43 +348,39 @@ client.on(Events.InteractionCreate, async interaction => {
       return interaction.editReply(`🎒 Inventario\n${list}`);
     }
 
-    /* --- MYMONEY --- */
+    /* MONEY */
     if (cmd === "mymoney") {
       const user = getStatus(interaction.user.id);
-      return interaction.editReply(`💰 ${user.money} monedas`);
+      return interaction.editReply(`💰 ${user.money}`);
     }
 
-    /* --- SELL --- */
+    /* SELL */
     if (cmd === "sell") {
       const user = getStatus(interaction.user.id);
       const mode = interaction.options.getString("modo");
 
       if (!Object.keys(user.inventory).length)
-        return interaction.editReply("❌ No tienes objetos.");
+        return interaction.editReply("❌ No tienes objetos");
 
       if (mode === "all") {
         let gain = 0;
         for (const i of Object.values(user.inventory)) {
-          const price = Number(i.price ?? i.value ?? 0);
-          gain += price * i.qty;
+          gain += (i.price ?? 0) * i.qty;
         }
         user.money += gain;
         user.inventory = {};
         saveStatus();
 
-        return interaction.editReply(`💰 Vendido todo el inventario por ${gain} monedas`);
+        return interaction.editReply(`💰 Vendido todo por ${gain}`);
       }
 
       const menu = new StringSelectMenuBuilder()
         .setCustomId(`sell_${mode}`)
-        .setPlaceholder("Selecciona objeto")
-        .addOptions(
-          Object.values(user.inventory).map(i => ({
-            label: i.name,
-            value: i.name,
-            description: `x${i.qty} | 💰 ${i.price ?? i.value ?? 0}`
-          }))
-        );
+        .addOptions(Object.values(user.inventory).map(i => ({
+          label: i.name,
+          value: i.name,
+          description: `x${i.qty}`
+        })));
 
       return interaction.editReply({
         content: "Selecciona objeto",
@@ -359,8 +388,9 @@ client.on(Events.InteractionCreate, async interaction => {
       });
     }
 
-    /* --- ADMIN MONEY (set / remove / see) --- */
+    /* ADMIN MONEY */
     if (["setmoney", "removemoney", "seemoney"].includes(cmd)) {
+
       const target = interaction.options.getUser("usuario");
       const amount = interaction.options.getNumber("cantidad") || 0;
       const user = getStatus(target.id);
@@ -368,180 +398,104 @@ client.on(Events.InteractionCreate, async interaction => {
       if (cmd === "setmoney") {
         user.money += amount;
         saveStatus();
-        return interaction.editReply(`💰 Se dieron ${amount} monedas a ${target.tag}`);
+        return interaction.editReply(`💰 Se dieron ${amount} a ${target.tag}`);
       }
 
       if (cmd === "removemoney") {
         user.money -= amount;
         if (user.money < 0) user.money = 0;
         saveStatus();
-        return interaction.editReply(`💰 Se quitaron ${amount} monedas a ${target.tag}`);
+        return interaction.editReply(`💰 Se quitaron ${amount} a ${target.tag}`);
       }
 
       if (cmd === "seemoney") {
-        return interaction.editReply(`💰 ${target.tag} tiene ${user.money} monedas`);
+        return interaction.editReply(`💰 ${target.tag} tiene ${user.money}`);
       }
     }
 
-    /* --- GIFT (regalar artefacto) --- */
-    if (cmd === "gift") {
-      const target = interaction.options.getUser("usuario");
-      const user = getStatus(interaction.user.id);
-
-      if (!Object.keys(user.inventory).length)
-        return interaction.editReply("❌ No tienes objetos para regalar.");
-
-      const menu = new StringSelectMenuBuilder()
-        .setCustomId(`gift_${target.id}`)
-        .setPlaceholder("Selecciona objeto a regalar")
-        .addOptions(
-          Object.values(user.inventory).map(i => ({
-            label: i.name,
-            value: i.name,
-            description: `x${i.qty}`
-          }))
-        );
-
-      return interaction.editReply({
-        content: `Selecciona objeto para regalar a ${target.tag}`,
-        components: [new ActionRowBuilder().addComponents(menu)]
-      });
-    }
-
-    if (interaction.isStringSelectMenu() && interaction.customId.startsWith("gift_")) {
-      const targetId = interaction.customId.replace("gift_", "");
-      const target = interaction.guild.members.cache.get(targetId)?.user;
-
-      if (!target)
-        return interaction.update({ content: "❌ Usuario no encontrado", components: [] });
-
-      const sender = getStatus(interaction.user.id);
-      const receiver = getStatus(target.id);
-
-      const itemName = interaction.values[0];
-      const item = sender.inventory[itemName];
-
-      if (!item)
-        return interaction.update({ content: "❌ No tienes ese objeto", components: [] });
-
-      item.qty--;
-      if (item.qty <= 0) delete sender.inventory[itemName];
-
-      if (!receiver.inventory[itemName]) receiver.inventory[itemName] = { ...item, qty: 0 };
-      receiver.inventory[itemName].qty++;
-
-      saveStatus();
-
-      return interaction.update({
-        content: `🎁 Regalaste ${itemName} a ${target.tag}`,
-        components: []
-      });
-    }
-
-    /* --- RANKUP (FLEXIBLE) --- */
+    /* RANKUP */
     if (cmd === "rankup") {
+
       const member = interaction.member;
       const st = getStatus(member.id);
 
       let current = getMemberRank(member);
 
       if (current === rankOrder.length - 1)
-        return interaction.editReply("🏆 Ya alcanzaste el máximo rango");
+        return interaction.editReply("🏆 Máximo rango");
 
       const next = current + 1;
-      const cost = rankCosts[next];
 
-      if (st.money < cost)
-        return interaction.editReply(`❌ Necesitas ${cost} monedas`);
+      if (st.money < rankCosts[next])
+        return interaction.editReply(`❌ Necesitas ${rankCosts[next]}`);
 
-      st.money -= cost;
+      st.money -= rankCosts[next];
 
-      const role = member.guild.roles.cache.find(
-        r => r.name.toLowerCase() === rankOrder[next]
+      const role = member.guild.roles.cache.find(r =>
+        r.name.toLowerCase() === rankOrder[next]
       );
 
       if (role) await member.roles.add(role).catch(() => {});
 
       saveStatus();
 
-      return interaction.editReply(`🎖️ Subiste a ${rankOrder[next]} pagando ${cost}`);
+      return interaction.editReply(`🎖️ Subiste a ${rankOrder[next]}`);
     }
 
-    /* --- SETITEM --- */
+    /* SETITEM */
     if (cmd === "setitem") {
+
       const target = interaction.options.getUser("usuario");
 
       const menu = new StringSelectMenuBuilder()
         .setCustomId(`setitem_${target.id}`)
-        .setPlaceholder("Selecciona artefacto")
-        .addOptions(
-          [
-            ...objects.class4,
-            ...objects.class3,
-            ...objects.class2,
-            ...objects.class1,
-            ...objects.special,
-            ...objects.ultra
-          ].map(o => ({
-            label: o.name,
-            value: o.name,
-            description: `💰 ${o.price ?? o.value ?? 0}`
-          }))
-        );
+        .addOptions([
+          ...objects.class4,
+          ...objects.class3,
+          ...objects.class2,
+          ...objects.class1,
+          ...objects.special,
+          ...objects.ultra
+        ].map(o => ({
+          label: o.name,
+          value: o.name,
+          description: `💰 ${o.price ?? 0}`
+        })));
 
       return interaction.editReply({
         components: [new ActionRowBuilder().addComponents(menu)]
       });
     }
 
-    /* --- REMOVEITEM --- */
+    /* REMOVEITEM */
     if (cmd === "removeitem") {
+
       const target = interaction.options.getUser("usuario");
       const user = getStatus(target.id);
 
       if (!Object.keys(user.inventory).length)
-        return interaction.editReply("❌ Ese usuario no tiene objetos");
+        return interaction.editReply("❌ Sin objetos");
 
       const menu = new StringSelectMenuBuilder()
         .setCustomId(`removeitem_${target.id}`)
-        .setPlaceholder("Selecciona artefacto")
-        .addOptions(
-          Object.values(user.inventory).map(i => ({
-            label: i.name,
-            value: i.name,
-            description: `x${i.qty}`
-          }))
-        );
+        .addOptions(Object.values(user.inventory).map(i => ({
+          label: i.name,
+          value: i.name,
+          description: `x${i.qty}`
+        })));
 
       return interaction.editReply({
         components: [new ActionRowBuilder().addComponents(menu)]
       });
     }
 
-    /* --- CREATEARTEFACT --- */
-    if (cmd === "createartefact") {
-      const categoria = interaction.options.getString("categoria");
-      const nombre = interaction.options.getString("nombre");
-      const icono = interaction.options.getString("icono");
-      const precio = interaction.options.getNumber("precio");
-
-      if (!objects[categoria])
-        return interaction.editReply("❌ Categoría inválida");
-
-      objects[categoria].push({ name: nombre, icon: icono, price: precio });
-      saveObjects();
-
-      return interaction.editReply(`✨ Artefacto ${nombre} creado en ${categoria}`);
-    }
-
-    /* --- DEFAULT --- */
-    return interaction.editReply(`⚠️ Comando no reconocido: ${cmd}`);
+    return interaction.editReply("⚠️ Comando no reconocido");
 
   } catch (e) {
-    console.log("❌", e);
+    console.log(e);
 
     if (interaction.deferred)
-      return interaction.editReply("❌ Error interno");
+      return interaction.editReply("❌ Error");
 
     return interaction.reply({ content: "❌ Error", ephemeral: true });
   }
@@ -552,17 +506,16 @@ client.on(Events.InteractionCreate, async interaction => {
 DROP SYSTEM (PROBABILIDAD + DM)
 ===================== */
 client.on(Events.MessageCreate, async message => {
+
   if (message.author.bot || !message.guild) return;
+  if (!config.channel) return;
+  if (message.channel.id !== config.channel) return;
 
-  // Un solo canal configurado
-  if (!config.channel || message.channel.id !== config.channel) return;
-
-  // Probabilidad global de drop (10%)
   if (Math.random() > 0.10) return;
 
   const user = getStatus(message.author.id);
-
   const item = rollItem();
+
   if (!item) return;
 
   if (!user.inventory[item.name])
@@ -571,16 +524,46 @@ client.on(Events.MessageCreate, async message => {
   user.inventory[item.name].qty++;
   saveStatus();
 
-  // Enviar por DM
   try {
-    await message.author.send(
-      `🧭 ¡Has encontrado una reliquia!\n${item.icon} ${item.name} x1`
-    );
+    await message.author.send(`🧭 Encontraste:\n${item.icon} ${item.name} x1`);
   } catch {
-    // fallback si DMs cerrados
-    message.reply("📩 Activa tus DMs para recibir reliquias.");
+    message.reply("📩 Activa tus DMs");
   }
 });
+
+
+/* =====================
+TOPS AUTOMÁTICOS
+===================== */
+setInterval(async () => {
+
+  if (!config.channels?.tops) return;
+
+  const guild = client.guilds.cache.first();
+  if (!guild) return;
+
+  const members = await guild.members.fetch();
+
+  const ranking = [];
+
+  members.forEach(m => {
+    if (m.user.bot) return;
+    const st = getStatus(m.id);
+    ranking.push({ tag: m.user.tag, money: st.money });
+  });
+
+  ranking.sort((a,b)=>b.money-a.money);
+
+  const top = ranking.slice(0,10)
+    .map((u,i)=>`${i+1}. ${u.tag} — 💰 ${u.money}`)
+    .join("\n");
+
+  const ch = guild.channels.cache.get(config.channels.tops);
+  if (!ch) return;
+
+  ch.send(`🏆 TOP EXPLORADORES\n${top}`);
+
+}, 10 * 60 * 1000);
 
 
 /* =====================
