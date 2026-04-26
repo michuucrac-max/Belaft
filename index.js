@@ -172,8 +172,50 @@ new SlashCommandBuilder()
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 client.once(Events.ClientReady, async () => {
-await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-console.log(`🧭 Belaf listo como ${client.user.tag}`);
+
+  console.log(`🧭 Belaf listo como ${client.user.tag}`);
+
+  for (const guild of client.guilds.cache.values()) {
+
+    try {
+
+      /* 🧹 LIMPIAR comandos viejos */
+      await rest.put(
+        Routes.applicationGuildCommands(CLIENT_ID, guild.id),
+        { body: [] }
+      );
+
+      /* ✅ REGISTRAR comandos nuevos */
+      await rest.put(
+        Routes.applicationGuildCommands(CLIENT_ID, guild.id),
+        { body: commands }
+      );
+
+      console.log(`✅ Comandos actualizados en: ${guild.name}`);
+
+    } catch (err) {
+      console.log(`❌ Error en ${guild.name}`, err);
+    }
+
+  }
+
+});
+
+client.on(Events.GuildCreate, async (guild) => {
+
+  try {
+
+    await rest.put(
+      Routes.applicationGuildCommands(CLIENT_ID, guild.id),
+      { body: commands }
+    );
+
+    console.log(`🆕 Registrado en nuevo server: ${guild.name}`);
+
+  } catch (err) {
+    console.log(`❌ Error registrando en ${guild.name}`, err);
+  }
+
 });
 
 /* =====================
