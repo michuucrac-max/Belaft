@@ -531,9 +531,8 @@ client.on(Events.MessageCreate, async message => {
   }
 });
 
-
 /* =====================
-TOPS AUTOMÁTICOS
+TOPS AUTOMÁTICOS (BONITO)
 ===================== */
 setInterval(async () => {
 
@@ -552,19 +551,34 @@ setInterval(async () => {
     ranking.push({ tag: m.user.tag, money: st.money });
   });
 
-  ranking.sort((a,b)=>b.money-a.money);
+  ranking.sort((a, b) => b.money - a.money);
 
-  const top = ranking.slice(0,10)
-    .map((u,i)=>`${i+1}. ${u.tag} — 💰 ${u.money}`)
-    .join("\n");
+  const top = ranking.slice(0, 10);
+
+  /* 🏆 FORMATO BONITO */
+  const medals = ["🥇", "🥈", "🥉"];
+
+  const description = top.map((u, i) => {
+    const medal = medals[i] || `🔹`;
+    return `${medal} **${u.tag}**\n┗ 💰 ${u.money} monedas`;
+  }).join("\n\n");
+
+  const embed = {
+    color: 0x2b2d31,
+    title: "🏆 TOP EXPLORADORES DEL ABISMO",
+    description: description || "Sin datos aún...",
+    footer: {
+      text: "Belaf observa el progreso…"
+    },
+    timestamp: new Date()
+  };
 
   const ch = guild.channels.cache.get(config.channels.tops);
   if (!ch) return;
 
-  ch.send(`🏆 TOP EXPLORADORES\n${top}`);
+  await ch.send({ embeds: [embed] });
 
-}, 10 * 60 * 1000);
-
+}, 0 * 2 * 60 * 1000); // ⏱️ 6 HORAS
 
 /* =====================
 LOGIN
