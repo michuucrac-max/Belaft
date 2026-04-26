@@ -17,11 +17,16 @@ import fs from "fs";
 import express from "express";
 
 /* =====================
-ENV
+ENV VALIDATION
 ===================== */
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const PORT = process.env.PORT || 3000;
+
+if (!TOKEN || !CLIENT_ID) {
+console.error("❌ Faltan variables de entorno");
+process.exit(1);
+}
 
 /* =====================
 EXPRESS
@@ -31,29 +36,29 @@ app.get("/", (_, res) => res.send("Belaf observa el Abismo 🧭"));
 app.listen(PORT, () => console.log(`🌐 Express activo en ${PORT}`));
 
 /* =====================
-FILES / CONFIG
+FILES
 ===================== */
 const configPath = "./config.json";
 const statusPath = "./status.json";
 const objectsPath = "./objects.json";
 
 const config = fs.existsSync(configPath)
-? JSON.parse(fs.readFileSync(configPath, "utf8"))
+? JSON.parse(fs.readFileSync(configPath))
 : { channels: { reliquies: null, tops: null, rankup: null } };
 
 const objects = fs.existsSync(objectsPath)
-? JSON.parse(fs.readFileSync(objectsPath, "utf8"))
+? JSON.parse(fs.readFileSync(objectsPath))
 : { class4: [], class3: [], class2: [], class1: [], special: [], ultra: [] };
 
 const status = fs.existsSync(statusPath)
-? JSON.parse(fs.readFileSync(statusPath, "utf8"))
+? JSON.parse(fs.readFileSync(statusPath))
 : {};
 
 const saveStatus = () => fs.writeFileSync(statusPath, JSON.stringify(status, null, 2));
 const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 
 /* =====================
-STATUS FUNCTION
+STATUS
 ===================== */
 function getStatus(id) {
 if (!status[id]) status[id] = { money: 0, inventory: {}, lastDrop: 0 };
@@ -76,96 +81,76 @@ partials: [Partials.Channel]
 /* =====================
 UTILS
 ===================== */
-function normalize(str){
-return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+function normalize(str) {
+return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-function getUserRank(member){
+function getUserRank(member) {
 const roles = member.roles.cache.map(r => normalize(r.name));
+const order = ["bell","silbato rojo","silbato azul","silbato lunar","silbato negro","silbato blanco"];
 
-const order = [
-"bell",
-"silbato rojo",
-"silbato azul",
-"silbato lunar",
-"silbato negro",
-"silbato blanco"
-];
-
-for(let i = order.length-1; i>=0; i--){
-if(roles.some(r => r.includes(order[i]))) return i;
+for (let i = order.length - 1; i >= 0; i--) {
+if (roles.some(r => r.includes(order[i]))) return i;
 }
 return -1;
 }
 
 /* =====================
-SLASH COMMANDS
+COMMANDS
 ===================== */
 const commands = [
+
 new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
-new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
+new SlashCommandBuilder().setName("mymoney").setDescription("Ver dinero"),
 
 new SlashCommandBuilder()
 .setName("sell")
-.setDescription("Vender reliquias")
+.setDescription("Vender objetos")
 .addStringOption(o =>
-o.setName("modo").setDescription("Modo").setRequired(true)
+o.setName("modo").setRequired(true)
 .addChoices({ name: "Uno", value: "one" }, { name: "Todo", value: "all" })
 ),
 
 new SlashCommandBuilder().setName("rankup").setDescription("Subir rango"),
 
-new SlashCommandBuilder()
-.setName("setchannelreliquies")
-.setDescription("Canal drops")
+new SlashCommandBuilder().setName("setchannelreliquies").setDescription("Canal drops")
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
-new SlashCommandBuilder()
-.setName("setchanneltops")
-.setDescription("Canal tops")
+new SlashCommandBuilder().setName("setchanneltops").setDescription("Canal tops")
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
-new SlashCommandBuilder()
-.setName("setchannelrankup")
-.setDescription("Canal rankup")
+new SlashCommandBuilder().setName("setchannelrankup").setDescription("Canal rankup")
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
 new SlashCommandBuilder()
 .setName("setmoney")
-.setDescription("Dar dinero")
 .addUserOption(o=>o.setName("usuario").setRequired(true))
 .addNumberOption(o=>o.setName("cantidad").setRequired(true))
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
 new SlashCommandBuilder()
 .setName("removemoney")
-.setDescription("Quitar dinero")
 .addUserOption(o=>o.setName("usuario").setRequired(true))
 .addNumberOption(o=>o.setName("cantidad").setRequired(true))
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
 new SlashCommandBuilder()
 .setName("seemoney")
-.setDescription("Ver dinero")
 .addUserOption(o=>o.setName("usuario").setRequired(true))
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
 new SlashCommandBuilder()
 .setName("setitem")
-.setDescription("Dar objeto")
 .addUserOption(o=>o.setName("usuario").setRequired(true))
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
 new SlashCommandBuilder()
 .setName("removeitem")
-.setDescription("Quitar objeto")
 .addUserOption(o=>o.setName("usuario").setRequired(true))
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
+
 ];
 
-/* =====================
-REST
-===================== */
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 /* =====================
@@ -175,18 +160,24 @@ client.once(Events.ClientReady, async () => {
 await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
 console.log(`🧭 Bot listo como ${client.user.tag}`);
 
-/* TOPS CADA 6H */
+/* TOPS */
 setInterval(async () => {
 if (!config.channels.tops) return;
 
 const guild = client.guilds.cache.first();
 if (!guild) return;
 
-const members = await guild.members.fetch();
-const arr = [];
+let members;
+try {
+members = await guild.members.fetch();
+} catch (e) {
+console.log("Error obteniendo miembros:", e.message);
+return;
+}
 
-members.forEach(m=>{
-if(m.user.bot) return;
+const arr = [];
+members.forEach(m => {
+if (m.user.bot) return;
 const st = getStatus(m.id);
 arr.push({ tag: m.user.tag, money: st.money });
 });
@@ -194,17 +185,15 @@ arr.push({ tag: m.user.tag, money: st.money });
 arr.sort((a,b)=>b.money-a.money);
 
 const medals = ["🥇","🥈","🥉"];
+const desc = arr.slice(0,10).map((u,i)=>`${medals[i]||`#${i+1}`} ${u.tag} — 💰 ${u.money}`).join("\n");
 
-const desc = arr.slice(0,10).map((u,i)=>
-`${medals[i]||`#${i+1}`} ${u.tag} — 💰 ${u.money}`
-).join("\n");
-
-const embed = new EmbedBuilder()
-.setTitle("🏆 TOP Exploradores")
-.setDescription(desc);
+const embed = new EmbedBuilder().setTitle("🏆 TOP Exploradores").setDescription(desc);
 
 const ch = guild.channels.cache.get(config.channels.tops);
-if(ch) ch.send({ content:"@everyone", embeds:[embed] });
+if (ch) {
+try { await ch.send({ content:"@everyone", embeds:[embed] }); }
+catch(e){ console.log("Error enviando tops:", e.message); }
+}
 
 }, 6 * 60 * 60 * 1000);
 
@@ -218,7 +207,6 @@ if (!interaction.isChatInputCommand() && !interaction.isStringSelectMenu() && !i
 
 /* ===== SET CHANNELS ===== */
 if (interaction.isChatInputCommand() && interaction.commandName.startsWith("setchannel")) {
-
 const id = interaction.commandName.replace("setchannel","");
 
 const menu = new ChannelSelectMenuBuilder()
@@ -227,174 +215,314 @@ const menu = new ChannelSelectMenuBuilder()
 .setMinValues(1)
 .setMaxValues(1);
 
-return interaction.reply({ ephemeral:true, components:[new ActionRowBuilder().addComponents(menu)] });
+return interaction.reply({
+ephemeral: true,
+components: [new ActionRowBuilder().addComponents(menu)]
+});
 }
 
-if (interaction.isChannelSelectMenu()) {
+if (interaction.isChannelSelectMenu() && interaction.customId.startsWith("set_")) {
 const id = interaction.customId.replace("set_","");
 config.channels[id] = interaction.values[0];
 saveConfig();
-return interaction.update({ content:"✅ Canal configurado", components:[] });
+
+return interaction.update({
+content: "✅ Canal configurado",
+components: []
+});
 }
 
 /* ===== INVENTORY ===== */
-if(interaction.commandName==="inventory"){
+if (interaction.isChatInputCommand() && interaction.commandName === "inventory") {
 const user = getStatus(interaction.user.id);
 
-if(!Object.keys(user.inventory).length)
-return interaction.reply({ ephemeral:true, content:"🎒 Vacío" });
+if (!Object.keys(user.inventory).length) {
+return interaction.reply({ ephemeral: true, content: "🎒 Inventario vacío" });
+}
 
 const list = Object.values(user.inventory)
-.map(i=>`${i.icon} ${i.name} x${i.qty}`)
+.map(i => `${i.icon} ${i.name} x${i.qty}`)
 .join("\n");
 
-return interaction.reply({ ephemeral:true, content:`🎒 Inventario\n${list}` });
+return interaction.reply({
+ephemeral: true,
+content: `🎒 Inventario\n${list}`
+});
 }
 
 /* ===== MONEY ===== */
-if(interaction.commandName==="mymoney"){
+if (interaction.isChatInputCommand() && interaction.commandName === "mymoney") {
 const user = getStatus(interaction.user.id);
-return interaction.reply({ ephemeral:true, content:`💰 ${user.money}` });
+return interaction.reply({
+ephemeral: true,
+content: `💰 ${user.money} monedas`
+});
 }
 
 /* ===== SELL ===== */
-if(interaction.commandName==="sell"){
+if (interaction.isChatInputCommand() && interaction.commandName === "sell") {
 const user = getStatus(interaction.user.id);
 const mode = interaction.options.getString("modo");
 
-if(!Object.keys(user.inventory).length)
-return interaction.reply({ ephemeral:true, content:"❌ No tienes objetos" });
-
-if(mode==="all"){
-let gain=0;
-for(const i of Object.values(user.inventory)){
-gain += (i.price||0)*i.qty;
+if (!Object.keys(user.inventory).length) {
+return interaction.reply({ ephemeral: true, content: "❌ No tienes objetos" });
 }
-user.money+=gain;
-user.inventory={};
+
+if (mode === "all") {
+let gain = 0;
+
+for (const i of Object.values(user.inventory)) {
+gain += (i.price ?? 0) * i.qty;
+}
+
+user.money += gain;
+user.inventory = {};
 saveStatus();
-return interaction.reply({ ephemeral:true, content:`💰 Ganaste ${gain}` });
+
+return interaction.reply({
+ephemeral: true,
+content: `💰 Vendiste todo por ${gain} monedas`
+});
 }
 
+/* MENÚ PARA VENDER UNO */
+const menu = new StringSelectMenuBuilder()
+.setCustomId("sell_one")
+.setPlaceholder("Selecciona objeto")
+.addOptions(
+Object.values(user.inventory).map(i => ({
+label: i.name,
+description: `x${i.qty} | 💰 ${i.price ?? 0}`,
+value: i.name
+}))
+);
+
+return interaction.reply({
+ephemeral: true,
+components: [new ActionRowBuilder().addComponents(menu)]
+});
+}
+
+/* SELECT SELL */
+if (interaction.isStringSelectMenu() && interaction.customId === "sell_one") {
+const user = getStatus(interaction.user.id);
+const itemName = interaction.values[0];
+const item = user.inventory[itemName];
+
+if (!item) {
+return interaction.update({ content: "❌ Objeto no encontrado", components: [] });
+}
+
+const gain = item.price ?? 0;
+
+item.qty--;
+if (item.qty <= 0) delete user.inventory[itemName];
+
+user.money += gain;
+saveStatus();
+
+return interaction.update({
+content: `💰 Vendiste ${itemName} por ${gain}`,
+components: []
+});
 }
 
 /* ===== ADMIN MONEY ===== */
-if(["setmoney","removemoney","seemoney"].includes(interaction.commandName)){
+if (interaction.isChatInputCommand() &&
+["setmoney","removemoney","seemoney"].includes(interaction.commandName)) {
+
 const target = interaction.options.getUser("usuario");
-const amount = interaction.options.getNumber("cantidad")||0;
+const amount = interaction.options.getNumber("cantidad") || 0;
 const user = getStatus(target.id);
 
-if(interaction.commandName==="setmoney"){ user.money+=amount; saveStatus(); }
-if(interaction.commandName==="removemoney"){ user.money=Math.max(0,user.money-amount); saveStatus(); }
+if (interaction.commandName === "setmoney") {
+user.money += amount;
+saveStatus();
+}
 
-return interaction.reply({ ephemeral:true, content:`💰 ${target.tag}: ${user.money}` });
+if (interaction.commandName === "removemoney") {
+user.money = Math.max(0, user.money - amount);
+saveStatus();
+}
+
+return interaction.reply({
+ephemeral: true,
+content: `💰 ${target.tag}: ${user.money}`
+});
+}
+
+/* ===== SET ITEM ===== */
+if (interaction.isChatInputCommand() && interaction.commandName === "setitem") {
+const target = interaction.options.getUser("usuario");
+if (!target) {
+return interaction.reply({ ephemeral: true, content: "❌ Usuario no encontrado" });
+}
+
+const allItems = [
+...objects.class4,
+...objects.class3,
+...objects.class2,
+...objects.class1,
+...objects.special,
+...objects.ultra
+];
+
+const menu = new StringSelectMenuBuilder()
+.setCustomId(`setitem_${target.id}`)
+.setPlaceholder("Selecciona objeto")
+.addOptions(allItems.map(o => ({
+label: o.name,
+value: o.name,
+description: `💰 ${o.price ?? 0}`
+})));
+
+return interaction.reply({
+ephemeral: true,
+components: [new ActionRowBuilder().addComponents(menu)]
+});
+}
+
+/* SELECT SET ITEM */
+if (interaction.isStringSelectMenu() && interaction.customId.startsWith("setitem_")) {
+const targetId = interaction.customId.replace("setitem_","");
+const target = interaction.guild.members.cache.get(targetId)?.user;
+
+if (!target) {
+return interaction.update({ content: "❌ Usuario no encontrado", components: [] });
+}
+
+const user = getStatus(target.id);
+const itemName = interaction.values[0];
+
+const obj = [
+...objects.class4,
+...objects.class3,
+...objects.class2,
+...objects.class1,
+...objects.special,
+...objects.ultra
+].find(o => o.name === itemName);
+
+if (!obj) {
+return interaction.update({ content: "❌ Objeto no encontrado", components: [] });
+}
+
+if (!user.inventory[itemName]) user.inventory[itemName] = { ...obj, qty: 0 };
+user.inventory[itemName].qty++;
+
+saveStatus();
+
+return interaction.update({
+content: `✅ ${itemName} agregado a ${target}`,
+components: []
+});
+}
+
+/* ===== REMOVE ITEM ===== */
+if (interaction.isChatInputCommand() && interaction.commandName === "removeitem") {
+const target = interaction.options.getUser("usuario");
+const user = getStatus(target.id);
+
+if (!Object.keys(user.inventory).length) {
+return interaction.reply({ ephemeral: true, content: "❌ Sin objetos" });
+}
+
+const menu = new StringSelectMenuBuilder()
+.setCustomId(`removeitem_${target.id}`)
+.setPlaceholder("Selecciona objeto")
+.addOptions(Object.values(user.inventory).map(i => ({
+label: i.name,
+value: i.name,
+description: `x${i.qty}`
+})));
+
+return interaction.reply({
+ephemeral: true,
+components: [new ActionRowBuilder().addComponents(menu)]
+});
+}
+
+/* SELECT REMOVE ITEM */
+if (interaction.isStringSelectMenu() && interaction.customId.startsWith("removeitem_")) {
+const targetId = interaction.customId.replace("removeitem_","");
+const user = getStatus(targetId);
+const itemName = interaction.values[0];
+
+if (!user.inventory[itemName]) {
+return interaction.update({ content: "❌ No existe", components: [] });
+}
+
+delete user.inventory[itemName];
+saveStatus();
+
+return interaction.update({
+content: `🗑️ ${itemName} eliminado`,
+components: []
+});
 }
 
 /* ===== RANKUP ===== */
-if(interaction.commandName==="rankup"){
+if (interaction.isChatInputCommand() && interaction.commandName === "rankup") {
 const member = interaction.member;
 const st = getStatus(member.id);
 
-const order = [
-"bell",
-"silbato rojo",
-"silbato azul",
-"silbato lunar",
-"silbato negro",
-"silbato blanco"
-];
-
+const order = ["bell","silbato rojo","silbato azul","silbato lunar","silbato negro","silbato blanco"];
 const costs = [100,250,500,750,1500,3000];
 
 const current = getUserRank(member);
 
-if(current === order.length-1)
-return interaction.reply({ ephemeral:true, content:"Máximo rango" });
+if (current === order.length - 1) {
+return interaction.reply({ ephemeral: true, content: "✅ Máximo rango" });
+}
 
-const nextName = order[current+1];
-const cost = costs[current+1];
+const next = order[current + 1];
+const cost = costs[current + 1];
 
-if(st.money < cost)
-return interaction.reply({ ephemeral:true, content:`Necesitas ${cost}` });
+if (st.money < cost) {
+return interaction.reply({ ephemeral: true, content: `❌ Necesitas ${cost}` });
+}
 
-const role = member.guild.roles.cache.find(r => normalize(r.name).includes(nextName));
-if(!role) return interaction.reply({ ephemeral:true, content:"Rol no encontrado" });
+const role = member.guild.roles.cache.find(r => normalize(r.name).includes(next));
 
-st.money -= cost;
+if (!role) {
+return interaction.reply({ ephemeral: true, content: "❌ Rol no encontrado" });
+}
+
+try {
 await member.roles.add(role);
+} catch {
+return interaction.reply({ ephemeral: true, content: "❌ Sin permisos para rol" });
+}
 
-member.roles.cache.forEach(r=>{
-if(order.some(o=>normalize(r.name).includes(o)) && normalize(r.name)!==normalize(role.name)){
-member.roles.remove(r);
+/* remover otros */
+member.roles.cache.forEach(r => {
+if (order.some(o => normalize(r.name).includes(o)) && r.id !== role.id) {
+member.roles.remove(r).catch(()=>{});
 }
 });
 
+st.money -= cost;
 saveStatus();
 
 /* MENSAJE */
-if(config.channels.rankup){
+if (config.channels.rankup) {
 const ch = member.guild.channels.cache.get(config.channels.rankup);
-if(ch){
+if (ch) {
+try {
 const embed = new EmbedBuilder()
 .setTitle("✨ ASCENSO")
 .setDescription(`${member} ahora es **${role.name}**`)
 .setThumbnail(member.user.displayAvatarURL());
-ch.send({ embeds:[embed] });
+
+await ch.send({ embeds: [embed] });
+} catch {}
 }
 }
 
-return interaction.reply({ ephemeral:true, content:`Subiste a ${role.name}` });
+return interaction.reply({
+ephemeral: true,
+content: `✅ Subiste a ${role.name}`
+});
 }
 
 });
-
-/* =====================
-DROP SYSTEM NUEVO
-===================== */
-client.on(Events.MessageCreate, async message => {
-if(message.author.bot || !message.guild) return;
-if(!config.channels.reliquies) return;
-if(message.channel.id !== config.channels.reliquies) return;
-
-const user = getStatus(message.author.id);
-
-/* COOLDOWN */
-if(Date.now() - user.lastDrop < 4000) return;
-user.lastDrop = Date.now();
-
-/* PROBABILIDAD */
-if(Math.random() > 0.10) return;
-
-/* CLASE */
-const roll = Math.random();
-let pool;
-
-if(roll < 0.5) pool = objects.class4;
-else if(roll < 0.75) pool = objects.class3;
-else if(roll < 0.9) pool = objects.class2;
-else if(roll < 0.97) pool = objects.class1;
-else if(roll < 0.995) pool = objects.special;
-else pool = objects.ultra;
-
-if(!pool.length) return;
-
-const item = pool[Math.floor(Math.random()*pool.length)];
-
-if(!user.inventory[item.name]) user.inventory[item.name] = {...item, qty:0};
-user.inventory[item.name].qty++;
-
-saveStatus();
-
-/* DM */
-try{
-await message.author.send(`🧭 Encontraste ${item.icon} ${item.name}`);
-}catch{
-message.channel.send(`⚠️ ${message.author} encontró algo pero tiene DMs cerrados`);
-}
-
-});
-
-/* =====================
-LOGIN
-===================== */
-client.login(TOKEN);
