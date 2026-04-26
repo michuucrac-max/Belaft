@@ -175,23 +175,23 @@ client.once(Events.ClientReady, async () => {
 
   console.log(`🧭 Belaf listo como ${client.user.tag}`);
 
+  const data = commands.map(cmd => cmd.toJSON());
+
   for (const guild of client.guilds.cache.values()) {
 
     try {
 
-      /* 🧹 LIMPIAR comandos viejos */
       await rest.put(
         Routes.applicationGuildCommands(CLIENT_ID, guild.id),
         { body: [] }
       );
 
-      /* ✅ REGISTRAR comandos nuevos */
       await rest.put(
         Routes.applicationGuildCommands(CLIENT_ID, guild.id),
-        { body: commands }
+        { body: data }
       );
 
-      console.log(`✅ Comandos actualizados en: ${guild.name}`);
+      console.log(`✅ Comandos en: ${guild.name}`);
 
     } catch (err) {
       console.log(`❌ Error en ${guild.name}`, err);
@@ -207,13 +207,13 @@ client.on(Events.GuildCreate, async (guild) => {
 
     await rest.put(
       Routes.applicationGuildCommands(CLIENT_ID, guild.id),
-      { body: commands }
+      { body: commands.map(cmd => cmd.toJSON()) }
     );
 
-    console.log(`🆕 Registrado en nuevo server: ${guild.name}`);
+    console.log(`🆕 Registrado en: ${guild.name}`);
 
   } catch (err) {
-    console.log(`❌ Error registrando en ${guild.name}`, err);
+    console.log(err);
   }
 
 });
