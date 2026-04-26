@@ -182,7 +182,7 @@ INTERACTIONS
 client.on(Events.InteractionCreate, async interaction => {
 try {
 
-/* ================= CHAT COMMAND ================= */
+/* ===== CHAT COMMAND ===== */
 if (interaction.isChatInputCommand()) {
 
 const cmd = interaction.commandName;
@@ -208,7 +208,7 @@ components: [new ActionRowBuilder().addComponents(menu)]
 });
 }
 
-/* ===== DEFER PARA EVITAR "pensando..." ===== */
+/* ===== DEFER ===== */
 await interaction.deferReply({ ephemeral: true });
 
 /* ===== INVENTORY ===== */
@@ -216,7 +216,7 @@ if (cmd === "inventory") {
 const user = getStatus(interaction.user.id);
 
 if (!Object.keys(user.inventory).length)
-return interaction.editReply("🎒 Inventario vacío");
+return interaction.editReply("🎒 Vacío");
 
 const list = Object.values(user.inventory)
 .map(i => `${i.icon} ${i.name} x${i.qty}`)
@@ -307,12 +307,12 @@ const st = getStatus(member.id);
 let current = getMemberRank(member);
 
 if (current === rankOrder.length - 1)
-return interaction.editReply("🏆 Ya tienes el máximo rango");
+return interaction.editReply("🏆 Máximo rango");
 
 const next = current + 1;
 
 if (st.money < rankCosts[next])
-return interaction.editReply(`❌ Necesitas ${rankCosts[next]} monedas`);
+return interaction.editReply(`❌ Necesitas ${rankCosts[next]}`);
 
 st.money -= rankCosts[next];
 
@@ -350,7 +350,7 @@ return interaction.editReply(`🎖️ Subiste a ${rankOrder[next]}`);
 return interaction.editReply("⚠️ Comando no reconocido");
 }
 
-/* ================= CHANNEL SELECT ================= */
+/* ===== CHANNEL SELECT ===== */
 if (interaction.isChannelSelectMenu()) {
 
 const id = interaction.customId.replace("set_", "");
@@ -375,7 +375,7 @@ components: []
 });
 }
 
-/* ================= SELL MENU ================= */
+/* ===== SELL MENU ===== */
 if (interaction.isStringSelectMenu()) {
 
 if (!interaction.customId.startsWith("sell_")) return;
@@ -421,7 +421,7 @@ return interaction.reply({ content: "❌ Error", ephemeral: true });
 });
 
 /* =====================
-DROP SYSTEM (PROB + DM)
+DROP SYSTEM (1 CANAL + PROB + DM)
 ===================== */
 client.on(Events.MessageCreate, async message => {
 
@@ -446,13 +446,13 @@ saveStatus();
 try {
 await message.author.send(`🧭 Encontraste:\n${item.icon} ${item.name}`);
 } catch {
-message.reply("📩 Activa tus DMs para recibir reliquias");
+message.reply("📩 Activa tus DMs");
 }
 
 });
 
 /* =====================
-TOPS AUTOMÁTICOS (6H)
+TOPS (CADA 6 HORAS)
 ===================== */
 setInterval(async () => {
 
