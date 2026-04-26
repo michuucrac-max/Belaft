@@ -1,6 +1,3 @@
-/* =====================
-IMPORTS
-===================== */
 import {
 Client,
 GatewayIntentBits,
@@ -19,36 +16,28 @@ PermissionsBitField
 import fs from "fs";
 import express from "express";
 
-/* =====================
-ANTI CRASH
-===================== */
+/* ===================== */
 process.on("unhandledRejection", console.log);
 process.on("uncaughtException", console.log);
 
-/* =====================
-ENV
-===================== */
+/* ===================== */
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const PORT = process.env.PORT || 3000;
 
-/* =====================
-EXPRESS
-===================== */
+/* ===================== */
 const app = express();
 app.get("/", (_, res) => res.send("Belaf observa el Abismo 🧭"));
 app.listen(PORT, () => console.log(`🌐 Express activo en ${PORT}`));
 
-/* =====================
-FILES
-===================== */
+/* ===================== */
 const configPath = "./config.json";
 const statusPath = "./status.json";
 const objectsPath = "./objects.json";
 
 const config = fs.existsSync(configPath)
 ? JSON.parse(fs.readFileSync(configPath, "utf8"))
-: { channel: null };
+: { channel: null, channels: {} };
 
 const objects = fs.existsSync(objectsPath)
 ? JSON.parse(fs.readFileSync(objectsPath, "utf8"))
@@ -58,17 +47,15 @@ const status = fs.existsSync(statusPath)
 ? JSON.parse(fs.readFileSync(statusPath, "utf8"))
 : {};
 
-const saveStatus = () => fs.writeFileSync(statusPath, JSON.stringify(status, null, 2));
-const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+const saveStatus = () => fs.writeFileSync(statusPath, JSON.stringify(status,null,2));
+const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config,null,2));
 
-function getStatus(id) {
-if (!status[id]) status[id] = { money: 0, inventory: {} };
+function getStatus(id){
+if(!status[id]) status[id]={money:0,inventory:{}};
 return status[id];
 }
 
-/* =====================
-RANGOS FLEXIBLES
-===================== */
+/* ===================== RANKS */
 const rankOrder = [
 "bell",
 "silbato rojo",
@@ -78,89 +65,84 @@ const rankOrder = [
 "silbato blanco"
 ];
 
-const rankCosts = [0, 25000, 50000, 75000, 150000, 1200000];
+const rankCosts = [0,25000,50000,750000,1500000,30000000];
 
-function getMemberRank(member) {
-const roles = member.roles.cache.map(r => r.name.toLowerCase());
-for (let i = rankOrder.length - 1; i >= 0; i--) {
-if (roles.includes(rankOrder[i])) return i;
+function getMemberRank(member){
+const roles = member.roles.cache.map(r=>r.name.toLowerCase());
+for(let i=rankOrder.length-1;i>=0;i--){
+if(roles.includes(rankOrder[i])) return i;
 }
 return -1;
 }
 
-/* =====================
-PROBABILIDAD DROP
-===================== */
-function rollItem() {
-const all = [
-...objects.class4.map(i => ({ ...i, chance: 70 })),
-...objects.class3.map(i => ({ ...i, chance: 20 })),
-...objects.class2.map(i => ({ ...i, chance: 8 })),
-...objects.class1.map(i => ({ ...i, chance: 4 })),
-...objects.special.map(i => ({ ...i, chance: 2 })),
-...objects.ultra.map(i => ({ ...i, chance: 0.5 }))
+/* ===================== DROP */
+function rollItem(){
+const all=[
+...objects.class4.map(i=>({...i,chance:70})),
+...objects.class3.map(i=>({...i,chance:20})),
+...objects.class2.map(i=>({...i,chance:8})),
+...objects.class1.map(i=>({...i,chance:4})),
+...objects.special.map(i=>({...i,chance:2})),
+...objects.ultra.map(i=>({...i,chance:0.5}))
 ];
 
-if (!all.length) return null;
+const total=all.reduce((a,b)=>a+b.chance,0);
+let rand=Math.random()*total;
 
-const total = all.reduce((a,b)=>a+b.chance,0);
-let rand = Math.random() * total;
-
-for (const item of all) {
-rand -= item.chance;
-if (rand <= 0) return item;
+for(const i of all){
+rand-=i.chance;
+if(rand<=0) return i;
 }
 return null;
 }
 
-/* =====================
-CLIENT
-===================== */
-const client = new Client({
-intents: [
+/* ===================== CLIENT */
+const client=new Client({
+intents:[
 GatewayIntentBits.Guilds,
 GatewayIntentBits.GuildMembers,
 GatewayIntentBits.GuildMessages,
 GatewayIntentBits.MessageContent
 ],
-partials: [Partials.Channel]
+partials:[Partials.Channel]
 });
 
-/* =====================
-COMMANDS
-===================== */
-const commands = [
+/* ===================== COMMANDS */
+const commands=[
+
 new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
 new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
 
 new SlashCommandBuilder()
 .setName("sell")
 .setDescription("Vender reliquias")
-.addStringOption(o =>
-o.setName("modo").setRequired(true)
-.addChoices(
-{ name:"Uno", value:"one" },
-{ name:"Todo", value:"all" }
-)
-),
+.addStringOption(o=>o.setName("modo").setRequired(true)
+.addChoices({name:"Uno",value:"one"},{name:"Todo",value:"all"})),
+
+new SlashCommandBuilder().setName("rankup").setDescription("Subir rango"),
 
 new SlashCommandBuilder()
 .setName("setchannelreliquies")
-.setDescription("Configurar canal de drops")
+.setDescription("Canal drops")
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
 new SlashCommandBuilder()
-.setName("rankup")
-.setDescription("Subir rango")
+.setName("setchanneltops")
+.setDescription("Canal tops")
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
+new SlashCommandBuilder()
+.setName("setrankup")
+.setDescription("Canal rankup")
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
+
 ];
 
-/* =====================
-REGISTER
-===================== */
-const rest = new REST({ version:"10" }).setToken(TOKEN);
+/* ===================== REGISTER */
+const rest=new REST({version:"10"}).setToken(TOKEN);
 
-client.once(Events.ClientReady, async ()=>{
-await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+client.once(Events.ClientReady,async()=>{
+await rest.put(Routes.applicationCommands(CLIENT_ID),{body:commands});
 console.log(`🧭 Belaf listo como ${client.user.tag}`);
 });
 
@@ -170,43 +152,55 @@ INTERACTIONS
 client.on(Events.InteractionCreate, async interaction => {
   try {
 
-    /* ========= SET CHANNEL RELIQUIES ========= */
-    if (interaction.isChatInputCommand() && interaction.commandName === "setchannelreliquies") {
+    /* ===== SET CHANNELS ===== */
+    if (interaction.isChatInputCommand()) {
 
-      const menu = new ChannelSelectMenuBuilder()
-        .setCustomId("set_reliquies")
-        .addChannelTypes(ChannelType.GuildText)
-        .setMinValues(1)
-        .setMaxValues(1);
+      if (interaction.commandName === "setchannelreliquies") {
+        const menu = new ChannelSelectMenuBuilder()
+          .setCustomId("set_reliquies")
+          .addChannelTypes(ChannelType.GuildText)
+          .setMinValues(1)
+          .setMaxValues(1);
 
-      return interaction.reply({
-        ephemeral: true,
-        components: [new ActionRowBuilder().addComponents(menu)]
-      });
+        return interaction.reply({
+          ephemeral: true,
+          components: [new ActionRowBuilder().addComponents(menu)]
+        });
+      }
+
+      if (interaction.commandName === "setchanneltops") {
+        const menu = new ChannelSelectMenuBuilder()
+          .setCustomId("set_tops")
+          .addChannelTypes(ChannelType.GuildText)
+          .setMinValues(1)
+          .setMaxValues(1);
+
+        return interaction.reply({
+          ephemeral: true,
+          components: [new ActionRowBuilder().addComponents(menu)]
+        });
+      }
+
+      if (interaction.commandName === "setrankup") {
+        const menu = new ChannelSelectMenuBuilder()
+          .setCustomId("set_rankup")
+          .addChannelTypes(ChannelType.GuildText)
+          .setMinValues(1)
+          .setMaxValues(1);
+
+        return interaction.reply({
+          ephemeral: true,
+          components: [new ActionRowBuilder().addComponents(menu)]
+        });
+      }
     }
 
-    /* ========= SET CHANNEL TOPS ========= */
-    if (interaction.isChatInputCommand() && interaction.commandName === "setchanneltops") {
-
-      const menu = new ChannelSelectMenuBuilder()
-        .setCustomId("set_tops")
-        .addChannelTypes(ChannelType.GuildText)
-        .setMinValues(1)
-        .setMaxValues(1);
-
-      return interaction.reply({
-        ephemeral: true,
-        components: [new ActionRowBuilder().addComponents(menu)]
-      });
-    }
-
-    /* ========= SELECT MENUS ========= */
+    /* ===== SELECT MENUS ===== */
     if (interaction.isChannelSelectMenu()) {
 
       if (interaction.customId === "set_reliquies") {
         config.channel = interaction.values[0];
         saveConfig();
-
         return interaction.update({
           content: "✅ Canal de reliquias configurado",
           components: []
@@ -217,18 +211,26 @@ client.on(Events.InteractionCreate, async interaction => {
         config.channels = config.channels || {};
         config.channels.tops = interaction.values[0];
         saveConfig();
-
         return interaction.update({
           content: "🏆 Canal de tops configurado",
           components: []
         });
       }
+
+      if (interaction.customId === "set_rankup") {
+        config.channels = config.channels || {};
+        config.channels.rankup = interaction.values[0];
+        saveConfig();
+        return interaction.update({
+          content: "🎖️ Canal de rankup configurado",
+          components: []
+        });
+      }
     }
 
-    /* ========= STRING MENUS ========= */
+    /* ===== STRING MENUS (SELL) ===== */
     if (interaction.isStringSelectMenu()) {
 
-      /* SELL */
       if (interaction.customId.startsWith("sell_")) {
 
         const mode = interaction.customId.replace("sell_", "");
@@ -261,73 +263,10 @@ client.on(Events.InteractionCreate, async interaction => {
         });
       }
 
-      /* SETITEM */
-      if (interaction.customId.startsWith("setitem_")) {
-
-        const targetId = interaction.customId.replace("setitem_", "");
-        const target = interaction.guild.members.cache.get(targetId)?.user;
-
-        if (!target)
-          return interaction.update({ content: "❌ Usuario no encontrado", components: [] });
-
-        const user = getStatus(target.id);
-        const itemName = interaction.values[0];
-
-        const all = [
-          ...objects.class4,
-          ...objects.class3,
-          ...objects.class2,
-          ...objects.class1,
-          ...objects.special,
-          ...objects.ultra
-        ];
-
-        const obj = all.find(o => o.name === itemName);
-        if (!obj)
-          return interaction.update({ content: "❌ Artefacto no encontrado", components: [] });
-
-        if (!user.inventory[itemName]) user.inventory[itemName] = { ...obj, qty: 0 };
-        user.inventory[itemName].qty++;
-
-        saveStatus();
-
-        return interaction.update({
-          content: `✅ Artefacto ${itemName} agregado a ${target.tag}`,
-          components: []
-        });
-      }
-
-      /* REMOVEITEM */
-      if (interaction.customId.startsWith("removeitem_")) {
-
-        const targetId = interaction.customId.replace("removeitem_", "");
-        const target = interaction.guild.members.cache.get(targetId)?.user;
-
-        if (!target)
-          return interaction.update({ content: "❌ Usuario no encontrado", components: [] });
-
-        const user = getStatus(target.id);
-        const itemName = interaction.values[0];
-        const item = user.inventory[itemName];
-
-        if (!item)
-          return interaction.update({ content: "❌ No tiene ese objeto", components: [] });
-
-        item.qty--;
-        if (item.qty <= 0) delete user.inventory[itemName];
-
-        saveStatus();
-
-        return interaction.update({
-          content: `🗑️ Eliminado ${itemName} a ${target.tag}`,
-          components: []
-        });
-      }
-
       return;
     }
 
-    /* ========= COMANDOS ========= */
+    /* ===== COMANDOS ===== */
     if (!interaction.isChatInputCommand()) return;
 
     await interaction.deferReply({ ephemeral: true });
@@ -388,31 +327,6 @@ client.on(Events.InteractionCreate, async interaction => {
       });
     }
 
-    /* ADMIN MONEY */
-    if (["setmoney", "removemoney", "seemoney"].includes(cmd)) {
-
-      const target = interaction.options.getUser("usuario");
-      const amount = interaction.options.getNumber("cantidad") || 0;
-      const user = getStatus(target.id);
-
-      if (cmd === "setmoney") {
-        user.money += amount;
-        saveStatus();
-        return interaction.editReply(`💰 Se dieron ${amount} a ${target.tag}`);
-      }
-
-      if (cmd === "removemoney") {
-        user.money -= amount;
-        if (user.money < 0) user.money = 0;
-        saveStatus();
-        return interaction.editReply(`💰 Se quitaron ${amount} a ${target.tag}`);
-      }
-
-      if (cmd === "seemoney") {
-        return interaction.editReply(`💰 ${target.tag} tiene ${user.money}`);
-      }
-    }
-
     /* RANKUP */
     if (cmd === "rankup") {
 
@@ -439,54 +353,36 @@ client.on(Events.InteractionCreate, async interaction => {
 
       saveStatus();
 
+      /* ===== MENSAJE BONITO ===== */
+      if (config.channels?.rankup) {
+
+        const ch = member.guild.channels.cache.get(config.channels.rankup);
+
+        if (ch) {
+
+          const embed = {
+            color: 0xf1c40f,
+            title: "🎖️ ¡ASCENSO EN EL ABISMO!",
+            description:
+              `✨ ${member} ha subido de rango\n\n` +
+              `🔺 Nuevo rango: **${rankOrder[next]}**`,
+            thumbnail: {
+              url: member.user.displayAvatarURL({ dynamic: true, size: 512 })
+            },
+            footer: {
+              text: "El Abismo reconoce su progreso..."
+            },
+            timestamp: new Date()
+          };
+
+          ch.send({
+            content: `${member}`,
+            embeds: [embed]
+          });
+        }
+      }
+
       return interaction.editReply(`🎖️ Subiste a ${rankOrder[next]}`);
-    }
-
-    /* SETITEM */
-    if (cmd === "setitem") {
-
-      const target = interaction.options.getUser("usuario");
-
-      const menu = new StringSelectMenuBuilder()
-        .setCustomId(`setitem_${target.id}`)
-        .addOptions([
-          ...objects.class4,
-          ...objects.class3,
-          ...objects.class2,
-          ...objects.class1,
-          ...objects.special,
-          ...objects.ultra
-        ].map(o => ({
-          label: o.name,
-          value: o.name,
-          description: `💰 ${o.price ?? 0}`
-        })));
-
-      return interaction.editReply({
-        components: [new ActionRowBuilder().addComponents(menu)]
-      });
-    }
-
-    /* REMOVEITEM */
-    if (cmd === "removeitem") {
-
-      const target = interaction.options.getUser("usuario");
-      const user = getStatus(target.id);
-
-      if (!Object.keys(user.inventory).length)
-        return interaction.editReply("❌ Sin objetos");
-
-      const menu = new StringSelectMenuBuilder()
-        .setCustomId(`removeitem_${target.id}`)
-        .addOptions(Object.values(user.inventory).map(i => ({
-          label: i.name,
-          value: i.name,
-          description: `x${i.qty}`
-        })));
-
-      return interaction.editReply({
-        components: [new ActionRowBuilder().addComponents(menu)]
-      });
     }
 
     return interaction.editReply("⚠️ Comando no reconocido");
@@ -511,6 +407,7 @@ client.on(Events.MessageCreate, async message => {
   if (!config.channel) return;
   if (message.channel.id !== config.channel) return;
 
+  // 10% probabilidad
   if (Math.random() > 0.10) return;
 
   const user = getStatus(message.author.id);
@@ -527,12 +424,13 @@ client.on(Events.MessageCreate, async message => {
   try {
     await message.author.send(`🧭 Encontraste:\n${item.icon} ${item.name} x1`);
   } catch {
-    message.reply("📩 Activa tus DMs");
+    message.reply("📩 Activa tus DMs para recibir drops");
   }
 });
 
+
 /* =====================
-TOPS AUTOMÁTICOS (6H)
+TOPS AUTOMÁTICOS (6H + BONITO + MENCIONES)
 ===================== */
 setInterval(async () => {
 
@@ -555,7 +453,6 @@ setInterval(async () => {
 
   const top = ranking.slice(0, 10);
 
-  /* 🏆 FORMATO BONITO */
   const medals = ["🥇", "🥈", "🥉"];
 
   const description = top.map((u, i) => {
@@ -567,9 +464,7 @@ setInterval(async () => {
     color: 0x2b2d31,
     title: "🏆 TOP EXPLORADORES DEL ABISMO",
     description: description || "Sin datos aún...",
-    footer: {
-      text: "Belaf observa el progreso…"
-    },
+    footer: { text: "Belaf observa el progreso…" },
     timestamp: new Date()
   };
 
@@ -581,7 +476,8 @@ setInterval(async () => {
     embeds: [embed]
   });
 
-}, 6 * 60 * 60 * 1000); // ⏱️ 6 HORAS
+}, 6 * 60 * 60 * 1000);
+
 
 /* =====================
 LOGIN
