@@ -532,7 +532,7 @@ client.on(Events.MessageCreate, async message => {
 });
 
 /* =====================
-TOPS AUTOMÁTICOS (BONITO)
+TOPS AUTOMÁTICOS (6H)
 ===================== */
 setInterval(async () => {
 
@@ -559,7 +559,7 @@ setInterval(async () => {
   const medals = ["🥇", "🥈", "🥉"];
 
   const description = top.map((u, i) => {
-    const medal = medals[i] || `🔹`;
+    const medal = medals[i] || "🔹";
     return `${medal} **${u.tag}**\n┗ 💰 ${u.money} monedas`;
   }).join("\n\n");
 
@@ -576,9 +576,12 @@ setInterval(async () => {
   const ch = guild.channels.cache.get(config.channels.tops);
   if (!ch) return;
 
-  await ch.send({ embeds: [embed] });
+  await ch.send({
+    content: "@everyone @here",
+    embeds: [embed]
+  });
 
-}, 0 * 2 * 60 * 1000); // ⏱️ 6 HORAS
+}, 6 * 60 * 60 * 1000); // ⏱️ 6 HORAS
 
 /* =====================
 LOGIN
