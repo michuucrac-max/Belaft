@@ -10,7 +10,8 @@ ActionRowBuilder,
 StringSelectMenuBuilder,
 ChannelSelectMenuBuilder,
 ChannelType,
-PermissionsBitField
+PermissionsBitField,
+EmbedBuilder
 } from "discord.js";
 
 import fs from "fs";
@@ -37,7 +38,13 @@ const objectsPath = "./objects.json";
 
 const config = fs.existsSync(configPath)
 ? JSON.parse(fs.readFileSync(configPath, "utf8"))
-: { channel: null, channels: {} };
+: {
+channel: null,
+channels: {
+tops: null,
+rankup: null
+}
+};
 
 const objects = fs.existsSync(objectsPath)
 ? JSON.parse(fs.readFileSync(objectsPath, "utf8"))
@@ -49,13 +56,14 @@ const status = fs.existsSync(statusPath)
 
 const saveStatus = () => fs.writeFileSync(statusPath, JSON.stringify(status, null, 2));
 const saveConfig = () => fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+const saveObjects = () => fs.writeFileSync(objectsPath, JSON.stringify(objects, null, 2));
 
 function getStatus(id){
 if(!status[id]) status[id]={ money:0, inventory:{}, messages:0 };
 return status[id];
 }
 
-/* ===================== RANKS FLEXIBLES */
+/* ===================== RANGOS FLEXIBLES */
 const rankOrder = [
 "bell",
 "silbato rojo",
@@ -75,7 +83,7 @@ if(roles.includes(rankOrder[i])) return i;
 return -1;
 }
 
-/* ===================== DROP POR PROBABILIDAD */
+/* ===================== DROP PROBABILIDAD */
 function rollItem(){
 
 const all = [
@@ -109,10 +117,11 @@ GatewayIntentBits.MessageContent
 partials: [Partials.Channel]
 });
 
-/* ===================== COMMANDS */
+/* ===================== COMMANDS (12 EXACTOS) */
 const commands = [
 
 new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
+
 new SlashCommandBuilder().setName("mymoney").setDescription("Ver monedas"),
 
 new SlashCommandBuilder()
@@ -128,7 +137,7 @@ o.setName("modo").setRequired(true)
 
 new SlashCommandBuilder().setName("rankup").setDescription("Subir rango"),
 
-/* ADMIN */
+/* ADMIN MONEY */
 new SlashCommandBuilder()
 .setName("setmoney")
 .setDescription("Dar dinero")
@@ -149,6 +158,28 @@ new SlashCommandBuilder()
 .addUserOption(o=>o.setName("usuario").setRequired(true))
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
+/* ITEMS ADMIN */
+new SlashCommandBuilder()
+.setName("setitem")
+.setDescription("Dar objeto")
+.addUserOption(o=>o.setName("usuario").setRequired(true))
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
+new SlashCommandBuilder()
+.setName("removeitem")
+.setDescription("Quitar objeto")
+.addUserOption(o=>o.setName("usuario").setRequired(true))
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
+new SlashCommandBuilder()
+.setName("createartefact")
+.setDescription("Crear objeto")
+.addStringOption(o=>o.setName("categoria").setRequired(true))
+.addStringOption(o=>o.setName("nombre").setRequired(true))
+.addStringOption(o=>o.setName("icono").setRequired(true))
+.addNumberOption(o=>o.setName("precio").setRequired(true))
+.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
+
 /* CONFIG */
 new SlashCommandBuilder()
 .setName("setchannelreliquies")
@@ -167,46 +198,17 @@ new SlashCommandBuilder()
 
 ];
 
-/* ===================== REGISTER (FIX REAL) */
+/* ===================== REGISTER GLOBAL */
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 client.once(Events.ClientReady, async () => {
 
-console.log(`🧭 Belaf listo como ${client.user.tag}`);
-
-const data = commands.map(cmd => cmd.toJSON());
-
-for (const guild of client.guilds.cache.values()) {
-try {
-
 await rest.put(
-Routes.applicationGuildCommands(CLIENT_ID, guild.id),
-{ body: data }
+Routes.applicationCommands(CLIENT_ID),
+{ body: commands.map(c => c.toJSON()) }
 );
 
-console.log(`✅ Comandos cargados en: ${guild.name}`);
-
-} catch (err) {
-console.log(`❌ Error en ${guild.name}`, err);
-}
-}
-
-});
-
-/* NUEVOS SERVIDORES */
-client.on(Events.GuildCreate, async (guild) => {
-try {
-
-await rest.put(
-Routes.applicationGuildCommands(CLIENT_ID, guild.id),
-{ body: commands.map(cmd => cmd.toJSON()) }
-);
-
-console.log(`🆕 Registrado en: ${guild.name}`);
-
-} catch (err) {
-console.log(err);
-}
+console.log(`🧭 Belaf activo como ${client.user.tag}`);
 });
 
 /* =====================
@@ -215,15 +217,16 @@ INTERACTIONS
 client.on(Events.InteractionCreate, async interaction => {
 try {
 
-/* ===== COMANDOS ===== */
+/* ===================== CHAT COMMAND ===================== */
 if (interaction.isChatInputCommand()) {
 
 const cmd = interaction.commandName;
 
-/* ===== CONFIG CANALES ===== */
+/* ===== SET CHANNELS ===== */
 if (cmd === "setchannelreliquies" || cmd === "setchanneltops" || cmd === "setchannelrankup") {
 
 let key = "";
+
 if (cmd === "setchannelreliquies") key = "reliquies";
 if (cmd === "setchanneltops") key = "tops";
 if (cmd === "setchannelrankup") key = "rankup";
@@ -240,10 +243,8 @@ components: [new ActionRowBuilder().addComponents(menu)]
 });
 }
 
-/* ===== DEFER SEGURO ===== */
-if (!interaction.deferred && !interaction.replied) {
+/* ===== DEFER ===== */
 await interaction.deferReply({ ephemeral: true });
-}
 
 /* ===== INVENTORY ===== */
 if (cmd === "inventory") {
@@ -346,7 +347,7 @@ return interaction.editReply("🏆 Máximo rango");
 const next = current + 1;
 
 if (st.money < rankCosts[next])
-return interaction.editReply(`❌ Necesitas ${rankCosts[next]} monedas`);
+return interaction.editReply(`❌ Necesitas ${rankCosts[next]}`);
 
 st.money -= rankCosts[next];
 
@@ -358,34 +359,88 @@ if (role) await member.roles.add(role).catch(()=>{});
 
 saveStatus();
 
-/* ===== MENSAJE BONITO EN CANAL ===== */
+/* ===== MENSAJE BONITO ===== */
 if (config.channels?.rankup) {
 
 const ch = member.guild.channels.cache.get(config.channels.rankup);
 
 if (ch) {
-const embed = {
-color: 0xf1c40f,
-title: "🎖️ ¡ASCENSO DE RANGO!",
-description: `✨ ${member} ha ascendido\n\n🏅 Nuevo rango: **${rankOrder[next]}**`,
-thumbnail: {
-url: member.user.displayAvatarURL({ dynamic: true })
-},
-footer: { text: "El Abismo observa tu progreso..." },
-timestamp: new Date()
-};
+const embed = new EmbedBuilder()
+.setColor(0xf1c40f)
+.setTitle("🎖️ ¡ASCENSO!")
+.setDescription(`${member} subió a **${rankOrder[next]}**`)
+.setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+.setTimestamp();
 
-ch.send({ content: `${member}`, embeds: [embed] });
+ch.send({
+content: `${member}`,
+embeds: [embed]
+});
 }
 }
 
 return interaction.editReply(`🎖️ Subiste a ${rankOrder[next]}`);
 }
 
-return interaction.editReply("⚠️ Comando no reconocido");
+/* ===== SET ITEM ===== */
+if (cmd === "setitem") {
+const target = interaction.options.getUser("usuario");
+
+const menu = new StringSelectMenuBuilder()
+.setCustomId(`setitem_${target.id}`)
+.addOptions([...objects.class4,...objects.class3,...objects.class2,...objects.class1,...objects.special,...objects.ultra].map(o=>({
+label:o.name,
+value:o.name
+})));
+
+return interaction.editReply({
+content: "Selecciona objeto",
+components: [new ActionRowBuilder().addComponents(menu)]
+});
 }
 
-/* ===== SELECT CANAL ===== */
+/* ===== REMOVE ITEM ===== */
+if (cmd === "removeitem") {
+const target = interaction.options.getUser("usuario");
+
+const user = getStatus(target.id);
+
+if (!Object.keys(user.inventory).length)
+return interaction.editReply("❌ Vacío");
+
+const menu = new StringSelectMenuBuilder()
+.setCustomId(`removeitem_${target.id}`)
+.addOptions(Object.keys(user.inventory).map(i=>({
+label:i,
+value:i
+})));
+
+return interaction.editReply({
+content: "Selecciona objeto",
+components: [new ActionRowBuilder().addComponents(menu)]
+});
+}
+
+/* ===== CREATE ARTEFACT ===== */
+if (cmd === "createartefact") {
+
+const categoria = interaction.options.getString("categoria");
+const nombre = interaction.options.getString("nombre");
+const icono = interaction.options.getString("icono");
+const precio = interaction.options.getNumber("precio");
+
+if(!objects[categoria])
+return interaction.editReply("❌ Categoría inválida");
+
+objects[categoria].push({ name:nombre, icon:icono, price:precio });
+saveObjects();
+
+return interaction.editReply(`✨ ${nombre} creado`);
+}
+
+}
+
+/* ===================== CHANNEL SELECT ===================== */
 if (interaction.isChannelSelectMenu()) {
 
 const id = interaction.customId.replace("set_", "");
@@ -410,27 +465,25 @@ components: []
 });
 }
 
-/* ===== SELECT SELL ===== */
+/* ===================== SELECT MENUS ===================== */
 if (interaction.isStringSelectMenu()) {
 
-if (!interaction.customId.startsWith("sell_")) return;
+const user = getStatus(interaction.user.id);
+
+/* SELL */
+if (interaction.customId.startsWith("sell_")) {
 
 const mode = interaction.customId.replace("sell_", "");
-const user = getStatus(interaction.user.id);
 const itemName = interaction.values[0];
 const item = user.inventory[itemName];
 
-if (!item)
-return interaction.update({ content: "❌ Error", components: [] });
-
 let gain = 0;
-const price = Number(item.price ?? 0);
 
 if (mode === "one") {
 item.qty--;
-gain = price;
+gain = item.price ?? 0;
 } else {
-gain = item.qty * price;
+gain = item.qty * (item.price ?? 0);
 delete user.inventory[itemName];
 }
 
@@ -445,6 +498,46 @@ components: []
 });
 }
 
+/* SET ITEM */
+if (interaction.customId.startsWith("setitem_")) {
+
+const targetId = interaction.customId.replace("setitem_", "");
+const target = getStatus(targetId);
+const itemName = interaction.values[0];
+
+const obj = [...objects.class4,...objects.class3,...objects.class2,...objects.class1,...objects.special,...objects.ultra]
+.find(o=>o.name === itemName);
+
+if (!target.inventory[itemName])
+target.inventory[itemName] = { ...obj, qty: 0 };
+
+target.inventory[itemName].qty++;
+saveStatus();
+
+return interaction.update({
+content: `✅ ${itemName} dado`,
+components: []
+});
+}
+
+/* REMOVE ITEM */
+if (interaction.customId.startsWith("removeitem_")) {
+
+const targetId = interaction.customId.replace("removeitem_", "");
+const target = getStatus(targetId);
+const itemName = interaction.values[0];
+
+delete target.inventory[itemName];
+saveStatus();
+
+return interaction.update({
+content: `❌ ${itemName} eliminado`,
+components: []
+});
+}
+
+}
+
 } catch (err) {
 console.log(err);
 
@@ -456,7 +549,7 @@ return interaction.reply({ content: "❌ Error", ephemeral: true });
 });
 
 /* =====================
-DROP SYSTEM (PROB + 1 CANAL + DM)
+DROP SYSTEM (PROBABILIDAD + DM)
 ===================== */
 client.on(Events.MessageCreate, async message => {
 
@@ -464,7 +557,7 @@ if (message.author.bot || !message.guild) return;
 if (!config.channel) return;
 if (message.channel.id !== config.channel) return;
 
-/* 🎲 Probabilidad 10% */
+/* 10% probabilidad */
 if (Math.random() > 0.10) return;
 
 const user = getStatus(message.author.id);
@@ -478,17 +571,16 @@ user.inventory[item.name] = { ...item, qty: 0 };
 user.inventory[item.name].qty++;
 saveStatus();
 
-/* 📩 Enviar por DM */
 try {
 await message.author.send(`🧭 Encontraste:\n${item.icon} ${item.name}`);
 } catch {
-message.reply("📩 Activa tus DMs para recibir objetos");
+message.reply("📩 Activa tus DMs");
 }
 
 });
 
 /* =====================
-TOPS AUTOMÁTICOS (6 HORAS)
+TOPS (CADA 6 HORAS)
 ===================== */
 setInterval(async () => {
 
@@ -514,14 +606,13 @@ const medal = ["🥇","🥈","🥉"][i] || "🔹";
 return `${medal} ${u.tag} — 💰 ${u.money}`;
 }).join("\n");
 
-const embed = {
-title: "🏆 TOP EXPLORADORES DEL ABISMO",
-description: desc,
-color: 0x2b2d31,
-footer: { text: "Actualizado cada 6 horas" }
-};
+const embed = new EmbedBuilder()
+.setTitle("🏆 TOP EXPLORADORES")
+.setDescription(desc)
+.setColor(0x2b2d31);
 
 const ch = guild.channels.cache.get(config.channels.tops);
+
 if (ch) {
 ch.send({
 content: "@everyone @here",
