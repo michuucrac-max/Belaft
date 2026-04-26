@@ -183,11 +183,6 @@ client.once(Events.ClientReady, async () => {
 
       await rest.put(
         Routes.applicationGuildCommands(CLIENT_ID, guild.id),
-        { body: [] }
-      );
-
-      await rest.put(
-        Routes.applicationGuildCommands(CLIENT_ID, guild.id),
         { body: data }
       );
 
