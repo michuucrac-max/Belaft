@@ -129,7 +129,7 @@ o.setName("modo").setRequired(true)
 
 new SlashCommandBuilder().setName("rankup").setDescription("Subir rango"),
 
-/* 💰 ADMIN MONEY (IMPORTANTES) */
+/* 💰 ADMIN */
 new SlashCommandBuilder()
 .setName("setmoney")
 .setDescription("Dar dinero")
@@ -146,7 +146,7 @@ new SlashCommandBuilder()
 
 new SlashCommandBuilder()
 .setName("seemoney")
-.setDescription("Ver dinero de alguien")
+.setDescription("Ver dinero")
 .addUserOption(o=>o.setName("usuario").setRequired(true))
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
@@ -162,7 +162,7 @@ new SlashCommandBuilder()
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
 new SlashCommandBuilder()
-.setName("setrankup")
+.setName("setchannelrankup")
 .setDescription("Canal de rankup")
 .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
 
@@ -188,13 +188,13 @@ if (interaction.isChatInputCommand()) {
 const cmd = interaction.commandName;
 
 /* ===== CONFIG CHANNELS ===== */
-if (cmd === "setchannelreliquies" || cmd === "setchanneltops" || cmd === "setrankup") {
+if (cmd === "setchannelreliquies" || cmd === "setchanneltops" || cmd === "setchannelrankup") {
 
 let key = "";
 
 if (cmd === "setchannelreliquies") key = "reliquies";
 if (cmd === "setchanneltops") key = "tops";
-if (cmd === "setrankup") key = "rankup";
+if (cmd === "setchannelrankup") key = "rankup";
 
 const menu = new ChannelSelectMenuBuilder()
 .setCustomId(`set_${key}`)
