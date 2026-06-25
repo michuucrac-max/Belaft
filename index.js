@@ -102,61 +102,110 @@ COMANDOS
 ===================== */
 const commands = [
   // USER
-  new SlashCommandBuilder().setName("inventory").setDescription("Ver inventario"),
-  new SlashCommandBuilder().setName("mymoney").setDescription("Ver dinero"),
+  new SlashCommandBuilder()
+    .setName("inventory")
+    .setDescription("Ver el inventario del usuario"),
+
+  new SlashCommandBuilder()
+    .setName("mymoney")
+    .setDescription("Ver la cantidad de monedas del usuario"),
+
   new SlashCommandBuilder()
     .setName("sell")
-    .setDescription("Vender objetos")
+    .setDescription("Vender objetos del inventario")
     .addStringOption(o =>
-      o.setName("modo").setRequired(true)
-        .addChoices({ name: "Uno", value: "one" }, { name: "Todo", value: "all" })
+      o.setName("modo")
+        .setDescription("Modo de venta: uno o todo")
+        .setRequired(true)
+        .addChoices(
+          { name: "Uno", value: "one" },
+          { name: "Todo", value: "all" }
+        )
     ),
-  new SlashCommandBuilder().setName("rankup").setDescription("Subir rango"),
+
+  new SlashCommandBuilder()
+    .setName("rankup")
+    .setDescription("Subir de rango"),
 
   // ADMIN
   new SlashCommandBuilder()
     .setName("setmoney")
-    .addUserOption(o => o.setName("usuario").setRequired(true))
-    .addNumberOption(o => o.setName("cantidad").setRequired(true))
+    .setDescription("Añadir monedas a un usuario")
+    .addUserOption(o =>
+      o.setName("usuario")
+        .setDescription("Usuario al que se le añadirán monedas")
+        .setRequired(true)
+    )
+    .addNumberOption(o =>
+      o.setName("cantidad")
+        .setDescription("Cantidad de monedas a añadir")
+        .setRequired(true)
+    )
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
   new SlashCommandBuilder()
     .setName("removemoney")
-    .addUserOption(o => o.setName("usuario").setRequired(true))
-    .addNumberOption(o => o.setName("cantidad").setRequired(true))
+    .setDescription("Quitar monedas a un usuario")
+    .addUserOption(o =>
+      o.setName("usuario")
+        .setDescription("Usuario al que se le quitarán monedas")
+        .setRequired(true)
+    )
+    .addNumberOption(o =>
+      o.setName("cantidad")
+        .setDescription("Cantidad de monedas a quitar")
+        .setRequired(true)
+    )
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
   new SlashCommandBuilder()
     .setName("seemoney")
-    .addUserOption(o => o.setName("usuario").setRequired(true))
+    .setDescription("Ver monedas de un usuario")
+    .addUserOption(o =>
+      o.setName("usuario")
+        .setDescription("Usuario del que se verán las monedas")
+        .setRequired(true)
+    )
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
   // CONFIG
-  new SlashCommandBuilder().setName("setchannelreliquies")
-    .setDescription("Configurar canal de drops")
+  new SlashCommandBuilder()
+    .setName("setchannelreliquies")
+    .setDescription("Configurar canal para drops")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
-  new SlashCommandBuilder().setName("setchanneltops")
-    .setDescription("Configurar canal de tops")
+  new SlashCommandBuilder()
+    .setName("setchanneltops")
+    .setDescription("Configurar canal para tops")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
-  new SlashCommandBuilder().setName("setchannelrankup")
-    .setDescription("Configurar canal de rankup")
+  new SlashCommandBuilder()
+    .setName("setchannelrankup")
+    .setDescription("Configurar canal para ascensos de rango")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
   // OBJETOS
   new SlashCommandBuilder()
     .setName("setitem")
-    .addUserOption(o => o.setName("usuario").setRequired(true))
+    .setDescription("Dar un objeto a un usuario")
+    .addUserOption(o =>
+      o.setName("usuario")
+        .setDescription("Usuario al que se le dará el objeto")
+        .setRequired(true)
+    )
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
   new SlashCommandBuilder()
     .setName("removeitem")
-    .addUserOption(o => o.setName("usuario").setRequired(true))
+    .setDescription("Quitar un objeto a un usuario")
+    .addUserOption(o =>
+      o.setName("usuario")
+        .setDescription("Usuario al que se le quitará el objeto")
+        .setRequired(true)
+    )
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
 ];
 
-const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 /* =====================
 READY
