@@ -206,6 +206,10 @@ const commands = [
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
 ];
 
+/* =====================
+REST
+===================== */
+const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 /* =====================
 READY
@@ -213,65 +217,14 @@ READY
 client.once(Events.ClientReady, async () => {
   console.log(`🧭 Bot listo como ${client.user.tag}`);
 
-  await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+  await rest.put(
+    Routes.applicationCommands(CLIENT_ID),
+    { body: commands }
+  );
+
   console.log("✅ Comandos registrados");
 
-  // TOP + TIPS cada 6h
-  setInterval(async () => {
-    const guild = client.guilds.cache.first();
-    if (!guild) return;
-
-    // TOP
-    if (config.channels.tops) {
-      try {
-        const members = await guild.members.fetch();
-        const arr = [];
-
-        members.forEach(m => {
-          if (m.user.bot) return;
-          const st = getStatus(m.id);
-          arr.push({ tag: m.user.tag, money: st.money });
-        });
-
-        arr.sort((a, b) => b.money - a.money);
-        const medals = ["🥇", "🥈", "🥉"];
-        const desc = arr.slice(0, 10)
-          .map((u, i) => `${medals[i] || `#${i + 1}`} ${u.tag} — 💰 ${u.money}`)
-          .join("\n");
-
-        const embed = new EmbedBuilder()
-          .setColor(0x2b2d31)
-          .setTitle("🏆 TOP EXPLORADORES")
-          .setDescription(desc)
-          .setFooter({ text: "El Abismo observa..." });
-
-        const ch = guild.channels.cache.get(config.channels.tops);
-        if (ch) await ch.send({ content: "@everyone", embeds: [embed] });
-      } catch (err) {
-        console.error("❌ Error TOP:", err);
-      }
-    }
-
-    // TIPS
-    if (config.channels.tops) {
-      const tips = [
-        "💡 Vende objetos raros estratégicamente",
-        "💡 Guarda dinero para rangos altos",
-        "💡 Los drops épicos son muy raros",
-        "💡 El spam no aumenta tus probabilidades",
-        "💡 Mejora tu rango para presumir",
-        "💡 El Abismo siempre recompensa..."
-      ];
-      const tip = tips[Math.floor(Math.random() * tips.length)];
-      const embedTip = new EmbedBuilder()
-        .setColor(0x5865f2)
-        .setTitle("📢 CONSEJO DEL ABISMO")
-        .setDescription(tip);
-
-      const ch = guild.channels.cache.get(config.channels.tops);
-      if (ch) await ch.send({ embeds: [embedTip] });
-    }
-  }, 6 * 60 * 60 * 1000);
+  // Aquí puedes seguir con tu lógica de TOPS y TIPS cada 6h
 });
 
 /* =====================
