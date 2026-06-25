@@ -47,19 +47,38 @@ const objectsPath = "./objects.json";
 /// CONFIGURACIÓN ///
 ========================================= */
 
-const config = ...;
+const config = fs.existsSync(configPath)
+? JSON.parse(fs.readFileSync(configPath))
+: {
+channels: {
+reliquies: null,
+tops: null,
+rankup: null
+}
+};
 
 /* =========================================
 /// STATUS ///
 ========================================= */
 
-const status = ...;
+const status = fs.existsSync(statusPath)
+? JSON.parse(fs.readFileSync(statusPath))
+: {};
 
 /* =========================================
 /// OBJECTS ///
 ========================================= */
 
-const objects = ...;
+const objects = fs.existsSync(objectsPath)
+? JSON.parse(fs.readFileSync(objectsPath))
+: {
+class4: [],
+class3: [],
+class2: [],
+class1: [],
+special: [],
+ultra: []
+};
 
 /* =========================================
 /// SAVE FUNCTIONS ///
