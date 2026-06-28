@@ -96,10 +96,9 @@ client.once(Events.ClientReady, async () => {
 
 client.on(Events.InteractionCreate, async interaction => {
 
-  if (!interaction.isChatInputCommand()) return;
-
   try {
 
+    // Todas las interacciones pasan a logic.js
     await executeLogic(interaction, client);
 
   } catch (err) {
@@ -107,20 +106,23 @@ client.on(Events.InteractionCreate, async interaction => {
     console.error(err);
 
     const error = {
-      content: "❌ Ocurrió un error al ejecutar el comando.",
+      content: "❌ Ocurrió un error al ejecutar la interacción.",
       ephemeral: true
     };
 
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(error).catch(() => {});
-    } else {
-      await interaction.reply(error).catch(() => {});
-    }
+    try {
+
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp(error);
+      } else {
+        await interaction.reply(error);
+      }
+
+    } catch {}
 
   }
 
 });
-
 
 /* ==========================
           LOGIN
