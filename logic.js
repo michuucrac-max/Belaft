@@ -1,8 +1,237 @@
 /* ==========================
+          IMPORTS
+========================== */
+
+import fs from "fs";
+
+import {
+    ActionRowBuilder,
+    ChannelSelectMenuBuilder,
+    ChannelType
+} from "discord.js";
+
+
+/* ==========================
+           CONFIG
+========================== */
+
+const CONFIG_PATH = "./config.json";
+
+let config = {
+    channels: {
+        reliquies: null
+    }
+};
+
+loadConfig();
+
+
+/* ==========================
+          FUNCIONES
+========================== */
+
+function loadConfig() {
+
+    if (!fs.existsSync(CONFIG_PATH)) {
+
+        saveConfig();
+
+        return;
+
+    }
+
+    try {
+
+        config = JSON.parse(
+            fs.readFileSync(CONFIG_PATH, "utf8")
+        );
+
+    } catch (err) {
+
+        console.error("❌ Error cargando config.json");
+
+        saveConfig();
+
+    }
+
+}
+
+function saveConfig() {
+
+    fs.writeFileSync(
+        CONFIG_PATH,
+        JSON.stringify(config, null, 4)
+    );
+
+}
+
+
+/* ==========================
            LÓGICA
 ========================== */
 
 export async function executeLogic(interaction, client) {
+
+    /* ==========================
+        SELECT MENUS
+    ========================== */
+
+    if (interaction.isChannelSelectMenu()) {
+
+        return handleChannelMenus(interaction);
+
+    }
+
+
+    /* ==========================
+            BOTONES
+    ========================== */
+
+    if (interaction.isButton()) {
+
+        return handleButtons(interaction);
+
+    }
+
+
+    /* ==========================
+            MODALES
+    ========================== */
+
+    if (interaction.isModalSubmit()) {
+
+        return handleModals(interaction);
+
+    }
+
+
+    /* ==========================
+        SLASH COMMANDS
+    ========================== */
+
+    if (!interaction.isChatInputCommand()) return;
+
+    return handleSlashCommands(interaction, client);
+
+}
+
+/* ==========================
+      SELECT MENUS
+========================== */
+
+async function handleChannelMenus(interaction) {
+
+    switch (interaction.customId) {
+
+        /* ==========================
+         SET RELIQUIES CHANNEL
+        ========================== */
+
+        case "set_reliquies_channel": {
+
+            config.channels.reliquies = interaction.values[0];
+
+            saveConfig();
+
+            return interaction.update({
+
+                content:
+`✅ Canal configurado correctamente.
+
+📍 Canal:
+<#${interaction.values[0]}>
+
+Ahora las reliquias aparecerán automáticamente en ese canal.`,
+
+                components: []
+
+            });
+
+        }
+
+        /* ==========================
+            DESCONOCIDO
+        ========================== */
+
+        default: {
+
+            return interaction.reply({
+
+                content: "❌ Menú desconocido.",
+
+                ephemeral: true
+
+            });
+
+        }
+
+    }
+
+}
+
+
+/* ==========================
+          BOTONES
+========================== */
+
+async function handleButtons(interaction) {
+
+    switch (interaction.customId) {
+
+        /* ==========================
+          PLACEHOLDER
+        ========================== */
+
+        default: {
+
+            return interaction.reply({
+
+                content: "⚠️ Botón aún no implementado.",
+
+                ephemeral: true
+
+            });
+
+        }
+
+    }
+
+}
+
+
+/* ==========================
+          MODALES
+========================== */
+
+async function handleModals(interaction) {
+
+    switch (interaction.customId) {
+
+        /* ==========================
+          PLACEHOLDER
+        ========================== */
+
+        default: {
+
+            return interaction.reply({
+
+                content: "⚠️ Modal aún no implementado.",
+
+                ephemeral: true
+
+            });
+
+        }
+
+    }
+
+}
+
+/* ==========================
+      SLASH COMMANDS
+========================== */
+
+async function handleSlashCommands(interaction, client) {
 
     switch (interaction.commandName) {
 
@@ -33,7 +262,7 @@ export async function executeLogic(interaction, client) {
 
 
         /* ==========================
-              USER INFO
+             USER INFO
         ========================== */
 
         case "userinfo": {
@@ -47,7 +276,7 @@ export async function executeLogic(interaction, client) {
 
 
         /* ==========================
-             SERVER INFO
+            SERVER INFO
         ========================== */
 
         case "server": {
@@ -61,7 +290,7 @@ export async function executeLogic(interaction, client) {
 
 
         /* ==========================
-                 HELP
+                HELP
         ========================== */
 
         case "help": {
@@ -89,40 +318,52 @@ export async function executeLogic(interaction, client) {
 
 
         /* ==========================
-              MY MONEY
+             MY MONEY
         ========================== */
 
         case "mymoney": {
 
-            return interaction.reply(
-                "⚠️ Sistema de economía aún no implementado."
-            );
+            return interaction.reply({
+
+                content: "⚠️ Sistema de economía aún no implementado.",
+
+                ephemeral: true
+
+            });
 
         }
 
 
         /* ==========================
-             INVENTORY
+            INVENTORY
         ========================== */
 
         case "inventory": {
 
-            return interaction.reply(
-                "⚠️ Inventario aún no implementado."
-            );
+            return interaction.reply({
+
+                content: "⚠️ Inventario aún no implementado.",
+
+                ephemeral: true
+
+            });
 
         }
 
 
         /* ==========================
-                 SELL
+                SELL
         ========================== */
 
         case "sell": {
 
-            return interaction.reply(
-                "⚠️ Sistema de venta aún no implementado."
-            );
+            return interaction.reply({
+
+                content: "⚠️ Sistema de venta aún no implementado.",
+
+                ephemeral: true
+
+            });
 
         }
 
@@ -133,12 +374,15 @@ export async function executeLogic(interaction, client) {
 
         case "rankup": {
 
-            return interaction.reply(
-                "⚠️ Sistema de rangos aún no implementado."
-            );
+            return interaction.reply({
+
+                content: "⚠️ Sistema de rangos aún no implementado.",
+
+                ephemeral: true
+
+            });
 
         }
-
 
         /* ==========================
              SET MONEY
@@ -146,22 +390,30 @@ export async function executeLogic(interaction, client) {
 
         case "setmoney": {
 
-            return interaction.reply(
-                "⚠️ Administración aún no implementada."
-            );
+            return interaction.reply({
+
+                content: "⚠️ Administración aún no implementada.",
+
+                ephemeral: true
+
+            });
 
         }
 
 
         /* ==========================
-            REMOVE MONEY
+           REMOVE MONEY
         ========================== */
 
         case "removemoney": {
 
-            return interaction.reply(
-                "⚠️ Administración aún no implementada."
-            );
+            return interaction.reply({
+
+                content: "⚠️ Administración aún no implementada.",
+
+                ephemeral: true
+
+            });
 
         }
 
@@ -172,9 +424,13 @@ export async function executeLogic(interaction, client) {
 
         case "seemoney": {
 
-            return interaction.reply(
-                "⚠️ Administración aún no implementada."
-            );
+            return interaction.reply({
+
+                content: "⚠️ Administración aún no implementada.",
+
+                ephemeral: true
+
+            });
 
         }
 
@@ -185,9 +441,49 @@ export async function executeLogic(interaction, client) {
 
         case "setchannelreliquies": {
 
-            return interaction.reply(
-                "⚠️ Configuración aún no implementada."
-            );
+            if (!interaction.memberPermissions.has("Administrator")) {
+
+                return interaction.reply({
+
+                    content: "❌ Solo los administradores pueden usar este comando.",
+
+                    ephemeral: true
+
+                });
+
+            }
+
+            const row = new ActionRowBuilder()
+
+                .addComponents(
+
+                    new ChannelSelectMenuBuilder()
+
+                        .setCustomId("set_reliquies_channel")
+
+                        .setPlaceholder("Selecciona el canal")
+
+                        .addChannelTypes(ChannelType.GuildText)
+
+                        .setMinValues(1)
+
+                        .setMaxValues(1)
+
+                );
+
+            return interaction.reply({
+
+                content: config.channels.reliquies
+
+                    ? `📍 Canal actual: <#${config.channels.reliquies}>\n\nSelecciona otro canal si deseas cambiarlo.`
+
+                    : "🧭 Selecciona el canal donde aparecerán automáticamente las reliquias.",
+
+                components: [row],
+
+                ephemeral: true
+
+            });
 
         }
 
@@ -199,12 +495,15 @@ export async function executeLogic(interaction, client) {
         default: {
 
             return interaction.reply({
+
                 content: "❌ Comando desconocido.",
+
                 ephemeral: true
+
             });
 
         }
 
     }
 
-    }
+}
