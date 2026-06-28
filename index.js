@@ -12,7 +12,11 @@ import {
 
 import express from "express";
 import fs from "fs";
-import { executeLogic } from "./logic.js";
+
+import {
+  executeLogic,
+  executeMessageLogic
+} from "./logic.js";
 
 
 /* ==========================
@@ -49,7 +53,19 @@ app.listen(PORT, () => {
 ========================== */
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
+
+  intents: [
+
+    GatewayIntentBits.Guilds,
+
+    GatewayIntentBits.GuildMessages,
+
+    GatewayIntentBits.MessageContent,
+
+    GatewayIntentBits.DirectMessages
+
+  ]
+
 });
 
 
@@ -91,14 +107,13 @@ client.once(Events.ClientReady, async () => {
 
 
 /* ==========================
-           LÓGICA
+      INTERACCIONES
 ========================== */
 
 client.on(Events.InteractionCreate, async interaction => {
 
   try {
 
-    // Todas las interacciones pasan a logic.js
     await executeLogic(interaction, client);
 
   } catch (err) {
@@ -113,9 +128,13 @@ client.on(Events.InteractionCreate, async interaction => {
     try {
 
       if (interaction.replied || interaction.deferred) {
+
         await interaction.followUp(error);
+
       } else {
+
         await interaction.reply(error);
+
       }
 
     } catch {}
@@ -123,6 +142,26 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
 });
+
+
+/* ==========================
+      MENSAJES
+========================== */
+
+client.on(Events.MessageCreate, async message => {
+
+  try {
+
+    await executeMessageLogic(message, client);
+
+  } catch (err) {
+
+    console.error(err);
+
+  }
+
+});
+
 
 /* ==========================
           LOGIN
