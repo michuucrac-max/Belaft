@@ -1,3 +1,7 @@
+/* ==========================
+          IMPORTS
+========================== */
+
 import {
   Client,
   GatewayIntentBits,
@@ -6,25 +10,62 @@ import {
   Events
 } from "discord.js";
 
+import express from "express";
 import fs from "fs";
+
+
+/* ==========================
+      VARIABLES DE ENTORNO
+========================== */
 
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
+const PORT = process.env.PORT || 3000;
 
 if (!TOKEN || !CLIENT_ID) {
-  console.log("Faltan variables de entorno.");
+  console.log("❌ Faltan variables de entorno.");
   process.exit(1);
 }
+
+
+/* ==========================
+            WEB
+========================== */
+
+const app = express();
+
+app.get("/", (req, res) => {
+  res.send("🤖 Bot online.");
+});
+
+app.listen(PORT, () => {
+  console.log(`🌐 Web iniciada en el puerto ${PORT}`);
+});
+
+
+/* ==========================
+          DISCORD
+========================== */
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
+
+
+/* ==========================
+         COMANDOS
+========================== */
 
 const commands = JSON.parse(
   fs.readFileSync("./cmd.json", "utf8")
 );
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
+
+
+/* ==========================
+           READY
+========================== */
 
 client.once(Events.ClientReady, async () => {
 
@@ -46,6 +87,11 @@ client.once(Events.ClientReady, async () => {
   }
 
 });
+
+
+/* ==========================
+       INTERACCIONES
+========================== */
 
 client.on(Events.InteractionCreate, async interaction => {
 
@@ -90,5 +136,10 @@ ${interaction.guild.memberCount}`
   }
 
 });
+
+
+/* ==========================
+          LOGIN
+========================== */
 
 client.login(TOKEN);
