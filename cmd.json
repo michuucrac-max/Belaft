@@ -1,0 +1,22 @@
+[
+  {
+    "name": "ping",
+    "description": "Comprueba si el bot responde."
+  },
+  {
+    "name": "avatar",
+    "description": "Muestra tu avatar."
+  },
+  {
+    "name": "userinfo",
+    "description": "Información de tu usuario."
+  },
+  {
+    "name": "server",
+    "description": "Información del servidor."
+  },
+  {
+    "name": "help",
+    "description": "Lista de comandos."
+  }
+]
