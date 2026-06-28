@@ -4,6 +4,10 @@
     "description": "Comprueba si el bot responde."
   },
   {
+    "name": "help",
+    "description": "Lista de comandos."
+  },
+  {
     "name": "avatar",
     "description": "Muestra tu avatar."
   },
@@ -16,7 +20,93 @@
     "description": "Información del servidor."
   },
   {
-    "name": "help",
-    "description": "Lista de comandos."
+    "name": "inventory",
+    "description": "Ver tu inventario."
+  },
+  {
+    "name": "mymoney",
+    "description": "Ver tus monedas."
+  },
+  {
+    "name": "sell",
+    "description": "Vender objetos.",
+    "options": [
+      {
+        "name": "modo",
+        "description": "Uno o todo",
+        "type": 3,
+        "required": true,
+        "choices": [
+          {
+            "name": "Uno",
+            "value": "one"
+          },
+          {
+            "name": "Todo",
+            "value": "all"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "rankup",
+    "description": "Subir de rango."
+  },
+  {
+    "name": "setmoney",
+    "description": "Dar monedas.",
+    "default_member_permissions": "8",
+    "options": [
+      {
+        "name": "usuario",
+        "description": "Usuario",
+        "type": 6,
+        "required": true
+      },
+      {
+        "name": "cantidad",
+        "description": "Cantidad",
+        "type": 10,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "removemoney",
+    "description": "Quitar monedas.",
+    "default_member_permissions": "8",
+    "options": [
+      {
+        "name": "usuario",
+        "description": "Usuario",
+        "type": 6,
+        "required": true
+      },
+      {
+        "name": "cantidad",
+        "description": "Cantidad",
+        "type": 10,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "seemoney",
+    "description": "Ver el dinero de un usuario.",
+    "default_member_permissions": "8",
+    "options": [
+      {
+        "name": "usuario",
+        "description": "Usuario",
+        "type": 6,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "setchannelreliquies",
+    "description": "Configurar el canal de reliquias.",
+    "default_member_permissions": "8"
   }
 ]
