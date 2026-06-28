@@ -4,6 +4,8 @@
 
 import fs from "fs";
 
+import objects from "./objects.json" with { type: "json" };
+
 import {
     ActionRowBuilder,
     ChannelSelectMenuBuilder,
@@ -12,16 +14,26 @@ import {
 
 
 /* ==========================
-           CONFIG
+           RUTAS
 ========================== */
 
 const CONFIG_PATH = "./config.json";
+
+
+/* ==========================
+           CONFIG
+========================== */
 
 let config = {
     channels: {
         reliquies: null
     }
 };
+
+
+/* ==========================
+        CARGAR CONFIG
+========================== */
 
 loadConfig();
 
@@ -46,9 +58,19 @@ function loadConfig() {
             fs.readFileSync(CONFIG_PATH, "utf8")
         );
 
-    } catch (err) {
+    }
 
-        console.error("❌ Error cargando config.json");
+    catch {
+
+        console.log("⚠️ config.json corrupto. Restaurando...");
+
+        config = {
+
+            channels: {
+                reliquies: null
+            }
+
+        };
 
         saveConfig();
 
@@ -56,12 +78,51 @@ function loadConfig() {
 
 }
 
+
+/* ==========================
+        GUARDAR CONFIG
+========================== */
+
 function saveConfig() {
 
     fs.writeFileSync(
+
         CONFIG_PATH,
+
         JSON.stringify(config, null, 4)
+
     );
+
+}
+
+
+/* ==========================
+      FUNCIONES OBJETOS
+========================== */
+
+function getRandom(min, max) {
+
+    return Math.floor(
+
+        Math.random() * (max - min + 1)
+
+    ) + min;
+
+}
+
+
+// Estas funciones se implementarán
+// cuando hagamos el sistema de reliquias.
+
+function getRandomClass() {
+
+    return null;
+
+}
+
+function getRandomObject() {
+
+    return null;
 
 }
 
@@ -129,7 +190,9 @@ async function handleChannelMenus(interaction) {
 
         case "set_reliquies_channel": {
 
-            config.channels.reliquies = interaction.values[0];
+            const channelId = interaction.values[0];
+
+            config.channels.reliquies = channelId;
 
             saveConfig();
 
@@ -138,10 +201,10 @@ async function handleChannelMenus(interaction) {
                 content:
 `✅ Canal configurado correctamente.
 
-📍 Canal:
-<#${interaction.values[0]}>
+📍 Canal seleccionado:
+<#${channelId}>
 
-Ahora las reliquias aparecerán automáticamente en ese canal.`,
+Las reliquias aparecerán automáticamente en este canal.`,
 
                 components: []
 
@@ -150,7 +213,7 @@ Ahora las reliquias aparecerán automáticamente en ese canal.`,
         }
 
         /* ==========================
-            DESCONOCIDO
+             DESCONOCIDO
         ========================== */
 
         default: {
@@ -186,7 +249,7 @@ async function handleButtons(interaction) {
 
             return interaction.reply({
 
-                content: "⚠️ Botón aún no implementado.",
+                content: "⚠️ Este botón aún no está implementado.",
 
                 ephemeral: true
 
@@ -215,7 +278,7 @@ async function handleModals(interaction) {
 
             return interaction.reply({
 
-                content: "⚠️ Modal aún no implementado.",
+                content: "⚠️ Este formulario aún no está implementado.",
 
                 ephemeral: true
 
@@ -225,7 +288,7 @@ async function handleModals(interaction) {
 
     }
 
-}
+        }
 
 /* ==========================
       SLASH COMMANDS
@@ -402,7 +465,7 @@ async function handleSlashCommands(interaction, client) {
 
 
         /* ==========================
-           REMOVE MONEY
+            REMOVE MONEY
         ========================== */
 
         case "removemoney": {
@@ -461,7 +524,7 @@ async function handleSlashCommands(interaction, client) {
 
                         .setCustomId("set_reliquies_channel")
 
-                        .setPlaceholder("Selecciona el canal")
+                        .setPlaceholder("Selecciona el canal de reliquias")
 
                         .addChannelTypes(ChannelType.GuildText)
 
@@ -475,9 +538,11 @@ async function handleSlashCommands(interaction, client) {
 
                 content: config.channels.reliquies
 
-                    ? `📍 Canal actual: <#${config.channels.reliquies}>\n\nSelecciona otro canal si deseas cambiarlo.`
+                    ? `📍 Canal actual: <#${config.channels.reliquies}>
 
-                    : "🧭 Selecciona el canal donde aparecerán automáticamente las reliquias.",
+Selecciona otro canal si deseas cambiarlo.`
+
+                    : `🧭 Selecciona el canal donde aparecerán automáticamente las reliquias.`,
 
                 components: [row],
 
