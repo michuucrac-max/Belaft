@@ -1,37 +1,126 @@
 {
+  "spawn": {
+    "class4": 55,
+    "class3": 25,
+    "class2": 12,
+    "class1": 6,
+    "special": 1.9,
+    "ultra": 0.1
+  },
+
   "class4": [
-    { "name": "Libro Antiguo", "icon": "📕", "value": 5 },
-    { "name": "Fragmento Oxidado", "icon": "🪨", "value": 10 },
-    { "name": "metal", "icon": "🔋", "value": 15 }
+    {
+      "id": "ancient_book",
+      "name": "Libro Antiguo",
+      "description": "Un libro deteriorado por el paso del tiempo.",
+      "icon": "📕",
+      "value": 5
+    },
+    {
+      "id": "rust_fragment",
+      "name": "Fragmento Oxidado",
+      "description": "Un trozo de metal consumido por el óxido.",
+      "icon": "🪨",
+      "value": 10
+    },
+    {
+      "id": "metal_piece",
+      "name": "Metal",
+      "description": "Un pequeño trozo de metal resistente.",
+      "icon": "🔋",
+      "value": 15
+    }
   ],
 
   "class3": [
-    { "name": "Reliquia Menor", "icon": "🗿", "value": 25 },
-    { "name": "Cristal Abisal", "icon": "🔮", "value": 40 },
-    { "name": "madera", "icon": "🌲", "value": 17 }
+    {
+      "id": "minor_relic",
+      "name": "Reliquia Menor",
+      "description": "Una reliquia común encontrada en el Abismo.",
+      "icon": "🗿",
+      "value": 25
+    },
+    {
+      "id": "abyss_crystal",
+      "name": "Cristal Abisal",
+      "description": "Un cristal que emite un tenue resplandor.",
+      "icon": "🔮",
+      "value": 40
+    },
+    {
+      "id": "ancient_wood",
+      "name": "Madera Antigua",
+      "description": "Madera resistente proveniente de las profundidades.",
+      "icon": "🌲",
+      "value": 17
+    }
   ],
 
   "class2": [
-    { "name": "Artefacto Raro", "icon": "⚙️", "value": 60 },
-    { "name": "campana llorosa", "icon": "🎐", "value": 75 }
+    {
+      "id": "rare_artifact",
+      "name": "Artefacto Raro",
+      "description": "Una pieza mecánica de origen desconocido.",
+      "icon": "⚙️",
+      "value": 60
+    },
+    {
+      "id": "weeping_bell",
+      "name": "Campana Llorosa",
+      "description": "Su sonido provoca escalofríos.",
+      "icon": "🎐",
+      "value": 75
+    }
   ],
 
   "class1": [
-    { "name": "Tesoro Antiguo", "icon": "💠", "value": 80 },
-    { "name": "hueso bendito", "icon": "🦴", "value": 95 }
+    {
+      "id": "ancient_treasure",
+      "name": "Tesoro Antiguo",
+      "description": "Un tesoro conservado durante siglos.",
+      "icon": "💠",
+      "value": 80
+    },
+    {
+      "id": "blessed_bone",
+      "name": "Hueso Bendito",
+      "description": "Un extraño hueso con propiedades místicas.",
+      "icon": "🦴",
+      "value": 95
+    }
   ],
 
   "special": [
-    { "name": "Reliquia Especial", "icon": "✨", "value": 100 },
-    { "name": "espina de orb percer", "icon": "🦔", "value": 150 },
-    { "name": "runa de obsidian", "icon": "⚜️", "value": 200 }
+    {
+      "id": "special_relic",
+      "name": "Reliquia Especial",
+      "description": "Una reliquia extremadamente difícil de encontrar.",
+      "icon": "✨",
+      "value": 100
+    },
+    {
+      "id": "orb_piercer_spine",
+      "name": "Espina de Orb Piercer",
+      "description": "Una espina extraída de un peligroso Orb Piercer.",
+      "icon": "🦔",
+      "value": 150
+    },
+    {
+      "id": "obsidian_rune",
+      "name": "Runa de Obsidiana",
+      "description": "Una antigua runa tallada en obsidiana.",
+      "icon": "⚜️",
+      "value": 200
+    }
   ],
 
   "ultra": [
     {
-      "name": "Corazon abisal",
+      "id": "abyss_heart",
+      "name": "Corazón Abisal",
+      "description": "Una reliquia legendaria vinculada al Abismo.",
       "icon": "🌑",
-      "price": 100000,
+      "value": 100000,
       "soulbound": true
     }
   ]
