@@ -12,6 +12,7 @@ import {
 
 import express from "express";
 import fs from "fs";
+import { executeLogic } from "./logic.js";
 
 
 /* ==========================
@@ -90,48 +91,31 @@ client.once(Events.ClientReady, async () => {
 
 
 /* ==========================
-       INTERACCIONES
+           LÓGICA
 ========================== */
 
 client.on(Events.InteractionCreate, async interaction => {
 
   if (!interaction.isChatInputCommand()) return;
 
-  switch (interaction.commandName) {
+  try {
 
-    case "ping":
-      return interaction.reply("🏓 Pong!");
+    await executeLogic(interaction, client);
 
-    case "avatar":
-      return interaction.reply(
-        interaction.user.displayAvatarURL()
-      );
+  } catch (err) {
 
-    case "userinfo":
-      return interaction.reply(
-`Usuario: ${interaction.user.username}
-ID: ${interaction.user.id}`
-      );
+    console.error(err);
 
-    case "server":
-      return interaction.reply(
-`Servidor:
-${interaction.guild.name}
+    const error = {
+      content: "❌ Ocurrió un error al ejecutar el comando.",
+      ephemeral: true
+    };
 
-Miembros:
-${interaction.guild.memberCount}`
-      );
-
-    case "help":
-      return interaction.reply(
-`Comandos disponibles:
-
-/ping
-/avatar
-/userinfo
-/server
-/help`
-      );
+    if (interaction.replied || interaction.deferred) {
+      await interaction.followUp(error).catch(() => {});
+    } else {
+      await interaction.reply(error).catch(() => {});
+    }
 
   }
 
