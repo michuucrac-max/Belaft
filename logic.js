@@ -18,6 +18,7 @@ import {
 ========================== */
 
 const CONFIG_PATH = "./config.json";
+const STATUS_PATH = "./status.json";
 
 
 /* ==========================
@@ -30,13 +31,103 @@ let config = {
     }
 };
 
+let status = {};
+
 
 /* ==========================
         CARGAR CONFIG
 ========================== */
 
 loadConfig();
+loadStatus();
 
+/* ==========================
+        CARGAR STATUS
+========================== */
+
+function loadStatus() {
+
+    if (!fs.existsSync(STATUS_PATH)) {
+
+        saveStatus();
+
+        return;
+
+    }
+
+    try {
+
+        status = JSON.parse(
+            fs.readFileSync(STATUS_PATH, "utf8")
+        );
+
+    }
+
+    catch {
+
+        console.log("⚠️ status.json corrupto. Restaurando...");
+
+        status = {};
+
+        saveStatus();
+
+    }
+
+}
+
+
+/* ==========================
+        GUARDAR STATUS
+========================== */
+
+function saveStatus() {
+
+    fs.writeFileSync(
+
+        STATUS_PATH,
+
+        JSON.stringify(status, null, 4)
+
+    );
+
+}
+
+
+/* ==========================
+         OBTENER USUARIO
+========================== */
+
+function getUser(userId) {
+
+    if (!status[userId]) {
+
+        status[userId] = {
+
+            money: 0,
+
+            rank: 0,
+
+            xp: 0,
+
+            inventory: {},
+
+            stats: {
+
+                reliquies: 0,
+
+                sold: 0
+
+            }
+
+        };
+
+        saveStatus();
+
+    }
+
+    return status[userId];
+
+}
 
 /* ==========================
           FUNCIONES
@@ -396,23 +487,71 @@ async function handleSlashCommands(interaction, client) {
 
         }
 
-
         /* ==========================
-            INVENTORY
+        INVENTORY
         ========================== */
 
-        case "inventory": {
+case "inventory": {
 
-            return interaction.reply({
+    const user = getUser(interaction.user.id);
 
-                content: "⚠️ Inventario aún no implementado.",
+    if (Object.keys(user.inventory).length === 0) {
 
-                ephemeral: true
+        return interaction.reply({
 
-            });
+            content:
+`🎒 Inventario
+
+No tienes ninguna reliquia.`
+
+        });
+
+    }
+
+    let text = "## 🎒 Tu inventario\n\n";
+
+    let totalValue = 0;
+    let totalItems = 0;
+
+    for (const category of [
+
+        "class4",
+        "class3",
+        "class2",
+        "class1",
+        "special",
+        "ultra"
+
+    ]) {
+
+        for (const item of objects[category]) {
+
+            const amount = user.inventory[item.id];
+
+            if (!amount) continue;
+
+            totalItems++;
+
+            totalValue += item.value * amount;
+
+            text += `${item.icon} **${item.name}**
+Cantidad: **${amount}**
+Valor: **${item.value}** cada uno
+
+`;
 
         }
 
+    }
+
+    text += `━━━━━━━━━━━━━━
+
+📦 Objetos distintos: **${totalItems}**
+💰 Valor total: **${totalValue}**`;
+
+    return interaction.reply(text);
+
+}
 
         /* ==========================
                 SELL
