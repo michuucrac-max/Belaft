@@ -335,6 +335,118 @@ Las reliquias aparecerán automáticamente en este canal.`,
 
         }
 
+          /* ==========================
+          SELL ITEM
+          ========================== */
+
+case "sell_item": {
+
+    const user = getUser(interaction.user.id);
+
+    const id = interaction.values[0];
+
+    if (!user.inventory[id]) {
+
+        return interaction.update({
+
+            content: "❌ Ya no tienes esa reliquia.",
+
+            components: []
+
+        });
+
+    }
+
+    let found = null;
+
+    for (const category of [
+
+        "class4",
+        "class3",
+        "class2",
+        "class1",
+        "special",
+        "ultra"
+
+    ]) {
+
+        for (const item of objects[category]) {
+
+            const itemId = `${category}:${item.name}`;
+
+            if (itemId === id) {
+
+                found = item;
+
+                break;
+
+            }
+
+        }
+
+        if (found) break;
+
+    }
+
+    if (!found) {
+
+        return interaction.update({
+
+            content: "❌ No se encontró la reliquia.",
+
+            components: []
+
+        });
+
+    }
+
+    // Las ultra no pueden venderse
+    if (found.soulbound) {
+
+        return interaction.update({
+
+            content: "🔒 Esa reliquia está ligada al alma y no puede venderse.",
+
+            components: []
+
+        });
+
+    }
+
+    // Quitar una unidad
+    user.inventory[id]--;
+
+    if (user.inventory[id] <= 0) {
+
+        delete user.inventory[id];
+
+    }
+
+    // Dar dinero
+    const price = found.value ?? found.price ?? 0;
+
+    user.money += price;
+
+    user.stats.sold++;
+
+    saveStatus();
+
+    return interaction.update({
+
+        content:
+`💰 Has vendido:
+
+${found.icon} **${found.name}**
+
+Ganaste **${price}** monedas.
+
+💵 Dinero actual: **${user.money}**`,
+
+        components: []
+
+    });
+
+}
 
         /* ==========================
             DESCONOCIDO
@@ -605,20 +717,101 @@ Valor: **${item.value ?? item.price}**
         }
 
         /* ==========================
-                SELL
+            SELL
         ========================== */
 
-        case "sell": {
+case "sell": {
 
-            return interaction.reply({
+    const user = getUser(interaction.user.id);
 
-                content: "⚠️ Sistema de venta aún no implementado.",
+    if (!Object.keys(user.inventory).length) {
 
-                ephemeral: true
+        return interaction.reply({
+
+            content: "❌ No tienes reliquias para vender.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+    const options = [];
+
+    for (const category of [
+
+        "class4",
+        "class3",
+        "class2",
+        "class1",
+        "special",
+        "ultra"
+
+    ]) {
+
+        if (!objects[category]) continue;
+
+        for (const item of objects[category]) {
+
+            const id = `${category}:${item.name}`;
+
+            const amount = user.inventory[id];
+
+            if (!amount) continue;
+
+            options.push({
+
+                label: item.name,
+
+                description: `Tienes ${amount} • Valor ${item.value ?? item.price}`,
+
+                value: id,
+
+                emoji: item.icon
 
             });
 
         }
+
+    }
+
+    if (!options.length) {
+
+        return interaction.reply({
+
+            content: "❌ No tienes reliquias para vender.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+    const row = new ActionRowBuilder()
+
+        .addComponents(
+
+            new StringSelectMenuBuilder()
+
+                .setCustomId("sell_item")
+
+                .setPlaceholder("Selecciona una reliquia")
+
+                .addOptions(options.slice(0, 25))
+
+        );
+
+    return interaction.reply({
+
+        content: "💰 ¿Qué reliquia deseas vender?",
+
+        components: [row],
+
+        ephemeral: true
+
+    });
+
+}
 
 
         /* ==========================
