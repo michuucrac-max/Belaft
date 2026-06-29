@@ -988,6 +988,12 @@ Selecciona otro canal si deseas cambiarlo.`
 
 export async function executeMessageLogic(message) {
 
+          console.log("📩 Mensaje recibido");
+
+console.log("Canal del mensaje:", message.channel.id);
+
+console.log("Canal configurado:", config.channels.reliquies);
+
     if (message.author.bot) return;
 
     if (!message.guild) return;
