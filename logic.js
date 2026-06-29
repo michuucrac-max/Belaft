@@ -645,26 +645,33 @@ async function handleSlashCommands(interaction, client) {
 
 
         /* ==========================
-             MY MONEY
-        ========================== */
+         MY MONEY
+========================== */
 
-        case "mymoney": {
+case "mymoney": {
 
-            const user = getUser(interaction.user.id);
+    const user = getUser(interaction.user.id);
 
-            return interaction.reply(
+    return interaction.reply({
 
+        content:
 `# 💰 Tu dinero
 
-Monedas: **${user.money}**
+🪙 Monedas: **${user.money}**
 
-⭐ Rango: **${user.rank}**
-✨ XP: **${user.xp}**`
+📈 XP: **${user.xp}**
+🎖️ Rango: **${user.rank}**
 
-            );
+━━━━━━━━━━━━━━
 
-        }
+📦 Reliquias encontradas: **${user.stats.reliquies}**
+💸 Reliquias vendidas: **${user.stats.sold}**`,
 
+        ephemeral: true
+
+    });
+
+}
 
         /* ==========================
              INVENTORY
