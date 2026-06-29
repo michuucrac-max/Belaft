@@ -601,7 +601,8 @@ Valor: **${item.value ?? item.price}**
                ephemeral: true
 
           });
-
+                  
+        }
 
         /* ==========================
                 SELL
