@@ -483,6 +483,8 @@ case "sell_item": {
 
     ]) {
 
+        if (!objects[category]) continue;
+
         for (const item of objects[category]) {
 
             const itemId = `${category}:${item.name}`;
@@ -513,12 +515,11 @@ case "sell_item": {
 
     }
 
-    // Las ultra no pueden venderse
     if (found.soulbound) {
 
         return interaction.update({
 
-            content: "🔒 Esa reliquia está ligada al alma y no puede venderse.",
+            content: "🔒 Esa reliquia no puede venderse.",
 
             components: []
 
@@ -526,7 +527,6 @@ case "sell_item": {
 
     }
 
-    // Quitar una unidad
     user.inventory[id]--;
 
     if (user.inventory[id] <= 0) {
@@ -535,39 +535,27 @@ case "sell_item": {
 
     }
 
-    // Asegurar datos del usuario
-if (typeof user.money !== "number") {
+    if (typeof user.money !== "number")
+        user.money = 0;
 
-    user.money = 0;
+    if (!user.stats)
+        user.stats = { reliquies: 0, sold: 0 };
 
-}
+    if (typeof user.stats.sold !== "number")
+        user.stats.sold = 0;
 
-if (!user.stats) {
+    if (typeof user.multiplier !== "number")
+        user.multiplier = 1;
 
-    user.stats = {
+    const basePrice = found.value ?? found.price ?? 0;
 
-        reliquies: 0,
+    const price = Math.floor(basePrice * user.multiplier);
 
-        sold: 0
+    user.money += price;
 
-    };
+    user.stats.sold++;
 
-}
-
-if (typeof user.stats.sold !== "number") {
-
-    user.stats.sold = 0;
-
-}
-
-// Dar dinero
-const price = found.value ?? found.price ?? 0;
-
-user.money += price;
-
-user.stats.sold++;
-
-saveStatus();
+    saveStatus();
 
     return interaction.update({
 
@@ -576,9 +564,109 @@ saveStatus();
 
 ${found.icon} **${found.name}**
 
+📈 Multiplicador: **x${user.multiplier}**
+
 Ganaste **${price}** monedas.
 
 💵 Dinero actual: **${user.money}**`,
+
+        components: []
+
+    });
+
+}
+                        
+         /* ==========================
+          SHOP BUY
+         ========================== */
+
+case "shop_buy": {
+
+    const user = getUser(interaction.user.id);
+
+    const multiplier = parseFloat(interaction.values[0]);
+
+    let price = 0;
+
+    switch (multiplier) {
+
+        case 1.1:
+            price = 100;
+            break;
+
+        case 1.25:
+            price = 250;
+            break;
+
+        case 1.5:
+            price = 600;
+            break;
+
+        case 2:
+            price = 1500;
+            break;
+
+        case 3:
+            price = 4000;
+            break;
+
+        default:
+
+            return interaction.update({
+
+                content: "❌ Mejora inválida.",
+
+                components: []
+
+            });
+
+    }
+
+    if (user.multiplier >= multiplier) {
+
+        return interaction.update({
+
+            content:
+`❌ Ya tienes un multiplicador igual o superior.
+
+📈 Multiplicador actual: **x${user.multiplier}**`,
+
+            components: []
+
+        });
+
+    }
+
+    if (user.xp < price) {
+
+        return interaction.update({
+
+            content:
+`❌ No tienes suficiente XP.
+
+⭐ Necesitas **${price} XP**
+⭐ Tienes **${user.xp} XP**`,
+
+            components: []
+
+        });
+
+    }
+
+    user.xp -= price;
+
+    user.multiplier = multiplier;
+
+    saveStatus();
+
+    return interaction.update({
+
+        content:
+`# 🎉 Compra realizada
+
+📈 Nuevo multiplicador: **x${multiplier}**
+
+⭐ XP restante: **${user.xp}**`,
 
         components: []
 
@@ -799,6 +887,7 @@ case "mymoney": {
 
 🎖️ Rango: **${rank}**
 ⭐ XP: **${user.xp}**
+📈 Multiplicador: **x${user.multiplier}**
 
 ━━━━━━━━━━━━━━
 
@@ -889,9 +978,9 @@ Valor: **${item.value ?? item.price}**
                   
         }
 
-        /* ==========================
+/* ==========================
             SELL
-        ========================== */
+========================== */
 
 case "sell": {
 
@@ -908,6 +997,91 @@ case "sell": {
         });
 
     }
+
+    const mode = interaction.options.getString("modo");
+
+    // ==========================
+    // VENDER TODO
+    // ==========================
+
+    if (mode === "all") {
+
+        let totalMoney = 0;
+        let totalItems = 0;
+
+        for (const category of [
+
+            "class4",
+            "class3",
+            "class2",
+            "class1",
+            "special",
+            "ultra"
+
+        ]) {
+
+            if (!objects[category]) continue;
+
+            for (const item of objects[category]) {
+
+                const id = `${category}:${item.name}`;
+
+                const amount = user.inventory[id];
+
+                if (!amount) continue;
+
+                // No vender reliquias bloqueadas
+                if (item.soulbound) continue;
+
+                const basePrice = item.value ?? item.price ?? 0;
+
+                totalMoney += Math.floor(basePrice * user.multiplier) * amount;
+
+                totalItems += amount;
+
+                delete user.inventory[id];
+
+            }
+
+        }
+
+        if (totalItems === 0) {
+
+            return interaction.reply({
+
+                content: "❌ No tienes reliquias que puedan venderse.",
+
+                ephemeral: true
+
+            });
+
+        }
+
+        user.money += totalMoney;
+        user.stats.sold += totalItems;
+
+        saveStatus();
+
+        return interaction.reply({
+
+            content:
+`💰 Has vendido **${totalItems}** reliquias.
+
+📈 Multiplicador: **x${user.multiplier}**
+
+🪙 Ganaste **${totalMoney}** monedas.
+
+💵 Dinero actual: **${user.money}**`,
+
+            ephemeral: true
+
+        });
+
+    }
+
+    // ==========================
+    // VENDER UNA
+    // ==========================
 
     const options = [];
 
@@ -985,7 +1159,6 @@ case "sell": {
     });
 
 }
-
 
 /* ==========================
           RANKUP
@@ -1264,6 +1437,7 @@ case "seemoney": {
 
 🎖️ Rango: **${rank}**
 ⭐ XP: **${user.xp}**
+📈 Multiplicador: **x${user.multiplier}**
 
 ━━━━━━━━━━━━━━
 
