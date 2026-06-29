@@ -150,6 +150,11 @@
   "description": "Reclama tu recompensa diaria."
   },
   {
+  "name": "reset",
+  "description": "Reinicia el progreso del servidor.",
+  "default_member_permissions": "8"
+  },
+  {
     "name": "setchannelreliquies",
     "description": "Configurar el canal de reliquias.",
     "default_member_permissions": "8"
