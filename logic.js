@@ -969,26 +969,28 @@ case "mymoney": {
 
                     const id = `${category}:${item.name}`;
 
-                    const amount = user.inventory[id];
+const amount = user.inventory[id];
 
-                    if (!amount) continue;
+if (!amount) continue;
 
-                    totalItems += amount;
+const baseValue = item.value ?? item.price ?? 0;
 
-                    const sellValue = Math.floor((item.value ?? item.price ?? 0) * user.multiplier);
-                    totalValue += sellValue * amount;
-                          
-                    text +=
+const sellValue = Math.floor(baseValue * (user.multiplier ?? 1));
+
+totalItems += amount;
+
+totalValue += sellValue * amount;
+
+text +=
 `${item.icon} **${item.name}**
 Cantidad: **${amount}**
 Valor base: **${baseValue}**
-📈 Multiplicador: **x${user.multiplier}**
+📈 Multiplicador: **x${user.multiplier ?? 1}**
 💰 Valor de venta: **${sellValue}**
 
 `;
-
+                
                 }
-
             }
 
             text +=
