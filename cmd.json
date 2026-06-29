@@ -67,7 +67,7 @@
       {
         "name": "cantidad",
         "description": "Cantidad",
-        "type": 10,
+        "type": 4,
         "required": true
       }
     ]
@@ -86,7 +86,7 @@
       {
         "name": "cantidad",
         "description": "Cantidad",
-        "type": 10,
+        "type": 4,
         "required": true
       }
     ]
