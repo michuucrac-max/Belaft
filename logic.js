@@ -257,15 +257,18 @@ function getRandomObject() {
 
 export async function executeLogic(interaction, client) {
 
-    /* ==========================
-        SELECT MENUS
-    ========================== */
+/* ==========================
+    SELECT MENUS
+========================== */
 
-    if (interaction.isChannelSelectMenu()) {
+if (
+    interaction.isChannelSelectMenu() ||
+    interaction.isStringSelectMenu()
+) {
 
-        return handleChannelMenus(interaction);
+    return handleChannelMenus(interaction);
 
-    }
+}
 
 
     /* ==========================
