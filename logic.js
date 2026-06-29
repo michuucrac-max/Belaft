@@ -1139,22 +1139,84 @@ case "setmoney": {
 
 }
                         
-        /* ==========================
-           REMOVE MONEY
-        ========================== */
+         /* ==========================
+         SHOP
+         ========================== */
 
-        case "removemoney": {
+case "shop": {
 
-            return interaction.reply({
+    const user = getUser(interaction.user.id);
 
-                content: "⚠️ Administración aún no implementada.",
+    const row = new ActionRowBuilder()
 
-                ephemeral: true
+        .addComponents(
 
-            });
+            new StringSelectMenuBuilder()
 
-        }
+                .setCustomId("shop_buy")
 
+                .setPlaceholder("Selecciona una mejora")
+
+                .addOptions([
+
+                    {
+                        label: "Multiplicador x1.10",
+                        description: "100 XP",
+                        value: "1.1",
+                        emoji: "📈"
+                    },
+
+                    {
+                        label: "Multiplicador x1.25",
+                        description: "250 XP",
+                        value: "1.25",
+                        emoji: "📈"
+                    },
+
+                    {
+                        label: "Multiplicador x1.50",
+                        description: "600 XP",
+                        value: "1.5",
+                        emoji: "📈"
+                    },
+
+                    {
+                        label: "Multiplicador x2",
+                        description: "1500 XP",
+                        value: "2",
+                        emoji: "📈"
+                    },
+
+                    {
+                        label: "Multiplicador x3",
+                        description: "4000 XP",
+                        value: "3",
+                        emoji: "📈"
+                    }
+
+                ])
+
+        );
+
+    return interaction.reply({
+
+        content:
+`# 🛒 Tienda
+
+⭐ Tu XP: **${user.xp}**
+
+📈 Multiplicador actual: **x${user.multiplier}**
+
+Compra un multiplicador permanente.`,
+
+        components: [row],
+
+        ephemeral: true
+
+    });
+
+}
+                        
         /* ==========================
           SEE MONEY
         ========================== */
