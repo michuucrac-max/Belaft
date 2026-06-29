@@ -674,6 +674,32 @@ case "shop_buy": {
 
 }
 
+         /* ==========================
+         SET TOP CHANNEL
+         ========================== */
+
+case "set_top_channel": {
+
+    config.channels.tops = interaction.values[0];
+
+    saveConfig();
+
+    return interaction.update({
+
+        content:
+`✅ Canal del ranking configurado.
+
+🏆 Canal:
+<#${interaction.values[0]}>
+
+El Top automático aparecerá aquí.`,
+
+        components: []
+
+    });
+
+}
+
         /* ==========================
             DESCONOCIDO
         ========================== */
@@ -1531,6 +1557,38 @@ case "setxp": {
 👤 Usuario: ${target.username}
 
 ⭐ XP: **${user.xp}**`,
+
+        ephemeral: true
+
+    });
+
+}
+
+/* ==========================
+      SET CHANNEL TOP
+========================== */
+
+case "setchanneltop": {
+
+    const row = new ActionRowBuilder()
+
+        .addComponents(
+
+            new ChannelSelectMenuBuilder()
+
+                .setCustomId("set_top_channel")
+
+                .setPlaceholder("Selecciona un canal")
+
+                .setChannelTypes(ChannelType.GuildText)
+
+        );
+
+    return interaction.reply({
+
+        content: "🏆 Selecciona el canal donde aparecerá el Top.",
+
+        components: [row],
 
         ephemeral: true
 
