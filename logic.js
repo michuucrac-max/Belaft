@@ -986,8 +986,6 @@ Selecciona otro canal si deseas cambiarlo.`
         MESSAGE LOGIC
 ========================== */
 
-const RELIC_CHANCE = 1; // Cambia a 0.05 cuando termines las pruebas
-
 export async function executeMessageLogic(message) {
 
     console.log("📩 Mensaje recibido");
