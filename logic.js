@@ -711,23 +711,51 @@ async function handleSlashCommands(interaction, client) {
         }
 
 
-        /* ==========================
-         MY MONEY
+/* ==========================
+          MY MONEY
 ========================== */
 
 case "mymoney": {
 
     const user = getUser(interaction.user.id);
 
+    const member = await interaction.guild.members.fetch(interaction.user.id);
+
+    let rank = "Bell";
+
+    if (findGuildRole(interaction.guild, "narehate")?.id &&
+        member.roles.cache.has(findGuildRole(interaction.guild, "narehate").id))
+        rank = "Narehate";
+
+    else if (findGuildRole(interaction.guild, "silbato_blanco")?.id &&
+        member.roles.cache.has(findGuildRole(interaction.guild, "silbato_blanco").id))
+        rank = "Silbato Blanco";
+
+    else if (findGuildRole(interaction.guild, "silbato_negro")?.id &&
+        member.roles.cache.has(findGuildRole(interaction.guild, "silbato_negro").id))
+        rank = "Silbato Negro";
+
+    else if (findGuildRole(interaction.guild, "silbato_lunar")?.id &&
+        member.roles.cache.has(findGuildRole(interaction.guild, "silbato_lunar").id))
+        rank = "Silbato Lunar";
+
+    else if (findGuildRole(interaction.guild, "silbato_azul")?.id &&
+        member.roles.cache.has(findGuildRole(interaction.guild, "silbato_azul").id))
+        rank = "Silbato Azul";
+
+    else if (findGuildRole(interaction.guild, "silbato_rojo")?.id &&
+        member.roles.cache.has(findGuildRole(interaction.guild, "silbato_rojo").id))
+        rank = "Silbato Rojo";
+
     return interaction.reply({
 
         content:
-`# 💰 Tu dinero
+`# 💰 Tu perfil
 
 🪙 Monedas: **${user.money}**
 
-📈 XP: **${user.xp}**
-🎖️ Rango: **${user.rank}**
+🎖️ Rango: **${rank}**
+⭐ XP: **${user.xp}**
 
 ━━━━━━━━━━━━━━
 
@@ -1094,17 +1122,33 @@ case "seemoney": {
 
     const user = getUser(target.id);
 
-    const rankNames = {
+    const member = await interaction.guild.members.fetch(target.id);
 
-        0: "Bell",
-        1: "Silbato Rojo",
-        2: "Silbato Azul",
-        3: "Silbato Lunar",
-        4: "Silbato Negro",
-        5: "Silbato Blanco",
-        6: "Narehate"
+    let rank = "Bell";
 
-    };
+    if (findGuildRole(interaction.guild, "narehate")?.id &&
+        member.roles.cache.has(findGuildRole(interaction.guild, "narehate").id))
+        rank = "Narehate";
+
+    else if (findGuildRole(interaction.guild, "silbato_blanco")?.id &&
+        member.roles.cache.has(findGuildRole(interaction.guild, "silbato_blanco").id))
+        rank = "Silbato Blanco";
+
+    else if (findGuildRole(interaction.guild, "silbato_negro")?.id &&
+        member.roles.cache.has(findGuildRole(interaction.guild, "silbato_negro").id))
+        rank = "Silbato Negro";
+
+    else if (findGuildRole(interaction.guild, "silbato_lunar")?.id &&
+        member.roles.cache.has(findGuildRole(interaction.guild, "silbato_lunar").id))
+        rank = "Silbato Lunar";
+
+    else if (findGuildRole(interaction.guild, "silbato_azul")?.id &&
+        member.roles.cache.has(findGuildRole(interaction.guild, "silbato_azul").id))
+        rank = "Silbato Azul";
+
+    else if (findGuildRole(interaction.guild, "silbato_rojo")?.id &&
+        member.roles.cache.has(findGuildRole(interaction.guild, "silbato_rojo").id))
+        rank = "Silbato Rojo";
 
     return interaction.reply({
 
@@ -1113,7 +1157,7 @@ case "seemoney": {
 
 💰 Monedas: **${user.money}**
 
-🎖️ Rango: **${rankNames[user.rank] ?? "Desconocido"}**
+🎖️ Rango: **${rank}**
 ⭐ XP: **${user.xp}**
 
 ━━━━━━━━━━━━━━
@@ -1126,7 +1170,7 @@ case "seemoney": {
     });
 
 }
-
+                        
         /* ==========================
         SET CHANNEL RELIQUIES
         ========================== */
