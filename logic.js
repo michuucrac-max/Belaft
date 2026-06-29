@@ -422,14 +422,39 @@ case "sell_item": {
 
     }
 
-    // Dar dinero
-    const price = found.value ?? found.price ?? 0;
+    // Asegurar datos del usuario
+if (typeof user.money !== "number") {
 
-    user.money += price;
+    user.money = 0;
 
-    user.stats.sold++;
+}
 
-    saveStatus();
+if (!user.stats) {
+
+    user.stats = {
+
+        reliquies: 0,
+
+        sold: 0
+
+    };
+
+}
+
+if (typeof user.stats.sold !== "number") {
+
+    user.stats.sold = 0;
+
+}
+
+// Dar dinero
+const price = found.value ?? found.price ?? 0;
+
+user.money += price;
+
+user.stats.sold++;
+
+saveStatus();
 
     return interaction.update({
 
