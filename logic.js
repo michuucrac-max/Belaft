@@ -20,6 +20,8 @@ import {
 const CONFIG_PATH = "./config.json";
 const STATUS_PATH = "./status.json";
 
+const RELIC_CHANCE = 0.05;
+
 
 /* ==========================
            CONFIG
@@ -35,14 +37,65 @@ let status = {};
 
 
 /* ==========================
-        CARGAR CONFIG
+      INICIALIZACIÓN
 ========================== */
 
 loadConfig();
 loadStatus();
 
+
 /* ==========================
-        CARGAR STATUS
+        CONFIG.JSON
+========================== */
+
+function loadConfig() {
+
+    if (!fs.existsSync(CONFIG_PATH)) {
+
+        saveConfig();
+        return;
+
+    }
+
+    try {
+
+        config = JSON.parse(
+            fs.readFileSync(CONFIG_PATH, "utf8")
+        );
+
+    }
+
+    catch {
+
+        console.log("⚠️ config.json corrupto. Restaurando...");
+
+        config = {
+            channels: {
+                reliquies: null
+            }
+        };
+
+        saveConfig();
+
+    }
+
+}
+
+function saveConfig() {
+
+    fs.writeFileSync(
+
+        CONFIG_PATH,
+
+        JSON.stringify(config, null, 4)
+
+    );
+
+}
+
+
+/* ==========================
+        STATUS.JSON
 ========================== */
 
 function loadStatus() {
@@ -50,7 +103,6 @@ function loadStatus() {
     if (!fs.existsSync(STATUS_PATH)) {
 
         saveStatus();
-
         return;
 
     }
@@ -58,7 +110,9 @@ function loadStatus() {
     try {
 
         status = JSON.parse(
+
             fs.readFileSync(STATUS_PATH, "utf8")
+
         );
 
     }
@@ -75,11 +129,6 @@ function loadStatus() {
 
 }
 
-
-/* ==========================
-        GUARDAR STATUS
-========================== */
-
 function saveStatus() {
 
     fs.writeFileSync(
@@ -94,14 +143,14 @@ function saveStatus() {
 
 
 /* ==========================
-         OBTENER USUARIO
+       OBTENER USUARIO
 ========================== */
 
-function getUser(userId) {
+function getUser(id) {
 
-    if (!status[userId]) {
+    if (!status[id]) {
 
-        status[userId] = {
+        status[id] = {
 
             money: 0,
 
@@ -125,71 +174,13 @@ function getUser(userId) {
 
     }
 
-    return status[userId];
-
-}
-
-/* ==========================
-          FUNCIONES
-========================== */
-
-function loadConfig() {
-
-    if (!fs.existsSync(CONFIG_PATH)) {
-
-        saveConfig();
-
-        return;
-
-    }
-
-    try {
-
-        config = JSON.parse(
-            fs.readFileSync(CONFIG_PATH, "utf8")
-        );
-
-    }
-
-    catch {
-
-        console.log("⚠️ config.json corrupto. Restaurando...");
-
-        config = {
-
-            channels: {
-                reliquies: null
-            }
-
-        };
-
-        saveConfig();
-
-    }
+    return status[id];
 
 }
 
 
 /* ==========================
-        GUARDAR CONFIG
-========================== */
-
-function saveConfig() {
-
-    fs.writeFileSync(
-
-        CONFIG_PATH,
-
-        JSON.stringify(config, null, 4)
-
-    );
-
-}
-
-
-/* ==========================
-/* ==========================
-      FUNCIONES OBJETOS
+      OBJETOS ALEATORIOS
 ========================== */
 
 function getRandom(min, max) {
@@ -202,19 +193,28 @@ function getRandom(min, max) {
 
 }
 
-const RELIC_CHANCE = 0.05;
-
 function getRandomClass() {
 
-    const chance = Math.random() * 100;
+    const chances = {
 
-    let accumulated = 0;
+        ultra: 0.1,
+        special: 1,
+        class1: 5,
+        class2: 14,
+        class3: 30,
+        class4: 49.9
 
-    for (const category in objects.spawn) {
+    };
 
-        accumulated += objects.spawn[category];
+    const roll = Math.random() * 100;
 
-        if (chance <= accumulated) {
+    let total = 0;
+
+    for (const category in chances) {
+
+        total += chances[category];
+
+        if (roll <= total) {
 
             return category;
 
@@ -238,9 +238,18 @@ function getRandomObject() {
 
     }
 
-    return list[getRandom(0, list.length - 1)];
+    const item = list[getRandom(0, list.length - 1)];
+
+    return {
+
+        ...item,
+
+        id: `${category}:${item.name}`
+
+    };
 
 }
+
 
 /* ==========================
            LÓGICA
@@ -291,6 +300,7 @@ export async function executeLogic(interaction, client) {
 
 }
 
+
 /* ==========================
       SELECT MENUS
 ========================== */
@@ -305,9 +315,7 @@ async function handleChannelMenus(interaction) {
 
         case "set_reliquies_channel": {
 
-            const channelId = interaction.values[0];
-
-            config.channels.reliquies = channelId;
+            config.channels.reliquies = interaction.values[0];
 
             saveConfig();
 
@@ -316,8 +324,8 @@ async function handleChannelMenus(interaction) {
                 content:
 `✅ Canal configurado correctamente.
 
-📍 Canal seleccionado:
-<#${channelId}>
+📍 Canal:
+<#${interaction.values[0]}>
 
 Las reliquias aparecerán automáticamente en este canal.`,
 
@@ -327,8 +335,9 @@ Las reliquias aparecerán automáticamente en este canal.`,
 
         }
 
+
         /* ==========================
-             DESCONOCIDO
+            DESCONOCIDO
         ========================== */
 
         default: {
@@ -356,10 +365,6 @@ async function handleButtons(interaction) {
 
     switch (interaction.customId) {
 
-        /* ==========================
-          PLACEHOLDER
-        ========================== */
-
         default: {
 
             return interaction.reply({
@@ -385,10 +390,6 @@ async function handleModals(interaction) {
 
     switch (interaction.customId) {
 
-        /* ==========================
-          PLACEHOLDER
-        ========================== */
-
         default: {
 
             return interaction.reply({
@@ -403,7 +404,8 @@ async function handleModals(interaction) {
 
     }
 
-        }
+}
+
 
 /* ==========================
       SLASH COMMANDS
@@ -413,68 +415,6 @@ async function handleSlashCommands(interaction, client) {
 
     switch (interaction.commandName) {
 
-/* ==========================
-        MESSAGE LOGIC
-========================== */
-
-export async function executeMessageLogic(message, client) {
-
-    // Ignorar bots
-    if (message.author.bot) return;
-
-    // Ignorar mensajes privados
-    if (!message.guild) return;
-
-    // No hay canal configurado
-    if (!config.channels.reliquies) return;
-
-    // Solo funciona en el canal configurado
-    if (message.channel.id !== config.channels.reliquies) return;
-
-    // Probabilidad de aparición
-    if (Math.random() > RELIC_CHANCE) return;
-
-    // Elegir objeto
-    const item = getRandomObject();
-
-    if (!item) return;
-
-    // Obtener usuario
-    const user = getUser(message.author.id);
-
-    // Añadir al inventario
-    user.inventory[item.id] ??= 0;
-    user.inventory[item.id]++;
-
-    // Estadísticas
-    user.stats.reliquies++;
-
-    // Guardar cambios
-    saveStatus();
-
-    // Intentar enviar DM
-    try {
-
-        await message.author.send(
-`# 🎉 ¡Has encontrado una reliquia!
-
-${item.icon} **${item.name}**
-
-💰 Valor: **${item.value}**
-
-📦 Se añadió automáticamente a tu inventario.
-
-Usa **/inventory** para verla.`
-        );
-
-    } catch (err) {
-
-        console.log(`No pude enviar un DM a ${message.author.tag}.`);
-
-    }
-
-}
-                        
         /* ==========================
                 PING
         ========================== */
@@ -493,9 +433,13 @@ Usa **/inventory** para verla.`
         case "avatar": {
 
             return interaction.reply(
+
                 interaction.user.displayAvatarURL({
+
                     size: 1024
+
                 })
+
             );
 
         }
@@ -508,8 +452,10 @@ Usa **/inventory** para verla.`
         case "userinfo": {
 
             return interaction.reply(
+
 `👤 Usuario: ${interaction.user.username}
 🆔 ID: ${interaction.user.id}`
+
             );
 
         }
@@ -522,12 +468,13 @@ Usa **/inventory** para verla.`
         case "server": {
 
             return interaction.reply(
+
 `🌐 Servidor: ${interaction.guild.name}
 👥 Miembros: ${interaction.guild.memberCount}`
+
             );
 
         }
-
 
         /* ==========================
                 HELP
@@ -563,81 +510,94 @@ Usa **/inventory** para verla.`
 
         case "mymoney": {
 
-            return interaction.reply({
+            const user = getUser(interaction.user.id);
 
-                content: "⚠️ Sistema de economía aún no implementado.",
+            return interaction.reply(
 
-                ephemeral: true
+`# 💰 Tu dinero
 
-            });
+Monedas: **${user.money}**
+
+⭐ Rango: **${user.rank}**
+✨ XP: **${user.xp}**`
+
+            );
 
         }
 
+
         /* ==========================
-        INVENTORY
+             INVENTORY
         ========================== */
 
-case "inventory": {
+        case "inventory": {
 
-    const user = getUser(interaction.user.id);
+            const user = getUser(interaction.user.id);
 
-    if (Object.keys(user.inventory).length === 0) {
+            if (!Object.keys(user.inventory).length) {
 
-        return interaction.reply({
+                return interaction.reply({
 
-            content:
-`🎒 Inventario
+                    content:
+`# 🎒 Inventario
 
-No tienes ninguna reliquia.`
+No tienes ninguna reliquia todavía.`
 
-        });
+                });
 
-    }
+            }
 
-    let text = "## 🎒 Tu inventario\n\n";
+            let text = "# 🎒 Inventario\n\n";
 
-    let totalValue = 0;
-    let totalItems = 0;
+            let totalItems = 0;
+            let totalValue = 0;
 
-    for (const category of [
+            for (const category of [
 
-        "class4",
-        "class3",
-        "class2",
-        "class1",
-        "special",
-        "ultra"
+                "class4",
+                "class3",
+                "class2",
+                "class1",
+                "special",
+                "ultra"
 
-    ]) {
+            ]) {
 
-        for (const item of objects[category]) {
+                if (!objects[category]) continue;
 
-            const amount = user.inventory[item.id];
+                for (const item of objects[category]) {
 
-            if (!amount) continue;
+                    const id = `${category}:${item.name}`;
 
-            totalItems++;
+                    const amount = user.inventory[id];
 
-            totalValue += item.value * amount;
+                    if (!amount) continue;
 
-            text += `${item.icon} **${item.name}**
+                    totalItems += amount;
+
+                    totalValue += (item.value ?? item.price ?? 0) * amount;
+
+                    text +=
+`${item.icon} **${item.name}**
 Cantidad: **${amount}**
-Valor: **${item.value}** cada uno
+Valor: **${item.value ?? item.price}**
 
 `;
 
-        }
+                }
 
-    }
+            }
 
-    text += `━━━━━━━━━━━━━━
+            text +=
+`━━━━━━━━━━━━━━
 
-📦 Objetos distintos: **${totalItems}**
+📦 Total de objetos: **${totalItems}**
 💰 Valor total: **${totalValue}**`;
 
-    return interaction.reply(text);
+            return interaction.reply(text);
 
-}
+        }
+
 
         /* ==========================
                 SELL
@@ -690,7 +650,7 @@ Valor: **${item.value}** cada uno
 
 
         /* ==========================
-            REMOVE MONEY
+           REMOVE MONEY
         ========================== */
 
         case "removemoney": {
@@ -707,7 +667,7 @@ Valor: **${item.value}** cada uno
 
 
         /* ==========================
-              SEE MONEY
+             SEE MONEY
         ========================== */
 
         case "seemoney": {
@@ -724,7 +684,7 @@ Valor: **${item.value}** cada uno
 
 
         /* ==========================
-        SET CHANNEL RELIQUIES
+      SET CHANNEL RELIQUIES
         ========================== */
 
         case "setchannelreliquies": {
@@ -767,7 +727,7 @@ Valor: **${item.value}** cada uno
 
 Selecciona otro canal si deseas cambiarlo.`
 
-                    : `🧭 Selecciona el canal donde aparecerán automáticamente las reliquias.`,
+                    : "🧭 Selecciona el canal donde aparecerán automáticamente las reliquias.",
 
                 components: [row],
 
@@ -779,7 +739,7 @@ Selecciona otro canal si deseas cambiarlo.`
 
 
         /* ==========================
-              DESCONOCIDO
+            DESCONOCIDO
         ========================== */
 
         default: {
@@ -793,6 +753,58 @@ Selecciona otro canal si deseas cambiarlo.`
             });
 
         }
+
+    }
+
+}
+
+
+/* ==========================
+        MESSAGE LOGIC
+========================== */
+
+export async function executeMessageLogic(message) {
+
+    if (message.author.bot) return;
+
+    if (!message.guild) return;
+
+    if (!config.channels.reliquies) return;
+
+    if (message.channel.id !== config.channels.reliquies) return;
+
+    if (Math.random() > RELIC_CHANCE) return;
+
+    const item = getRandomObject();
+
+    if (!item) return;
+
+    const user = getUser(message.author.id);
+
+    user.inventory[item.id] ??= 0;
+    user.inventory[item.id]++;
+
+    user.stats.reliquies++;
+
+    saveStatus();
+
+    try {
+
+        await message.author.send(
+`# 🎉 ¡Has encontrado una reliquia!
+
+${item.icon} **${item.name}**
+
+💰 Valor: **${item.value ?? item.price}**
+
+📦 Se añadió automáticamente a tu inventario.
+
+Usa **/inventory** para verla.`
+        );
+
+    } catch {
+
+        console.log(`No pude enviar un DM a ${message.author.tag}`);
 
     }
 
