@@ -538,12 +538,12 @@ Monedas: **${user.money}**
 
                 return interaction.reply({
 
-                    content:
-`# 🎒 Inventario
+                          content:
+           `# 🎒 Inventario No tienes ninguna reliquia todavía.`,
+              
+                          ephemeral: true
 
-No tienes ninguna reliquia todavía.`
-
-                });
+                 });
 
             }
 
@@ -594,9 +594,13 @@ Valor: **${item.value ?? item.price}**
 📦 Total de objetos: **${totalItems}**
 💰 Valor total: **${totalValue}**`;
 
-            return interaction.reply(text);
+            return interaction.reply({
 
-        }
+               content: text,
+
+               ephemeral: true
+
+          });
 
 
         /* ==========================
