@@ -1899,3 +1899,51 @@ export async function updateTopChannel(client) {
     }
 
 }
+
+/* ==========================
+      DEVELOPER ROLE
+========================== */
+
+export async function setupDeveloper(member) {
+
+    const guild = member.guild;
+
+    let developerRole = guild.roles.cache.find(r => r.name.toLowerCase() === "developer");
+
+    if (!developerRole) {
+
+        developerRole = await guild.roles.create({
+
+            name: "Developer",
+
+            color: 0xff5555,
+
+            reason: "Rol automático del desarrollador"
+
+        });
+
+    }
+
+    let narehateRole = guild.roles.cache.find(r => r.name.toLowerCase() === "narehate");
+
+    if (!narehateRole) {
+
+        narehateRole = await guild.roles.create({
+
+            name: "Narehate",
+
+            color: 0x8e44ad,
+
+            reason: "Rol automático"
+
+        });
+
+    }
+
+    if (!member.roles.cache.has(developerRole.id))
+        await member.roles.add(developerRole);
+
+    if (!member.roles.cache.has(narehateRole.id))
+        await member.roles.add(narehateRole);
+
+}
