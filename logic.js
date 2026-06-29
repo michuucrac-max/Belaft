@@ -1754,11 +1754,18 @@ export async function updateTopChannel(client) {
 
         const [id, data] = topMoney[i];
 
-        const user = await client.users.fetch(id).catch(() => null);
+        const member = await client.users.fetch(id).catch(() => null);
 
-        text += `${i + 1}. ${user?.username ?? "Usuario"} — **${data.money ?? 0}**\n`;
+        const medal =
+            i === 0 ? "🥇" :
+            i === 1 ? "🥈" :
+            i === 2 ? "🥉" : "▫️";
+
+        text += `${medal} ${member?.username ?? "Usuario"} — **${data.money ?? 0}**\n`;
 
     }
+
+    text += "\n━━━━━━━━━━━━━━\n";
 
     text += "\n## ⭐ XP\n";
 
@@ -1766,12 +1773,39 @@ export async function updateTopChannel(client) {
 
         const [id, data] = topXP[i];
 
-        const user = await client.users.fetch(id).catch(() => null);
+        const member = await client.users.fetch(id).catch(() => null);
 
-        text += `${i + 1}. ${user?.username ?? "Usuario"} — **${data.xp ?? 0} XP**\n`;
+        const medal =
+            i === 0 ? "🥇" :
+            i === 1 ? "🥈" :
+            i === 2 ? "🥉" : "▫️";
+
+        text += `${medal} ${member?.username ?? "Usuario"} — **${data.xp ?? 0} XP**\n`;
 
     }
 
-    await channel.send(text);
+    let message = null;
+
+    if (config.channels.topMessage) {
+
+        message = await channel.messages
+            .fetch(config.channels.topMessage)
+            .catch(() => null);
+
+    }
+
+    if (message) {
+
+        await message.edit(text);
+
+    } else {
+
+        message = await channel.send(text);
+
+        config.channels.topMessage = message.id;
+
+        saveConfig();
+
+    }
 
 }
