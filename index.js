@@ -15,7 +15,8 @@ import fs from "fs";
 
 import {
   executeLogic,
-  executeMessageLogic
+  executeMessageLogic,
+  updateTopChannel
 } from "./logic.js";
 
 
@@ -101,10 +102,30 @@ client.once(Events.ClientReady, async () => {
 
     console.error(err);
 
+  // Crear el Top al iniciar
+  await updateTopChannel(client);
+
   }
 
 });
 
+/* ==========================
+      ACTUALIZAR TOP
+========================== */
+
+setInterval(async () => {
+
+    try {
+
+        await updateTopChannel(client);
+
+    } catch (err) {
+
+        console.error("Error actualizando el Top:", err);
+
+    }
+
+}, 1000 * 60 * 60 * 12); // 12 horas
 
 /* ==========================
       INTERACCIONES
