@@ -188,6 +188,7 @@ function saveConfig() {
 
 
 /* ==========================
+/* ==========================
       FUNCIONES OBJETOS
 ========================== */
 
@@ -201,22 +202,45 @@ function getRandom(min, max) {
 
 }
 
-
-// Estas funciones se implementarán
-// cuando hagamos el sistema de reliquias.
+const RELIC_CHANCE = 0.05;
 
 function getRandomClass() {
 
-    return null;
+    const chance = Math.random() * 100;
+
+    let accumulated = 0;
+
+    for (const category in objects.spawn) {
+
+        accumulated += objects.spawn[category];
+
+        if (chance <= accumulated) {
+
+            return category;
+
+        }
+
+    }
+
+    return "class4";
 
 }
 
 function getRandomObject() {
 
-    return null;
+    const category = getRandomClass();
+
+    const list = objects[category];
+
+    if (!list || list.length === 0) {
+
+        return null;
+
+    }
+
+    return list[getRandom(0, list.length - 1)];
 
 }
-
 
 /* ==========================
            LÓGICA
@@ -389,6 +413,68 @@ async function handleSlashCommands(interaction, client) {
 
     switch (interaction.commandName) {
 
+/* ==========================
+        MESSAGE LOGIC
+========================== */
+
+export async function executeMessageLogic(message, client) {
+
+    // Ignorar bots
+    if (message.author.bot) return;
+
+    // Ignorar mensajes privados
+    if (!message.guild) return;
+
+    // No hay canal configurado
+    if (!config.channels.reliquies) return;
+
+    // Solo funciona en el canal configurado
+    if (message.channel.id !== config.channels.reliquies) return;
+
+    // Probabilidad de aparición
+    if (Math.random() > RELIC_CHANCE) return;
+
+    // Elegir objeto
+    const item = getRandomObject();
+
+    if (!item) return;
+
+    // Obtener usuario
+    const user = getUser(message.author.id);
+
+    // Añadir al inventario
+    user.inventory[item.id] ??= 0;
+    user.inventory[item.id]++;
+
+    // Estadísticas
+    user.stats.reliquies++;
+
+    // Guardar cambios
+    saveStatus();
+
+    // Intentar enviar DM
+    try {
+
+        await message.author.send(
+`# 🎉 ¡Has encontrado una reliquia!
+
+${item.icon} **${item.name}**
+
+💰 Valor: **${item.value}**
+
+📦 Se añadió automáticamente a tu inventario.
+
+Usa **/inventory** para verla.`
+        );
+
+    } catch (err) {
+
+        console.log(`No pude enviar un DM a ${message.author.tag}.`);
+
+    }
+
+}
+                        
         /* ==========================
                 PING
         ========================== */
