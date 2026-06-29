@@ -1048,22 +1048,59 @@ case "rankup": {
         }
 
 
-        /* ==========================
-             SEE MONEY
-        ========================== */
+/* ==========================
+         SET MONEY
+========================== */
 
-        case "seemoney": {
+case "setmoney": {
 
-            return interaction.reply({
+    if (!interaction.memberPermissions.has("Administrator")) {
 
-                content: "⚠️ Administración aún no implementada.",
+        return interaction.reply({
 
-                ephemeral: true
+            content: "❌ Solo los administradores pueden usar este comando.",
 
-            });
+            ephemeral: true
 
-        }
+        });
 
+    }
+
+    const target = interaction.options.getUser("usuario");
+    const amount = interaction.options.getInteger("cantidad");
+
+    if (amount < 0) {
+
+        return interaction.reply({
+
+            content: "❌ La cantidad no puede ser negativa.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+    const user = getUser(target.id);
+
+    user.money = amount;
+
+    saveStatus();
+
+    return interaction.reply({
+
+        content:
+`💰 Dinero actualizado.
+
+👤 Usuario: ${target}
+
+🪙 Nuevo saldo: **${amount}** monedas.`,
+
+        ephemeral: true
+
+    });
+
+}
 
         /* ==========================
       SET CHANNEL RELIQUIES
