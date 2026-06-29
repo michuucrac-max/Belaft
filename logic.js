@@ -250,6 +250,73 @@ function getRandomObject() {
 
 }
 
+/* ==========================
+      FUNCIONES RANGOS
+========================== */
+
+const ROLE_ALIASES = {
+
+    bell: [
+        "bell",
+        "campanilla"
+    ],
+
+    silbato_rojo: [
+        "silbato rojo",
+        "rojo"
+    ],
+
+    silbato_azul: [
+        "silbato azul",
+        "azul"
+    ],
+
+    silbato_lunar: [
+        "silbato lunar",
+        "lunar"
+    ],
+
+    silbato_negro: [
+        "silbato negro",
+        "negro"
+    ],
+
+    silbato_blanco: [
+        "silbato blanco",
+        "blanco"
+    ],
+
+    narehate: [
+        "narehate"
+    ]
+
+};
+
+function normalizeRole(name) {
+
+    return name
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^\p{L}\p{N} ]/gu, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+}
+
+function findGuildRole(guild, rankKey) {
+
+    const aliases = ROLE_ALIASES[rankKey] ?? [];
+
+    return guild.roles.cache.find(role => {
+
+        const name = normalizeRole(role.name);
+
+        return aliases.some(alias => name.includes(alias));
+
+    });
+
+}
 
 /* ==========================
            LÓGICA
@@ -849,21 +916,103 @@ case "sell": {
 }
 
 
-        /* ==========================
-               RANKUP
-        ========================== */
+/* ==========================
+          RANKUP
+========================== */
 
-        case "rankup": {
+case "rankup": {
 
-            return interaction.reply({
+    const user = getUser(interaction.user.id);
 
-                content: "⚠️ Sistema de rangos aún no implementado.",
+    const ranks = config.ranks;
 
-                ephemeral: true
+    const currentRank = ranks[user.rank] ?? "bell";
 
-            });
+    // Último rango
+    if (user.rank >= ranks.length - 1) {
+
+        return interaction.reply({
+
+            content:
+`🏆 ¡Ya posees el rango máximo!
+
+🎖️ **${currentRank}**`,
+
+            ephemeral: true
+
+        });
+
+    }
+
+    const nextRank = ranks[user.rank + 1];
+
+    const cost = config.rankCosts[nextRank] ?? 0;
+
+    // Dinero insuficiente
+    if (user.money < cost) {
+
+        return interaction.reply({
+
+            content:
+`❌ No tienes suficientes monedas.
+
+💰 Necesitas: **${cost}**
+🪙 Tienes: **${user.money}**`,
+
+            ephemeral: true
+
+        });
+
+    }
+
+    // Cobrar
+    user.money -= cost;
+
+    // Subir rango
+    user.rank++;
+
+    saveStatus();
+
+    // Cambiar roles
+    try {
+
+        const oldRole = findGuildRole(interaction.guild, currentRank);
+
+        const newRole = findGuildRole(interaction.guild, nextRank);
+
+        if (oldRole) {
+
+            await interaction.member.roles.remove(oldRole);
 
         }
+
+        if (newRole) {
+
+            await interaction.member.roles.add(newRole);
+
+        }
+
+    } catch (err) {
+
+        console.log("Error al actualizar roles:", err);
+
+    }
+
+    return interaction.reply({
+
+        content:
+`🎉 ¡Ascendiste de rango!
+
+🎖️ Nuevo rango: **${nextRank}**
+
+💰 Coste: **${cost}**
+🪙 Dinero restante: **${user.money}**`,
+
+        ephemeral: true
+
+    });
+
+}
 
         /* ==========================
              SET MONEY
