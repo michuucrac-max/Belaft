@@ -571,14 +571,18 @@ if (
 
         for (const role of member.roles.cache.values()) {
 
-            const roleName = role.name
-                .replace(/[^\p{L}\p{N} ]/gu, "")
-                .toLowerCase()
-                .trim();
+            const normalize = text =>
+    text
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^\p{L}\p{N}]/gu, "")
+        .toLowerCase();
 
-            const shouldRemove = rolesToRemove.some(r =>
-                roleName.includes(r.toLowerCase())
-            );
+const roleName = normalize(role.name);
+
+const shouldRemove = rolesToRemove.some(r =>
+    roleName.includes(normalize(r))
+);
 
             if (shouldRemove) {
 
@@ -597,8 +601,6 @@ if (
         components: []
 
     });
-
-}
 
 }
 
