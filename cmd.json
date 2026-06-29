@@ -128,6 +128,19 @@
   ]
  },
   {
+  "name": "suggestion",
+  "description": "Enviar una sugerencia al desarrollador.",
+  "options": [
+    {
+      "name": "mensaje",
+      "description": "Escribe tu sugerencia",
+      "type": 3,
+      "required": true,
+      "max_length": 1000
+    }
+  ]
+ },
+  {
   "name": "setchanneltop",
   "description": "Configurar el canal del ranking.",
   "default_member_permissions": "8"
