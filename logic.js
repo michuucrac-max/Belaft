@@ -986,37 +986,63 @@ Selecciona otro canal si deseas cambiarlo.`
         MESSAGE LOGIC
 ========================== */
 
+const RELIC_CHANCE = 1; // Cambia a 0.05 cuando termines las pruebas
+
 export async function executeMessageLogic(message) {
 
-          console.log("📩 Mensaje recibido");
+    console.log("📩 Mensaje recibido");
+    console.log("Canal del mensaje:", message.channel.id);
+    console.log("Canal configurado:", config.channels.reliquies);
 
-console.log("Canal del mensaje:", message.channel.id);
-
-console.log("Canal configurado:", config.channels.reliquies);
-
+    // Ignorar bots
     if (message.author.bot) return;
 
+    // Ignorar mensajes privados
     if (!message.guild) return;
 
+    // No hay canal configurado
     if (!config.channels.reliquies) return;
 
+    // Solo funciona en el canal configurado
     if (message.channel.id !== config.channels.reliquies) return;
 
-    if (Math.random() > RELIC_CHANCE) return;
+    // Probabilidad
+    if (Math.random() > RELIC_CHANCE) {
+        console.log("❌ No salió reliquia");
+        return;
+    }
 
+    console.log("🎲 Se generará una reliquia");
+
+    // Elegir objeto
     const item = getRandomObject();
 
-    if (!item) return;
+    console.log("Objeto obtenido:", item);
 
+    if (!item) {
+        console.log("❌ getRandomObject devolvió null");
+        return;
+    }
+
+    // Obtener usuario
     const user = getUser(message.author.id);
 
+    console.log("Usuario antes:", JSON.stringify(user, null, 2));
+
+    // Añadir objeto
     user.inventory[item.id] ??= 0;
     user.inventory[item.id]++;
 
     user.stats.reliquies++;
 
+    console.log("Usuario después:", JSON.stringify(user, null, 2));
+
+    // Guardar
     saveStatus();
 
+    console.log("✅ Status guardado");
+
+    // Intentar enviar DM
     try {
 
         await message.author.send(
@@ -1031,9 +1057,11 @@ ${item.icon} **${item.name}**
 Usa **/inventory** para verla.`
         );
 
-    } catch {
+        console.log("✅ DM enviado");
 
-        console.log(`No pude enviar un DM a ${message.author.tag}`);
+    } catch (err) {
+
+        console.log("❌ No pude enviar el DM:", err.message);
 
     }
 
