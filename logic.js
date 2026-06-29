@@ -165,6 +165,8 @@ function getUser(userId) {
 
             multiplier: 1,
 
+            daily: 0,
+
             inventory: {},
 
             stats: {
@@ -194,6 +196,9 @@ function getUser(userId) {
 
     if (typeof status[userId].multiplier !== "number")
         status[userId].multiplier = 1;
+
+    if (typeof status[userId].daily !== "number")
+        status[userId].daily = 0;
 
     if (!status[userId].inventory)
         status[userId].inventory = {};
