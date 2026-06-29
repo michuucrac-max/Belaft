@@ -7,10 +7,21 @@ import fs from "fs";
 import objects from "./objects.json" with { type: "json" };
 
 import {
+
     ActionRowBuilder,
+
     ChannelSelectMenuBuilder,
+
     StringSelectMenuBuilder,
-    ChannelType
+
+    ChannelType,
+
+    EmbedBuilder,
+
+    ButtonBuilder,
+
+    ButtonStyle
+
 } from "discord.js";
 
 /* ==========================
