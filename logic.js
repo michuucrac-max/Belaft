@@ -1721,3 +1721,57 @@ Usa **/inventory** para verla.`
     }
 
 }
+
+/* ==========================
+      UPDATE TOP CHANNEL
+========================== */
+
+export async function updateTopChannel(client) {
+
+    if (!config.channels.tops) return;
+
+    const channel = await client.channels.fetch(config.channels.tops).catch(() => null);
+
+    if (!channel) return;
+
+    const users = Object.entries(status);
+
+    if (!users.length) return;
+
+    const topMoney = [...users]
+        .sort((a, b) => (b[1].money ?? 0) - (a[1].money ?? 0))
+        .slice(0, 10);
+
+    const topXP = [...users]
+        .sort((a, b) => (b[1].xp ?? 0) - (a[1].xp ?? 0))
+        .slice(0, 10);
+
+    let text = "# 🏆 TOP DEL ABISMO\n";
+
+    text += "\n## 💰 Monedas\n";
+
+    for (let i = 0; i < topMoney.length; i++) {
+
+        const [id, data] = topMoney[i];
+
+        const user = await client.users.fetch(id).catch(() => null);
+
+        text += `${i + 1}. ${user?.username ?? "Usuario"} — **${data.money ?? 0}**\n`;
+
+    }
+
+    text += "\n## ⭐ XP\n";
+
+    for (let i = 0; i < topXP.length; i++) {
+
+        const [id, data] = topXP[i];
+
+        const user = await client.users.fetch(id).catch(() => null);
+
+        text += `${i + 1}. ${user?.username ?? "Usuario"} — **${data.xp ?? 0} XP**\n`;
+
+    }
+
+    await channel.send(text);
+
+}
