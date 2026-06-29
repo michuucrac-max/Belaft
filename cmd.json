@@ -133,6 +133,10 @@
   "default_member_permissions": "8"
   },
   {
+  "name": "daily",
+  "description": "Reclama tu recompensa diaria."
+  },
+  {
     "name": "setchannelreliquies",
     "description": "Configurar el canal de reliquias.",
     "default_member_permissions": "8"
