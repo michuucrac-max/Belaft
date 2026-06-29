@@ -3,7 +3,8 @@
     "reliquies": [],
     "trade": null,
     "sell": null,
-    "tops": null
+    "tops": null,
+    "topMessage": null
   },
 
   "ranks": [
