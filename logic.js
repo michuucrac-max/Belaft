@@ -1085,6 +1085,49 @@ case "setmoney": {
         }
 
         /* ==========================
+          SEE MONEY
+        ========================== */
+
+case "seemoney": {
+
+    const target = interaction.options.getUser("usuario");
+
+    const user = getUser(target.id);
+
+    const rankNames = {
+
+        0: "Bell",
+        1: "Silbato Rojo",
+        2: "Silbato Azul",
+        3: "Silbato Lunar",
+        4: "Silbato Negro",
+        5: "Silbato Blanco",
+        6: "Narehate"
+
+    };
+
+    return interaction.reply({
+
+        content:
+`# 👤 Perfil de ${target.username}
+
+💰 Monedas: **${user.money}**
+
+🎖️ Rango: **${rankNames[user.rank] ?? "Desconocido"}**
+⭐ XP: **${user.xp}**
+
+━━━━━━━━━━━━━━
+
+📦 Reliquias encontradas: **${user.stats.reliquies}**
+💸 Reliquias vendidas: **${user.stats.sold}**`,
+
+        ephemeral: true
+
+    });
+
+}
+
+        /* ==========================
         SET CHANNEL RELIQUIES
         ========================== */
 
