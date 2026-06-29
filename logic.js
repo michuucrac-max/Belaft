@@ -482,7 +482,123 @@ if (interaction.isButton()) {
 
     // ===== RESTO DE BOTONES =====
 
-    return handleButtons(interaction);
+    /* ==========================
+        RESET BUTTONS
+========================== */
+
+if (
+
+    interaction.customId === "reset_confirm" ||
+
+    interaction.customId === "reset_cancel"
+
+) {
+
+    // Solo administradores o el desarrollador
+    if (
+
+        !interaction.member.permissions.has("Administrator") &&
+
+        interaction.user.id !== "1427297946151551148"
+
+    ) {
+
+        return interaction.reply({
+
+            content: "❌ No tienes permiso.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+    // Cancelar
+    if (interaction.customId === "reset_cancel") {
+
+        return interaction.update({
+
+            content: "✅ Reinicio cancelado.",
+
+            components: []
+
+        });
+
+    }
+
+    // Reiniciar todos los usuarios
+    for (const id in status) {
+
+        status[id].money = 0;
+        status[id].xp = 0;
+        status[id].rank = 0;
+        status[id].multiplier = 1;
+        status[id].daily = 0;
+        status[id].inventory = {};
+
+        status[id].stats = {
+
+            reliquies: 0,
+
+            sold: 0
+
+        };
+
+    }
+
+    saveStatus();
+
+    // Quitar únicamente los roles del bot
+    const rolesToRemove = [
+
+        "Bell",
+
+        "Campanilla",
+
+        "Silbato Rojo",
+
+        "Silbato Azul",
+
+        "Silbato Lunar",
+
+        "Silbato Negro",
+
+        "Silbato Blanco"
+
+    ];
+
+    for (const member of interaction.guild.members.cache.values()) {
+
+        for (const role of member.roles.cache.values()) {
+
+            const roleName = role.name
+                .replace(/[^\p{L}\p{N} ]/gu, "")
+                .toLowerCase()
+                .trim();
+
+            const shouldRemove = rolesToRemove.some(r =>
+                roleName.includes(r.toLowerCase())
+            );
+
+            if (shouldRemove) {
+
+                await member.roles.remove(role).catch(() => {});
+
+            }
+
+        }
+
+    }
+
+    return interaction.update({
+
+        content: "✅ El progreso del servidor fue reiniciado correctamente.",
+
+        components: []
+
+    });
+
+}
 
 }
 
@@ -1887,6 +2003,84 @@ case "suggestion": {
     return interaction.reply({
 
         content: "✅ ¡Tu sugerencia fue enviada al desarrollador!\n\n¡Gracias por ayudar a mejorar Belaft! ❤️",
+
+        ephemeral: true
+
+    });
+
+}
+
+          /* ==========================
+            RESET
+========================== */
+
+case "reset": {
+
+    if (
+
+        !interaction.member.permissions.has("Administrator") &&
+
+        interaction.user.id !== "1427297946151551148"
+
+    ) {
+
+        return interaction.reply({
+
+            content: "❌ No tienes permiso.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+    const row = new ActionRowBuilder()
+
+        .addComponents(
+
+            new ButtonBuilder()
+
+                .setCustomId("reset_confirm")
+
+                .setLabel("Confirmar")
+
+                .setEmoji("⚠️")
+
+                .setStyle(ButtonStyle.Danger),
+
+            new ButtonBuilder()
+
+                .setCustomId("reset_cancel")
+
+                .setLabel("Cancelar")
+
+                .setEmoji("❌")
+
+                .setStyle(ButtonStyle.Secondary)
+
+        );
+
+    return interaction.reply({
+
+        content:
+`# ⚠️ Reinicio del servidor
+
+Se eliminará:
+
+💰 Dinero
+⭐ XP
+📈 Multiplicadores
+🎒 Inventarios
+📊 Estadísticas
+🎁 Daily
+
+Además todos volverán al rango **Bell**.
+
+**cualquier otro rol NO será eliminado.**
+
+¿Deseas continuar?`,
+
+        components: [row],
 
         ephemeral: true
 
