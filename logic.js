@@ -1015,42 +1015,8 @@ case "rankup": {
 }
 
         /* ==========================
-             SET MONEY
-        ========================== */
-
-        case "setmoney": {
-
-            return interaction.reply({
-
-                content: "⚠️ Administración aún no implementada.",
-
-                ephemeral: true
-
-            });
-
-        }
-
-
-        /* ==========================
-           REMOVE MONEY
-        ========================== */
-
-        case "removemoney": {
-
-            return interaction.reply({
-
-                content: "⚠️ Administración aún no implementada.",
-
-                ephemeral: true
-
-            });
-
-        }
-
-
-/* ==========================
          SET MONEY
-========================== */
+        ========================== */
 
 case "setmoney": {
 
@@ -1101,9 +1067,25 @@ case "setmoney": {
     });
 
 }
+                        
+        /* ==========================
+           REMOVE MONEY
+        ========================== */
+
+        case "removemoney": {
+
+            return interaction.reply({
+
+                content: "⚠️ Administración aún no implementada.",
+
+                ephemeral: true
+
+            });
+
+        }
 
         /* ==========================
-      SET CHANNEL RELIQUIES
+        SET CHANNEL RELIQUIES
         ========================== */
 
         case "setchannelreliquies": {
