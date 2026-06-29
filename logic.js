@@ -949,12 +949,15 @@ case "mymoney": {
 
                     totalItems += amount;
 
-                    totalValue += (item.value ?? item.price ?? 0) * amount;
-
+                    const sellValue = Math.floor((item.value ?? item.price ?? 0) * user.multiplier);
+                    totalValue += sellValue * amount;
+                          
                     text +=
 `${item.icon} **${item.name}**
 Cantidad: **${amount}**
-Valor: **${item.value ?? item.price}**
+Valor base: **${baseValue}**
+📈 Multiplicador: **x${user.multiplier}**
+💰 Valor de venta: **${sellValue}**
 
 `;
 
