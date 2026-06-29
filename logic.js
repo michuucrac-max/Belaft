@@ -9,9 +9,9 @@ import objects from "./objects.json" with { type: "json" };
 import {
     ActionRowBuilder,
     ChannelSelectMenuBuilder,
+    StringSelectMenuBuilder,
     ChannelType
 } from "discord.js";
-
 
 /* ==========================
            RUTAS
@@ -20,7 +20,7 @@ import {
 const CONFIG_PATH = "./config.json";
 const STATUS_PATH = "./status.json";
 
-const RELIC_CHANCE = 0.05;
+const RELIC_CHANCE = 1;
 
 
 /* ==========================
