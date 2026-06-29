@@ -22,6 +22,11 @@ const STATUS_PATH = "./status.json";
 
 const RELIC_CHANCE = 1;
 
+/* ==========================
+        SISTEMA XP
+========================== */
+
+const XP_COOLDOWN = new Map();
 
 /* ==========================
            CONFIG
@@ -143,20 +148,22 @@ function saveStatus() {
 
 
 /* ==========================
-       OBTENER USUARIO
+        OBTENER USUARIO
 ========================== */
 
-function getUser(id) {
+function getUser(userId) {
 
-    if (!status[id]) {
+    if (!status[userId]) {
 
-        status[id] = {
+        status[userId] = {
 
             money: 0,
 
+            xp: 0,
+
             rank: 0,
 
-            xp: 0,
+            multiplier: 1,
 
             inventory: {},
 
@@ -174,10 +181,46 @@ function getUser(id) {
 
     }
 
-    return status[id];
+    // Compatibilidad con usuarios antiguos
+
+    if (typeof status[userId].money !== "number")
+        status[userId].money = 0;
+
+    if (typeof status[userId].xp !== "number")
+        status[userId].xp = 0;
+
+    if (typeof status[userId].rank !== "number")
+        status[userId].rank = 0;
+
+    if (typeof status[userId].multiplier !== "number")
+        status[userId].multiplier = 1;
+
+    if (!status[userId].inventory)
+        status[userId].inventory = {};
+
+    if (!status[userId].stats) {
+
+        status[userId].stats = {
+
+            reliquies: 0,
+
+            sold: 0
+
+        };
+
+    }
+
+    if (typeof status[userId].stats.reliquies !== "number")
+        status[userId].stats.reliquies = 0;
+
+    if (typeof status[userId].stats.sold !== "number")
+        status[userId].stats.sold = 0;
+
+    saveStatus();
+
+    return status[userId];
 
 }
-
 
 /* ==========================
       OBJETOS ALEATORIOS
@@ -1225,7 +1268,37 @@ Selecciona otro canal si deseas cambiarlo.`
 
         }
 
+         /* ==========================
+          SET XP
+         ========================== */
 
+case "setxp": {
+
+    const target = interaction.options.getUser("usuario");
+
+    const amount = interaction.options.getInteger("cantidad");
+
+    const user = getUser(target.id);
+
+    user.xp = Math.max(0, amount);
+
+    saveStatus();
+
+    return interaction.reply({
+
+        content:
+`⭐ XP actualizado correctamente.
+
+👤 Usuario: ${target.username}
+
+⭐ XP: **${user.xp}**`,
+
+        ephemeral: true
+
+    });
+
+}
+                        
         /* ==========================
             DESCONOCIDO
         ========================== */
@@ -1262,6 +1335,28 @@ export async function executeMessageLogic(message) {
 
     // Ignorar mensajes privados
     if (!message.guild) return;
+
+/* ==========================
+         GANAR XP
+========================== */
+
+const now = Date.now();
+
+const lastXP = XP_COOLDOWN.get(message.author.id) ?? 0;
+
+if (now - lastXP >= 30000) {
+
+    const xpuser = getUser(message.author.id);
+
+    const gainedXP = getRandom(2, 5);
+
+    xpuser.xp += gainedXP;
+
+    saveStatus();
+
+    XP_COOLDOWN.set(message.author.id, now);
+
+}
 
     // No hay canal configurado
     if (!config.channels.reliquies) return;
