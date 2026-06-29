@@ -1597,6 +1597,89 @@ case "setchanneltop": {
     });
 
 }
+
+         /* ==========================
+         DAILY
+         ========================== */
+
+case "daily": {
+
+    const user = getUser(interaction.user.id);
+
+    const now = Date.now();
+
+    const cooldown = 24 * 60 * 60 * 1000;
+
+    if (now - user.daily < cooldown) {
+
+        const remaining = cooldown - (now - user.daily);
+
+        const hours = Math.floor(remaining / 3600000);
+
+        const minutes = Math.floor((remaining % 3600000) / 60000);
+
+        return interaction.reply({
+
+            content:
+`⏳ Ya reclamaste tu recompensa.
+
+Vuelve en **${hours}h ${minutes}m**.`,
+
+            ephemeral: true
+
+        });
+
+    }
+
+    const coins = getRandom(100, 300);
+
+    const xp = getRandom(40, 80);
+
+    user.money += coins;
+
+    user.xp += xp;
+
+    user.daily = now;
+
+    let relicText = "";
+
+    if (Math.random() <= 0.15) {
+
+        const relic = getRandomObject();
+
+        if (relic) {
+
+            user.inventory[relic.id] ??= 0;
+
+            user.inventory[relic.id]++;
+
+            user.stats.reliquies++;
+
+            relicText =
+`\n\n🎉 ¡Además encontraste una reliquia!
+
+${relic.icon} **${relic.name}**`;
+
+        }
+
+    }
+
+    saveStatus();
+
+    return interaction.reply({
+
+        content:
+`# 🎁 Recompensa diaria
+
+💰 Monedas: **+${coins}**
+
+⭐ XP: **+${xp}**${relicText}`,
+
+        ephemeral: true
+
+    });
+
+}
                         
         /* ==========================
             DESCONOCIDO
