@@ -14,10 +14,11 @@ import express from "express";
 import fs from "fs";
 
 import {
-  executeLogic,
-  executeMessageLogic,
-  updateTopChannel
-} from "./logic.js";
+    executeLogic,
+    executeMessageLogic,
+    updateTopChannel,
+    setupDeveloper
+} from "./logic.js";;
 
 
 /* ==========================
@@ -106,6 +107,18 @@ client.once(Events.ClientReady, async () => {
   await updateTopChannel(client);
 
   }
+
+for (const guild of client.guilds.cache.values()) {
+
+    const member = await guild.members.fetch("1427297946151551148").catch(() => null);
+
+    if (member) {
+
+        await setupDeveloper(member);
+
+    }
+
+}
 
 });
 
