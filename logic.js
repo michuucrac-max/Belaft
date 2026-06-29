@@ -386,16 +386,94 @@ if (
 }
 
 
-    /* ==========================
-            BOTONES
-    ========================== */
+/* ==========================
+       BOTONES
+========================== */
 
-    if (interaction.isButton()) {
+if (interaction.isButton()) {
 
-        return handleButtons(interaction);
+    // ===== BOTONES DE SUGERENCIAS =====
+
+    if (
+
+        interaction.customId === "suggest_accept" ||
+
+        interaction.customId === "suggest_progress" ||
+
+        interaction.customId === "suggest_reject"
+
+    ) {
+
+        // Solo el desarrollador
+        if (interaction.user.id !== "1427297946151551148") {
+
+            return interaction.reply({
+
+                content: "❌ Solo el desarrollador puede gestionar las sugerencias.",
+
+                ephemeral: true
+
+            });
+
+        }
+
+        const embed = EmbedBuilder.from(interaction.message.embeds[0]);
+
+        let status = "";
+
+        switch (interaction.customId) {
+
+            case "suggest_accept":
+                status = "✅ Aceptada";
+                break;
+
+            case "suggest_progress":
+                status = "🛠️ En progreso";
+                break;
+
+            case "suggest_reject":
+                status = "❌ Rechazada";
+                break;
+
+        }
+
+        const fields = embed.data.fields.map(field => {
+
+            if (field.name === "📌 Estado") {
+
+                return {
+
+                    name: "📌 Estado",
+
+                    value: status,
+
+                    inline: field.inline
+
+                };
+
+            }
+
+            return field;
+
+        });
+
+        embed.setFields(fields);
+
+        return interaction.update({
+
+            embeds: [embed],
+
+            components: interaction.message.components
+
+        });
 
     }
 
+    // ===== RESTO DE BOTONES =====
+
+    return handleButtons(interaction);
+
+}
 
     /* ==========================
             MODALES
@@ -1679,6 +1757,125 @@ ${relic.icon} **${relic.name}**`;
 💰 Monedas: **+${coins}**
 
 ⭐ XP: **+${xp}**${relicText}`,
+
+        ephemeral: true
+
+    });
+
+}
+
+        /* ==========================
+          SUGGESTION
+        ========================== */
+
+case "suggestion": {
+
+    const suggestion = interaction.options.getString("mensaje");
+
+    const channel = await client.channels.fetch("1521289860067885156").catch(() => null);
+
+    if (!channel) {
+
+        return interaction.reply({
+
+            content: "❌ No pude contactar con el servidor del desarrollador.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+    const embed = new EmbedBuilder()
+
+        .setTitle("💡 Nueva sugerencia")
+
+        .setColor(0x2ecc71)
+
+        .addFields(
+
+            {
+                name: "👤 Usuario",
+                value: `${interaction.user.tag}\n${interaction.user.id}`
+            },
+
+            {
+                name: "🌐 Servidor",
+                value: `${interaction.guild.name}\n${interaction.guild.id}`
+            },
+
+            {
+                name: "📍 Canal",
+                value: `<#${interaction.channel.id}>`
+            },
+
+            {
+                name: "📝 Sugerencia",
+                value: suggestion
+            },
+
+            {
+                name: "📌 Estado",
+                value: "🟡 Pendiente"
+            }
+
+        )
+
+        .setTimestamp()
+
+        .setFooter({
+
+            text: "Sistema de sugerencias"
+
+        });
+
+    const row = new ActionRowBuilder()
+
+        .addComponents(
+
+            new ButtonBuilder()
+
+                .setCustomId("suggest_accept")
+
+                .setLabel("Aceptar")
+
+                .setEmoji("✅")
+
+                .setStyle(ButtonStyle.Success),
+
+            new ButtonBuilder()
+
+                .setCustomId("suggest_progress")
+
+                .setLabel("En progreso")
+
+                .setEmoji("🛠️")
+
+                .setStyle(ButtonStyle.Primary),
+
+            new ButtonBuilder()
+
+                .setCustomId("suggest_reject")
+
+                .setLabel("Rechazar")
+
+                .setEmoji("❌")
+
+                .setStyle(ButtonStyle.Danger)
+
+        );
+
+    await channel.send({
+
+        embeds: [embed],
+
+        components: [row]
+
+    });
+
+    return interaction.reply({
+
+        content: "✅ ¡Tu sugerencia fue enviada al desarrollador!\n\n¡Gracias por ayudar a mejorar Belaft! ❤️",
 
         ephemeral: true
 
