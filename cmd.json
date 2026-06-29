@@ -20,6 +20,10 @@
     "description": "Información del servidor."
   },
   {
+  "name": "shop",
+  "description": "Comprar mejoras usando XP."
+  },
+  {
     "name": "inventory",
     "description": "Ver tu inventario."
   },
