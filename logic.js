@@ -1492,6 +1492,31 @@ case "rankup": {
         if (oldRole) await interaction.member.roles.remove(oldRole).catch(console.error);
         if (newRole) await interaction.member.roles.add(newRole).catch(console.error);
 
+        // 📢 Canal de ascensos
+        const rankupChannel = config.channels?.[interaction.guild.id]?.rankup;
+        if (rankupChannel) {
+            const channel = interaction.guild.channels.cache.get(rankupChannel);
+            if (channel) {
+                const embed = new EmbedBuilder()
+                    .setColor(0x2ecc71)
+                    .setTitle("🎉 ¡Un explorador ha ascendido de rango!")
+                    .setDescription(`${interaction.user} ha demostrado su experiencia en el Abismo y ha conseguido un nuevo rango.`)
+                    .addFields(
+                        { name: "🏅 Nuevo rango", value: config.roles[nextRank] ?? nextRank, inline: true },
+                        { name: "💰 Coste", value: `${cost} monedas`, inline: true }
+                    )
+                    .setThumbnail(interaction.user.displayAvatarURL({ dynamic: true })) // avatar del usuario
+                    .setImage("https://i.imgur.com/8l0bV5z.png") // banner, cámbialo por tu imagen oficial
+                    .setTimestamp();
+
+                await channel.send({
+                    content: `📢 ${interaction.user} ha subido de rango.`,
+                    embeds: [embed]
+                }).catch(console.error);
+            }
+        }
+
+        // Mensaje al usuario (privado)
         return interaction.reply({
             content: `🎉 ¡Ascendiste de rango!\n\n🎖️ Nuevo rango: **${config.roles[nextRank]}**\n💰 Coste: **${cost}**\n🪙 Dinero restante: **${user.money}**`,
             ephemeral: true
@@ -1505,6 +1530,7 @@ case "rankup": {
         }).catch(() => {});
     }
 }
+
                         
          /* ==========================
          SHOP
