@@ -1903,8 +1903,9 @@ Selecciona otro canal si deseas cambiarlo.`
 
     ephemeral: true
 
-});
-
+}); 
+}
+    
 /* ==========================
         SET MONEY
 ========================== */
