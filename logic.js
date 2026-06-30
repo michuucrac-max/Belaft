@@ -561,9 +561,8 @@ if (
 
         "Silbato Lunar",
 
-        "Silbato Negro",
+        "Silbato Negro"
 
-        "Silbato Blanco"
 
     ];
 
@@ -1487,7 +1486,7 @@ case "rankup": {
 
     const ranks = config.ranks;
 
-    const currentRank = ranks[user.rank] ?? "bell";
+    const currentRank = ranks[user.rank] ?? "Bell";
 
     // Último rango
     if (user.rank >= ranks.length - 1) {
@@ -1506,6 +1505,30 @@ case "rankup": {
     }
 
     const nextRank = ranks[user.rank + 1];
+
+    // Normalizar texto (ignora emojis, símbolos y acentos)
+    const normalize = text =>
+        text
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^\p{L}\p{N}]/gu, "")
+            .toLowerCase();
+
+    // El Silbato Blanco no puede comprarse
+    if (normalize(nextRank).includes(normalize("Silbato Blanco"))) {
+
+        return interaction.reply({
+
+            content:
+`🤍 El **Silbato Blanco** no puede obtenerse mediante ascenso.
+
+Solo la **Organización** (administradores y el propietario del servidor) puede conceder este rango.`,
+
+            ephemeral: true
+
+        });
+
+    }
 
     const cost = config.rankCosts[nextRank] ?? 0;
 
@@ -1575,60 +1598,6 @@ case "rankup": {
 
 }
 
-        /* ==========================
-         SET MONEY
-        ========================== */
-
-case "setmoney": {
-
-    if (!interaction.memberPermissions.has("Administrator")) {
-
-        return interaction.reply({
-
-            content: "❌ Solo los administradores pueden usar este comando.",
-
-            ephemeral: true
-
-        });
-
-    }
-
-    const target = interaction.options.getUser("usuario");
-    const amount = interaction.options.getInteger("cantidad");
-
-    if (amount < 0) {
-
-        return interaction.reply({
-
-            content: "❌ La cantidad no puede ser negativa.",
-
-            ephemeral: true
-
-        });
-
-    }
-
-    const user = getUser(target.id);
-
-    user.money = amount;
-
-    saveStatus();
-
-    return interaction.reply({
-
-        content:
-`💰 Dinero actualizado.
-
-👤 Usuario: ${target}
-
-🪙 Nuevo saldo: **${amount}** monedas.`,
-
-        ephemeral: true
-
-    });
-
-}
-                        
          /* ==========================
          SHOP
          ========================== */
