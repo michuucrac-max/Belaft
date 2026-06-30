@@ -889,15 +889,21 @@ case "shop_buy": {
     SET CHANNEL RANKUP
 ========================== */
 
-case "setchannelrankup": {
+case "set_rankup_channel": {
 
-    config.rankupChannel = interaction.values[0];
+    config.channels.rankup = interaction.values[0];
 
     saveConfig();
 
     return interaction.update({
 
-        content: `✅ Canal de ascensos configurado en <#${interaction.values[0]}>.`,
+        content:
+`✅ Canal de ascensos configurado.
+
+🏆 Canal:
+<#${interaction.values[0]}>
+
+Los ascensos se anunciarán aquí.`,
 
         components: []
 
@@ -1149,6 +1155,8 @@ Aquí encontrarás todos los comandos disponibles y una breve explicación de ca
 "📡 **/setchannelreliquies**\nConfigura el canal donde aparecerán reliquias.\n\n" +
 
 "🏆 **/setchanneltop**\nConfigura el canal del ranking automático.\n\n" +
+                          
+"🔼 **/setchannelrankup**\nConfigura el canal donde aparecera el rankup.\n\n" +
 
 "♻️ **/reset**\nReinicia el progreso económico del servidor.",
                 inline: false
@@ -2219,24 +2227,23 @@ Además todos volverán al rango **Bell**.
 
 case "setchannelrankup": {
 
-    const channels = interaction.guild.channels.cache
-        .filter(c => c.isTextBased());
+    const row = new ActionRowBuilder()
 
-    const menu = new StringSelectMenuBuilder()
-        .setCustomId("setchannelrankup")
-        .setPlaceholder("Selecciona un canal")
-        .addOptions(
-            channels.map(channel => ({
-                label: channel.name,
-                value: channel.id
-            })).first(25)
+        .addComponents(
+
+            new ChannelSelectMenuBuilder()
+
+                .setCustomId("set_rankup_channel")
+
+                .setPlaceholder("Selecciona el canal")
+
+                .setChannelTypes(ChannelType.GuildText)
+
         );
-
-    const row = new ActionRowBuilder().addComponents(menu);
 
     return interaction.reply({
 
-        content: "📢 Selecciona el canal donde se anunciarán los ascensos.",
+        content: "🏆 Selecciona el canal donde se anunciarán los ascensos.",
 
         components: [row],
 
