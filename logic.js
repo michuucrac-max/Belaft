@@ -31,7 +31,7 @@ import {
 const CONFIG_PATH = "./config.json";
 const STATUS_PATH = "./status.json";
 
-const RELIC_CHANCE = 0,005;
+const RELIC_CHANCE = 0.005;
 
 /* ==========================
         SISTEMA XP
