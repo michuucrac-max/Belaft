@@ -532,7 +532,6 @@ if (
 
     }
 
-    // Reiniciar todos los usuarios
     // Reiniciar únicamente los usuarios de este servidor
 const guildStatus = status[interaction.guild.id];
 
@@ -818,23 +817,23 @@ case "shop_buy": {
     switch (multiplier) {
 
         case 1.1:
-            price = 100;
+            price = 1000;
             break;
 
         case 1.25:
-            price = 250;
+            price = 15000;
             break;
 
         case 1.5:
-            price = 600;
+            price = 30000;
             break;
 
         case 2:
-            price = 1500;
+            price = 100000;
             break;
 
         case 3:
-            price = 4000;
+            price = 5000000;
             break;
 
         default:
