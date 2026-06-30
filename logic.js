@@ -1443,41 +1443,20 @@ case "sell": {
 ========================== */
 
 case "rankup": {
-  try {
-    const user = getUser(interaction.guild.id, interaction.user.id);
+    try {
+        const user = getUser(interaction.guild.id, interaction.user.id);
 
-    // 🔥 sincronizar rango con roles actuales
-    syncUserRank(interaction, user);
-
-    const ranks = config.ranks;
-    const currentRank = ranks[user.rank] ?? "bell";
-    const nextRank = ranks[user.rank + 1];
-    const cost = config.rankCosts[nextRank] ?? 0;
-
-        if (!config.ranks || !Array.isArray(config.ranks)) {
-            return interaction.reply({
-                content: "❌ Error: config.ranks no está configurado.",
-                ephemeral: true
-            });
-        }
-
-        if (!config.rankCosts) {
-            return interaction.reply({
-                content: "❌ Error: config.rankCosts no está configurado.",
-                ephemeral: true
-            });
-        }
+        // sincronizar rango con roles actuales
+        syncUserRank(interaction, user);
 
         const ranks = config.ranks;
         const currentRank = ranks[user.rank] ?? "bell";
-
-        // Buscar índice real del rango actual
         const currentIndex = ranks.indexOf(currentRank);
 
         // Último rango
         if (currentIndex === -1 || currentIndex >= ranks.length - 1) {
             return interaction.reply({
-                content: `🏆 ¡Ya posees el rango máximo!\n\n🎖️ **${currentRank}**`,
+                content: `🏆 ¡Ya posees el rango máximo!\n\n🎖️ **${config.roles[currentRank]}**`,
                 ephemeral: true
             });
         }
@@ -1503,7 +1482,7 @@ case "rankup": {
 
         // Aplicar coste y actualizar rango
         user.money -= cost;
-        user.rank = currentIndex + 1; // sincronizar con el array
+        user.rank = currentIndex + 1;
         saveStatus();
 
         // Actualizar roles en Discord
@@ -1513,31 +1492,8 @@ case "rankup": {
         if (oldRole) await interaction.member.roles.remove(oldRole).catch(console.error);
         if (newRole) await interaction.member.roles.add(newRole).catch(console.error);
 
-        // Canal de ascensos
-        const rankupChannel = config.channels?.[interaction.guild.id]?.rankup;
-        if (rankupChannel) {
-            const channel = interaction.guild.channels.cache.get(rankupChannel);
-            if (channel) {
-                const embed = new EmbedBuilder()
-                    .setColor(0x2ecc71)
-                    .setTitle("🎉 ¡Un explorador ha ascendido!")
-                    .setDescription(`${interaction.user} ha ascendido de rango.`)
-                    .addFields({
-                        name: "🎖️ Nuevo rango",
-                        value: config.roles[nextRank] ?? nextRank,
-                        inline: true
-                    })
-                    .setTimestamp();
-
-                await channel.send({
-                    content: `📢 ${interaction.user}`,
-                    embeds: [embed]
-                }).catch(console.error);
-            }
-        }
-
         return interaction.reply({
-            content: `🎉 ¡Ascendiste de rango!\n\n🎖️ Nuevo rango: **${config.roles[nextRank] ?? nextRank}**\n\n💰 Coste: **${cost}**\n🪙 Dinero restante: **${user.money}**`,
+            content: `🎉 ¡Ascendiste de rango!\n\n🎖️ Nuevo rango: **${config.roles[nextRank]}**\n💰 Coste: **${cost}**\n🪙 Dinero restante: **${user.money}**`,
             ephemeral: true
         });
 
