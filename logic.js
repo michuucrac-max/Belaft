@@ -59,7 +59,6 @@ let status = {};
 loadConfig();
 loadStatus();
 
-
 /* ==========================
         CONFIG.JSON
 ========================== */
@@ -86,14 +85,16 @@ function loadConfig() {
         console.log("⚠️ config.json corrupto. Restaurando...");
 
         config = {
-            channels: {
-                reliquies: null
-            }
+            channels: {}
         };
 
         saveConfig();
 
     }
+
+    // Compatibilidad con versiones antiguas
+    if (!config.channels)
+        config.channels = {};
 
 }
 
@@ -108,7 +109,6 @@ function saveConfig() {
     );
 
 }
-
 
 /* ==========================
         STATUS.JSON
@@ -533,16 +533,21 @@ if (
     }
 
     // Reiniciar todos los usuarios
-    for (const id in status) {
+    // Reiniciar únicamente los usuarios de este servidor
+const guildStatus = status[interaction.guild.id];
 
-        status[id].money = 0;
-        status[id].xp = 0;
-        status[id].rank = 0;
-        status[id].multiplier = 1;
-        status[id].daily = 0;
-        status[id].inventory = {};
+if (guildStatus) {
 
-        status[id].stats = {
+    for (const id in guildStatus) {
+
+        guildStatus[id].money = 0;
+        guildStatus[id].xp = 0;
+        guildStatus[id].rank = 0;
+        guildStatus[id].multiplier = 1;
+        guildStatus[id].daily = 0;
+        guildStatus[id].inventory = {};
+
+        guildStatus[id].stats = {
 
             reliquies: 0,
 
@@ -552,7 +557,9 @@ if (
 
     }
 
-    saveStatus();
+}
+
+saveStatus();
 
     // Quitar únicamente los roles del bot
     const rolesToRemove = [
@@ -1193,7 +1200,7 @@ Aquí encontrarás todos los comandos disponibles y una breve explicación de ca
 
 case "mymoney": {
 
-    const user = getUser(interaction.user.id);
+    const user = getUser(interaction.guild.id, interaction.user.id);
 
     const member = await interaction.guild.members.fetch(interaction.user.id);
 
@@ -1251,8 +1258,8 @@ case "mymoney": {
 
         case "inventory": {
 
-            const user = getUser(interaction.user.id);
-
+            const user = getUser(interaction.guild.id, interaction.user.id);
+                  
             if (!Object.keys(user.inventory).length) {
 
                 return interaction.reply({
@@ -1334,7 +1341,7 @@ Valor base: **${baseValue}**
 
 case "sell": {
 
-    const user = getUser(interaction.user.id);
+    const user = getUser(interaction.guild.id, interaction.user.id);
 
     if (!Object.keys(user.inventory).length) {
 
@@ -1516,7 +1523,7 @@ case "sell": {
 
 case "rankup": {
 
-    const user = getUser(interaction.user.id);
+    const user = getUser(interaction.guild.id, interaction.user.id);
 
     const ranks = config.ranks;
 
@@ -1614,10 +1621,14 @@ case "rankup": {
     }
 
 // Enviar anuncio de ascenso
-if (config.channels.rankup) {
+const rankupChannel =
+    config.channels[interaction.guild.id]?.rankup;
 
-    const channel = interaction.guild.channels.cache.get(config.channels.rankup);
+if (rankupChannel) {
 
+    const channel =
+        interaction.guild.channels.cache.get(rankupChannel);
+          
     if (channel) {
 
         const rankNames = {
@@ -1695,7 +1706,7 @@ if (config.channels.rankup) {
 
 case "shop": {
 
-    const user = getUser(interaction.user.id);
+const user = getUser(interaction.guild.id, interaction.user.id);
 
     const row = new ActionRowBuilder()
 
@@ -1775,7 +1786,7 @@ case "seemoney": {
 
     const target = interaction.options.getUser("usuario");
 
-    const user = getUser(target.id);
+    const user = getUser(interaction.guild.id, target.id);
 
     const member = await interaction.guild.members.fetch(target.id);
 
@@ -1890,7 +1901,7 @@ case "setmoney": {
     const target = interaction.options.getUser("usuario");
     const amount = interaction.options.getInteger("cantidad");
 
-    const user = getUser(target.id);
+    const user = getUser(interaction.guild.id, target.id);
 
     user.money += amount;
 
@@ -1923,7 +1934,7 @@ case "setxp": {
 
     const amount = interaction.options.getInteger("cantidad");
 
-    const user = getUser(target.id);
+    const user = getUser(interaction.guild.id, target.id);
 
     user.xp = Math.max(0, amount);
 
@@ -1982,7 +1993,7 @@ case "setchanneltop": {
 
 case "daily": {
 
-    const user = getUser(interaction.user.id);
+    const user = getUser(interaction.guild.id, interaction.user.id);
 
     const now = Date.now();
 
