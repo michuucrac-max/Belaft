@@ -145,6 +145,23 @@ function getUser(guildId, userId) {
 }
 
 /* ==========================
+   SINCRONIZAR RANGO CON ROLES
+========================== */
+
+function syncUserRank(interaction, user) {
+  const ranks = config.ranks;
+
+  // recorrer de arriba hacia abajo para encontrar el rango más alto que tenga el usuario
+  for (let i = ranks.length - 1; i >= 0; i--) {
+    const role = findGuildRole(interaction.guild, ranks[i]);
+    if (role && interaction.member.roles.cache.has(role.id)) {
+      user.rank = i; // sincronizar índice con el rol real
+      break;
+    }
+  }
+}
+
+/* ==========================
       OBJETOS ALEATORIOS
 ========================== */
 
@@ -1426,8 +1443,16 @@ case "sell": {
 ========================== */
 
 case "rankup": {
-    try {
-        const user = getUser(interaction.guild.id, interaction.user.id);
+  try {
+    const user = getUser(interaction.guild.id, interaction.user.id);
+
+    // 🔥 sincronizar rango con roles actuales
+    syncUserRank(interaction, user);
+
+    const ranks = config.ranks;
+    const currentRank = ranks[user.rank] ?? "bell";
+    const nextRank = ranks[user.rank + 1];
+    const cost = config.rankCosts[nextRank] ?? 0;
 
         if (!config.ranks || !Array.isArray(config.ranks)) {
             return interaction.reply({
