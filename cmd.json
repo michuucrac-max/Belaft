@@ -136,6 +136,11 @@
   "default_member_permissions": "8"
   },
   {
+  "name": "setchannelrankup",
+  "description": "Configurar el canal de anuncios de ascenso.",
+  "default_member_permissions": "8"
+  },
+  {
     "name": "setchannelreliquies",
     "description": "Configurar el canal de reliquias.",
     "default_member_permissions": "8"
