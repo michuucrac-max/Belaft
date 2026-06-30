@@ -76,14 +76,6 @@
       }
     ]
   },
-      {
-        "name": "cantidad",
-        "description": "Cantidad",
-        "type": 4,
-        "required": true
-      }
-    ]
-  },
   {
     "name": "seemoney",
     "description": "Ver el dinero de un usuario.",
