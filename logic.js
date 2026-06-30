@@ -1506,7 +1506,7 @@ case "rankup": {
                         { name: "💰 Coste", value: `${cost} monedas`, inline: true }
                     )
                     .setThumbnail(interaction.user.displayAvatarURL({ dynamic: true })) // avatar del usuario
-                    .setImage("https://i.imgur.com/8l0bV5z.png") // banner, cámbialo por tu imagen oficial
+                    .setImage("https://media1.tenor.com/m/yfxTAck9--UAAAAd/belaf-made-in-abyss.gif") // GIF de Belaf como banner
                     .setTimestamp();
 
                 await channel.send({
