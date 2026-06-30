@@ -76,17 +76,6 @@
       }
     ]
   },
-  {
-    "name": "removemoney",
-    "description": "Quitar monedas.",
-    "default_member_permissions": "8",
-    "options": [
-      {
-        "name": "usuario",
-        "description": "Usuario",
-        "type": 6,
-        "required": true
-      },
       {
         "name": "cantidad",
         "description": "Cantidad",
