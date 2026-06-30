@@ -4,7 +4,8 @@
     "trade": null,
     "sell": null,
     "tops": null,
-    "topMessage": null
+    "topMessage": null,
+    "rankupChannel": null
   },
 
   "ranks": [
