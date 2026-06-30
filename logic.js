@@ -396,7 +396,6 @@ if (
 
 }
 
-
 /* ==========================
        BOTONES
 ========================== */
@@ -879,6 +878,26 @@ case "shop_buy": {
 📈 Nuevo multiplicador: **x${multiplier}**
 
 ⭐ XP restante: **${user.xp}**`,
+
+        components: []
+
+    });
+
+}
+
+/* ==========================
+    SET CHANNEL RANKUP
+========================== */
+
+case "setchannelrankup": {
+
+    config.rankupChannel = interaction.values[0];
+
+    saveConfig();
+
+    return interaction.update({
+
+        content: `✅ Canal de ascensos configurado en <#${interaction.values[0]}>.`,
 
         components: []
 
@@ -1579,6 +1598,70 @@ case "rankup": {
 
     }
 
+// Enviar anuncio de ascenso
+if (config.rankupChannel) {
+
+    const channel = interaction.guild.channels.cache.get(config.rankupChannel);
+
+    if (channel) {
+
+        const rankNames = {
+            bell: "Bell",
+            silbato_rojo: "Silbato Rojo",
+            silbato_azul: "Silbato Azul",
+            silbato_lunar: "Silbato Lunar",
+            silbato_negro: "Silbato Negro"
+        };
+
+        const rankColors = {
+            bell: 0x95a5a6,
+            silbato_rojo: 0xe74c3c,
+            silbato_azul: 0x3498db,
+            silbato_lunar: 0x9b59b6,
+            silbato_negro: 0x2c3e50
+        };
+
+        const embed = new EmbedBuilder()
+            .setColor(rankColors[nextRank] ?? 0xffffff)
+            .setAuthor({
+                name: interaction.user.username,
+                iconURL: interaction.user.displayAvatarURL()
+            })
+            .setThumbnail(interaction.user.displayAvatarURL({ size: 512 }))
+            .setTitle("⛏️ Un explorador continúa su descenso")
+            .setDescription(
+`*"Cada capa conquistada acerca un poco más a los secretos del Abismo."*`
+            )
+            .addFields(
+                {
+                    name: "👤 Explorador",
+                    value: `${interaction.user}`,
+                    inline: true
+                },
+                {
+                    name: "🎖️ Nuevo rango",
+                    value: rankNames[nextRank] ?? nextRank,
+                    inline: true
+                },
+                {
+                    name: "💰 Coste",
+                    value: `${cost} monedas`,
+                    inline: true
+                }
+            )
+            .setFooter({
+                text: "Belaft • El Abismo observa."
+            })
+            .setTimestamp();
+
+        await channel.send({
+            embeds: [embed]
+        });
+
+    }
+
+}
+
     return interaction.reply({
 
         content:
@@ -2121,6 +2204,39 @@ Además todos volverán al rango **Bell**.
 **cualquier otro rol NO será eliminado.**
 
 ¿Deseas continuar?`,
+
+        components: [row],
+
+        ephemeral: true
+
+    });
+
+}
+
+/* ==========================
+      SET CHANNEL RANKUP
+========================== */
+
+case "setchannelrankup": {
+
+    const channels = interaction.guild.channels.cache
+        .filter(c => c.isTextBased());
+
+    const menu = new StringSelectMenuBuilder()
+        .setCustomId("setchannelrankup")
+        .setPlaceholder("Selecciona un canal")
+        .addOptions(
+            channels.map(channel => ({
+                label: channel.name,
+                value: channel.id
+            })).first(25)
+        );
+
+    const row = new ActionRowBuilder().addComponents(menu);
+
+    return interaction.reply({
+
+        content: "📢 Selecciona el canal donde se anunciarán los ascensos.",
 
         components: [row],
 
