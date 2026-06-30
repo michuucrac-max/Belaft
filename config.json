@@ -1,11 +1,5 @@
 {
-  "channels": {
-    "reliquies": [],
-    "trade": null,
-    "sell": null,
-    "tops": null,
-    "topMessage": null,
-    "rankupChannel": null
+"channels": {}
   },
 
   "ranks": [
