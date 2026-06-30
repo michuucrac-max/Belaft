@@ -1426,122 +1426,80 @@ case "sell": {
 ========================== */
 
 case "rankup": {
-
     try {
-
         const user = getUser(interaction.guild.id, interaction.user.id);
 
         if (!config.ranks || !Array.isArray(config.ranks)) {
-
             return interaction.reply({
                 content: "❌ Error: config.ranks no está configurado.",
                 ephemeral: true
             });
-
         }
 
         if (!config.rankCosts) {
-
             return interaction.reply({
                 content: "❌ Error: config.rankCosts no está configurado.",
                 ephemeral: true
             });
-
         }
 
         const ranks = config.ranks;
-
         const currentRank = ranks[user.rank] ?? "bell";
 
+        // Buscar índice real del rango actual
+        const currentIndex = ranks.indexOf(currentRank);
+
         // Último rango
-        if (user.rank >= ranks.length - 1) {
-
+        if (currentIndex === -1 || currentIndex >= ranks.length - 1) {
             return interaction.reply({
-
-                content:
-`🏆 ¡Ya posees el rango máximo!
-
-🎖️ **${currentRank}**`,
-
+                content: `🏆 ¡Ya posees el rango máximo!\n\n🎖️ **${currentRank}**`,
                 ephemeral: true
-
             });
-
         }
 
-        const nextRank = ranks[user.rank + 1];
+        const nextRank = ranks[currentIndex + 1];
 
         // Rangos exclusivos
-        if (
-            nextRank === "silbato_blanco" ||
-            nextRank === "narehate"
-        ) {
-
+        if (nextRank === "silbato_blanco" || nextRank === "narehate") {
             return interaction.reply({
-
-                content:
-`🏆 Has alcanzado el rango máximo que puede obtenerse mediante ascenso.
-
-🤍 **Silbato Blanco** solo puede ser concedido por la Organización.
-
-👁️ **Narehate** es un rango exclusivo del desarrollador.`,
-
+                content: `🏆 Has alcanzado el rango máximo que puede obtenerse mediante ascenso.\n\n🤍 **Silbato Blanco** solo puede ser concedido por la Organización.\n\n👁️ **Narehate** es un rango exclusivo del desarrollador.`,
                 ephemeral: true
-
             });
-
         }
 
         const cost = config.rankCosts[nextRank] ?? 0;
 
         if (user.money < cost) {
-
             return interaction.reply({
-
-                content:
-`❌ No tienes suficientes monedas.
-
-💰 Necesitas: **${cost}**
-🪙 Tienes: **${user.money}**`,
-
+                content: `❌ No tienes suficientes monedas.\n\n💰 Necesitas: **${cost}**\n🪙 Tienes: **${user.money}**`,
                 ephemeral: true
-
             });
-
         }
 
+        // Aplicar coste y actualizar rango
         user.money -= cost;
-        user.rank++;
-
+        user.rank = currentIndex + 1; // sincronizar con el array
         saveStatus();
 
-        // Actualizar roles
+        // Actualizar roles en Discord
         const oldRole = findGuildRole(interaction.guild, currentRank);
         const newRole = findGuildRole(interaction.guild, nextRank);
 
-        if (oldRole)
-            await interaction.member.roles.remove(oldRole).catch(console.error);
-
-        if (newRole)
-            await interaction.member.roles.add(newRole).catch(console.error);
+        if (oldRole) await interaction.member.roles.remove(oldRole).catch(console.error);
+        if (newRole) await interaction.member.roles.add(newRole).catch(console.error);
 
         // Canal de ascensos
-        const rankupChannel =
-            config.channels?.[interaction.guild.id]?.rankup;
-
+        const rankupChannel = config.channels?.[interaction.guild.id]?.rankup;
         if (rankupChannel) {
-
             const channel = interaction.guild.channels.cache.get(rankupChannel);
-
             if (channel) {
-
                 const embed = new EmbedBuilder()
                     .setColor(0x2ecc71)
                     .setTitle("🎉 ¡Un explorador ha ascendido!")
                     .setDescription(`${interaction.user} ha ascendido de rango.`)
                     .addFields({
                         name: "🎖️ Nuevo rango",
-                        value: nextRank,
+                        value: config.roles[nextRank] ?? nextRank,
                         inline: true
                     })
                     .setTimestamp();
@@ -1550,40 +1508,22 @@ case "rankup": {
                     content: `📢 ${interaction.user}`,
                     embeds: [embed]
                 }).catch(console.error);
-
             }
-
         }
 
         return interaction.reply({
-
-            content:
-`🎉 ¡Ascendiste de rango!
-
-🎖️ Nuevo rango: **${nextRank}**
-
-💰 Coste: **${cost}**
-🪙 Dinero restante: **${user.money}**`,
-
+            content: `🎉 ¡Ascendiste de rango!\n\n🎖️ Nuevo rango: **${config.roles[nextRank] ?? nextRank}**\n\n💰 Coste: **${cost}**\n🪙 Dinero restante: **${user.money}**`,
             ephemeral: true
-
         });
 
     } catch (err) {
-
         console.error("Error en /rankup:", err);
-
         return interaction.reply({
-
             content: `❌ Ocurrió un error.\n\`\`\`\n${err.message}\n\`\`\``,
-
             ephemeral: true
-
         }).catch(() => {});
-
     }
-
-}   
+}
                         
          /* ==========================
          SHOP
