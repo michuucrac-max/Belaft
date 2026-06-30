@@ -1878,6 +1878,38 @@ Selecciona otro canal si deseas cambiarlo.`
 
         }
 
+/* ==========================
+        SET MONEY
+========================== */
+
+case "setmoney": {
+
+    const target = interaction.options.getUser("usuario");
+    const amount = interaction.options.getInteger("cantidad");
+
+    const user = getUser(target.id);
+
+    user.money += amount;
+
+    saveStatus();
+
+    return interaction.reply({
+
+        content:
+`✅ Monedas entregadas correctamente.
+
+👤 Usuario: ${target}
+
+💰 Cantidad: **${amount}**
+
+🪙 Total: **${user.money}**`,
+
+        ephemeral: true
+
+    });
+
+}
+
          /* ==========================
           SET XP
          ========================== */
