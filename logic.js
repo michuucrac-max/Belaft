@@ -1528,99 +1528,105 @@ case "sell": {
 
 case "rankup": {
 
-    const user = getUser(interaction.guild.id, interaction.user.id);
+    try {
 
-    const ranks = config.ranks;
+        const user = getUser(interaction.guild.id, interaction.user.id);
 
-    const currentRank = ranks[user.rank] ?? "bell";
+        if (!config.ranks || !Array.isArray(config.ranks)) {
 
-    // Último rango
-    if (user.rank >= ranks.length - 1) {
+            return interaction.reply({
+                content: "❌ Error: config.ranks no está configurado.",
+                ephemeral: true
+            });
 
-        return interaction.reply({
+        }
 
-            content:
+        if (!config.rankCosts) {
+
+            return interaction.reply({
+                content: "❌ Error: config.rankCosts no está configurado.",
+                ephemeral: true
+            });
+
+        }
+
+        const ranks = config.ranks;
+
+        const currentRank = ranks[user.rank] ?? "bell";
+
+        // Último rango
+        if (user.rank >= ranks.length - 1) {
+
+            return interaction.reply({
+
+                content:
 `🏆 ¡Ya posees el rango máximo!
 
 🎖️ **${currentRank}**`,
 
-            ephemeral: true
+                ephemeral: true
 
-        });
+            });
 
-    }
+        }
 
-    const nextRank = ranks[user.rank + 1];
+        const nextRank = ranks[user.rank + 1];
 
-    // Rangos exclusivos
-    if (
-        nextRank === "silbato_blanco" ||
-        nextRank === "narehate"
-    ) {
+        // Rangos exclusivos
+        if (
+            nextRank === "silbato_blanco" ||
+            nextRank === "narehate"
+        ) {
 
-        return interaction.reply({
+            return interaction.reply({
 
-            content:
+                content:
 `🏆 Has alcanzado el rango máximo que puede obtenerse mediante ascenso.
 
 🤍 **Silbato Blanco** solo puede ser concedido por la Organización.
 
 👁️ **Narehate** es un rango exclusivo del desarrollador.`,
 
-            ephemeral: true
+                ephemeral: true
 
-        });
+            });
 
-    }
+        }
 
-    const cost = config.rankCosts[nextRank] ?? 0;
+        const cost = config.rankCosts[nextRank] ?? 0;
 
-    if (user.money < cost) {
+        if (user.money < cost) {
 
-        return interaction.reply({
+            return interaction.reply({
 
-            content:
+                content:
 `❌ No tienes suficientes monedas.
 
 💰 Necesitas: **${cost}**
 🪙 Tienes: **${user.money}**`,
 
-            ephemeral: true
+                ephemeral: true
 
-        });
+            });
 
-    }
+        }
 
-    // Cobrar
-    user.money -= cost;
+        user.money -= cost;
+        user.rank++;
 
-    // Subir rango
-    user.rank++;
+        saveStatus();
 
-    saveStatus();
-
-    // Actualizar roles
-    try {
-
+        // Actualizar roles
         const oldRole = findGuildRole(interaction.guild, currentRank);
-
         const newRole = findGuildRole(interaction.guild, nextRank);
 
         if (oldRole)
-            await interaction.member.roles.remove(oldRole);
+            await interaction.member.roles.remove(oldRole).catch(console.error);
 
         if (newRole)
-            await interaction.member.roles.add(newRole);
+            await interaction.member.roles.add(newRole).catch(console.error);
 
-    } catch (err) {
-
-        console.error("Error al actualizar roles:", err);
-
-    }
-
-    // Anuncio de ascenso (si existe canal)
-    try {
-
+        // Canal de ascensos
         const rankupChannel =
             config.channels?.[interaction.guild.id]?.rankup;
 
@@ -1630,75 +1636,29 @@ case "rankup": {
 
             if (channel) {
 
-                const rankNames = {
-
-                    bell: "Bell",
-                    silbato_rojo: "Silbato Rojo",
-                    silbato_azul: "Silbato Azul",
-                    silbato_lunar: "Silbato Lunar",
-                    silbato_negro: "Silbato Negro"
-
-                };
-
-                const rankColors = {
-
-                    bell: 0x95a5a6,
-                    silbato_rojo: 0xe74c3c,
-                    silbato_azul: 0x3498db,
-                    silbato_lunar: 0x9b59b6,
-                    silbato_negro: 0x2c3e50
-
-                };
-
                 const embed = new EmbedBuilder()
-                    .setColor(rankColors[nextRank] ?? 0xffffff)
-                    .setAuthor({
-
-                        name: interaction.user.username,
-                        iconURL: interaction.user.displayAvatarURL()
-
-                    })
-                    .setThumbnail(
-                        interaction.user.displayAvatarURL({ size: 512 })
-                    )
+                    .setColor(0x2ecc71)
                     .setTitle("🎉 ¡Un explorador ha ascendido!")
-                    .setDescription(
-                        `${interaction.user} ha superado otra prueba del Abismo.`
-                    )
+                    .setDescription(`${interaction.user} ha ascendido de rango.`)
                     .addFields({
-
                         name: "🎖️ Nuevo rango",
-                        value: rankNames[nextRank] ?? nextRank,
+                        value: nextRank,
                         inline: true
-
-                    })
-                    .setFooter({
-
-                        text: "Belaft • El Abismo observa."
-
                     })
                     .setTimestamp();
 
                 await channel.send({
-
                     content: `📢 ${interaction.user}`,
                     embeds: [embed]
-
-                });
+                }).catch(console.error);
 
             }
 
         }
 
-    } catch (err) {
+        return interaction.reply({
 
-        console.error("Error enviando anuncio:", err);
-
-    }
-
-    return interaction.reply({
-
-        content:
+            content:
 `🎉 ¡Ascendiste de rango!
 
 🎖️ Nuevo rango: **${nextRank}**
@@ -1706,11 +1666,25 @@ case "rankup": {
 💰 Coste: **${cost}**
 🪙 Dinero restante: **${user.money}**`,
 
-        ephemeral: true
+            ephemeral: true
 
-    });
+        });
 
-}
+    } catch (err) {
+
+        console.error("Error en /rankup:", err);
+
+        return interaction.reply({
+
+            content: `❌ Ocurrió un error.\n\`\`\`\n${err.message}\n\`\`\``,
+
+            ephemeral: true
+
+        }).catch(() => {});
+
+    }
+
+}   
                         
          /* ==========================
          SHOP
