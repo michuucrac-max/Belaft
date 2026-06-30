@@ -1486,7 +1486,7 @@ case "rankup": {
 
     const ranks = config.ranks;
 
-    const currentRank = ranks[user.rank] ?? "Bell";
+    const currentRank = ranks[user.rank] ?? "bell";
 
     // Último rango
     if (user.rank >= ranks.length - 1) {
@@ -1506,23 +1506,20 @@ case "rankup": {
 
     const nextRank = ranks[user.rank + 1];
 
-    // Normalizar texto (ignora emojis, símbolos y acentos)
-    const normalize = text =>
-        text
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/[^\p{L}\p{N}]/gu, "")
-            .toLowerCase();
-
-    // El Silbato Blanco no puede comprarse
-    if (normalize(nextRank).includes(normalize("Silbato Blanco"))) {
+    // Rangos exclusivos
+    if (
+        nextRank === "silbato_blanco" ||
+        nextRank === "narehate"
+    ) {
 
         return interaction.reply({
 
             content:
-`🤍 El **Silbato Blanco** no puede obtenerse mediante ascenso.
+`🏆 Has alcanzado el rango máximo que puede obtenerse mediante ascenso.
 
-Solo la **Organización** (administradores y el propietario del servidor) puede conceder este rango.`,
+🤍 **Silbato Blanco** solo puede ser concedido por la **Organización** (administradores y propietario del servidor).
+
+👁️ **Narehate** es un rango exclusivo del desarrollador y no puede obtenerse mediante ascenso.`,
 
             ephemeral: true
 
