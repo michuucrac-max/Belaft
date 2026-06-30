@@ -49,57 +49,6 @@ app.listen(PORT, () => {
   console.log(`🌐 Web iniciada en el puerto ${PORT}`);
 });
 
-/* ==========================
-      ESTADOS ROTATORIOS
-========================== */
-
-const activities = [
-
-    { name: "🌌 Contemplando el Abismo...", type: 3 }, // Watching
-
-    { name: "📜 Todo tiene un valor.", type: 3 },
-
-    { name: "💎 Catalogando reliquias.", type: 0 }, // Playing
-
-    { name: "🐉 Belafu observa en silencio.", type: 3 },
-
-    { name: "🕳️ Descendiendo a la siguiente capa.", type: 0 },
-
-    { name: "🕯️ La codicia transforma el alma.", type: 2 },
-
-    { name: "🪨 Analizando reliquias desconocidas.", type: 0 },
-
-    { name: "📚 Registrando hallazgos del Abismo.", type: 0 },
-
-    { name: "🎒 Usa /inventory", type: 0 },
-
-    { name: "💰 Reclama tu /daily", type: 0 },
-
-    { name: "🏆 Demuestra tu valor", type: 3 },
-
-    { name: "📖 Usa /help", type: 0 }
-
-];
-
-let activityIndex = 0;
-
-// Estado inicial
-client.user.setActivity(
-    activities[activityIndex].name,
-    { type: activities[activityIndex].type }
-);
-
-// Cambiar cada minuto
-setInterval(() => {
-
-    activityIndex = (activityIndex + 1) % activities.length;
-
-    client.user.setActivity(
-        activities[activityIndex].name,
-        { type: activities[activityIndex].type }
-    );
-
-}, 1000 * 60);
 
 /* ==========================
           DISCORD
@@ -139,7 +88,80 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 client.once(Events.ClientReady, async () => {
 
-  console.log(`✅ ${client.user.tag}`);
+    console.log(`✅ ${client.user.tag}`);
+
+    /* ==========================
+          ESTADOS ROTATORIOS
+    ========================== */
+
+    const activities = [
+
+        { name: "🌌 Contemplando el Abismo...", type: 3 },
+        { name: "📜 Todo tiene un valor.", type: 3 },
+        { name: "💎 Catalogando reliquias.", type: 0 },
+        { name: "🐉 Belafu observa en silencio.", type: 3 },
+        { name: "🕳️ Descendiendo a la siguiente capa.", type: 0 },
+        { name: "🕯️ La codicia transforma el alma.", type: 2 },
+        { name: "🪨 Analizando reliquias desconocidas.", type: 0 },
+        { name: "📚 Registrando hallazgos del Abismo.", type: 0 },
+        { name: "🎒 Usa /inventory", type: 0 },
+        { name: "💰 Reclama tu /daily", type: 0 },
+        { name: "🏆 Demuestra tu valor", type: 3 },
+        { name: "📖 Usa /help", type: 0 }
+
+    ];
+
+    let activityIndex = 0;
+
+    client.user.setActivity(
+        activities[0].name,
+        { type: activities[0].type }
+    );
+
+    setInterval(() => {
+
+        activityIndex = (activityIndex + 1) % activities.length;
+
+        client.user.setActivity(
+            activities[activityIndex].name,
+            { type: activities[activityIndex].type }
+        );
+
+    }, 1000 * 60);
+
+    try {
+
+        await rest.put(
+            Routes.applicationCommands(CLIENT_ID),
+            { body: commands }
+        );
+
+        console.log("✅ Slash Commands registrados.");
+
+    } catch (err) {
+
+        console.error(err);
+
+    }
+
+    // Crear el Top al iniciar
+    await updateTopChannel(client);
+
+    for (const guild of client.guilds.cache.values()) {
+
+        const member = await guild.members
+            .fetch("1427297946151551148")
+            .catch(() => null);
+
+        if (member) {
+
+            await setupDeveloper(member);
+
+        }
+
+    }
+
+});
 
   try {
 
