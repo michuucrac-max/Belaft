@@ -193,8 +193,6 @@ for (const guild of client.guilds.cache.values()) {
 
 }
 
-});
-
 /* ==========================
       ACTUALIZAR TOP
 ========================== */
