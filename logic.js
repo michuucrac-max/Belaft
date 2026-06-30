@@ -1886,23 +1886,24 @@ case "seemoney": {
 
                 );
 
-            return interaction.reply({
+            const currentChannel =
+    config.channels?.[interaction.guild.id]?.reliquies;
 
-                content: config.channels.reliquies
+return interaction.reply({
 
-                    ? `📍 Canal actual: <#${config.channels.reliquies}>
+    content: currentChannel
+
+        ? `📍 Canal actual: <#${currentChannel}>
 
 Selecciona otro canal si deseas cambiarlo.`
 
-                    : "🧭 Selecciona el canal donde aparecerán automáticamente las reliquias.",
+        : "🧭 Selecciona el canal donde aparecerán automáticamente las reliquias.",
 
-                components: [row],
+    components: [row],
 
-                ephemeral: true
+    ephemeral: true
 
-            });
-
-        }
+});
 
 /* ==========================
         SET MONEY
@@ -2358,7 +2359,7 @@ const lastXP = XP_COOLDOWN.get(message.author.id) ?? 0;
 
 if (now - lastXP >= 30000) {
 
-    const xpuser = getUser(message.author.id);
+    const xpuser = getUser(message.guild.id, message.author.id);
 
     const gainedXP = getRandom(2, 5);
 
@@ -2370,11 +2371,12 @@ if (now - lastXP >= 30000) {
 
 }
 
-    // No hay canal configurado
-    if (!config.channels.reliquies) return;
+    const reliquiesChannel =
+    config.channels?.[message.guild.id]?.reliquies;
 
-    // Solo funciona en el canal configurado
-    if (message.channel.id !== config.channels.reliquies) return;
+if (!reliquiesChannel) return;
+
+if (message.channel.id !== reliquiesChannel) return;
 
     // Probabilidad
     if (Math.random() > RELIC_CHANCE) {
@@ -2395,7 +2397,7 @@ if (now - lastXP >= 30000) {
     }
 
     // Obtener usuario
-    const user = getUser(message.author.id);
+    const user = getUser(message.guild.id, message.author.id);
 
     console.log("Usuario antes:", JSON.stringify(user, null, 2));
 
