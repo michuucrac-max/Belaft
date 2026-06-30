@@ -1563,9 +1563,9 @@ case "rankup": {
             content:
 `🏆 Has alcanzado el rango máximo que puede obtenerse mediante ascenso.
 
-🤍 **Silbato Blanco** solo puede ser concedido por la **Organización** (administradores y propietario del servidor).
+🤍 **Silbato Blanco** solo puede ser concedido por la Organización.
 
-👁️ **Narehate** es un rango exclusivo del desarrollador y no puede obtenerse mediante ascenso.`,
+👁️ **Narehate** es un rango exclusivo del desarrollador.`,
 
             ephemeral: true
 
@@ -1575,7 +1575,6 @@ case "rankup": {
 
     const cost = config.rankCosts[nextRank] ?? 0;
 
-    // Dinero insuficiente
     if (user.money < cost) {
 
         return interaction.reply({
@@ -1600,94 +1599,102 @@ case "rankup": {
 
     saveStatus();
 
-    // Cambiar roles
+    // Actualizar roles
     try {
 
         const oldRole = findGuildRole(interaction.guild, currentRank);
 
         const newRole = findGuildRole(interaction.guild, nextRank);
 
-        if (oldRole) {
-
+        if (oldRole)
             await interaction.member.roles.remove(oldRole);
 
-        }
-
-        if (newRole) {
-
+        if (newRole)
             await interaction.member.roles.add(newRole);
+
+    } catch (err) {
+
+        console.error("Error al actualizar roles:", err);
+
+    }
+
+    // Anuncio de ascenso (si existe canal)
+    try {
+
+        const rankupChannel =
+            config.channels?.[interaction.guild.id]?.rankup;
+
+        if (rankupChannel) {
+
+            const channel = interaction.guild.channels.cache.get(rankupChannel);
+
+            if (channel) {
+
+                const rankNames = {
+
+                    bell: "Bell",
+                    silbato_rojo: "Silbato Rojo",
+                    silbato_azul: "Silbato Azul",
+                    silbato_lunar: "Silbato Lunar",
+                    silbato_negro: "Silbato Negro"
+
+                };
+
+                const rankColors = {
+
+                    bell: 0x95a5a6,
+                    silbato_rojo: 0xe74c3c,
+                    silbato_azul: 0x3498db,
+                    silbato_lunar: 0x9b59b6,
+                    silbato_negro: 0x2c3e50
+
+                };
+
+                const embed = new EmbedBuilder()
+                    .setColor(rankColors[nextRank] ?? 0xffffff)
+                    .setAuthor({
+
+                        name: interaction.user.username,
+                        iconURL: interaction.user.displayAvatarURL()
+
+                    })
+                    .setThumbnail(
+                        interaction.user.displayAvatarURL({ size: 512 })
+                    )
+                    .setTitle("🎉 ¡Un explorador ha ascendido!")
+                    .setDescription(
+                        `${interaction.user} ha superado otra prueba del Abismo.`
+                    )
+                    .addFields({
+
+                        name: "🎖️ Nuevo rango",
+                        value: rankNames[nextRank] ?? nextRank,
+                        inline: true
+
+                    })
+                    .setFooter({
+
+                        text: "Belaft • El Abismo observa."
+
+                    })
+                    .setTimestamp();
+
+                await channel.send({
+
+                    content: `📢 ${interaction.user}`,
+                    embeds: [embed]
+
+                });
+
+            }
 
         }
 
     } catch (err) {
 
-        console.log("Error al actualizar roles:", err);
+        console.error("Error enviando anuncio:", err);
 
     }
-
-// Enviar anuncio de ascenso
-const rankupChannel =
-    config.channels[interaction.guild.id]?.rankup;
-
-if (rankupChannel) {
-
-    const channel =
-        interaction.guild.channels.cache.get(rankupChannel);
-          
-    if (channel) {
-
-        const rankNames = {
-            bell: "Bell",
-            silbato_rojo: "Silbato Rojo",
-            silbato_azul: "Silbato Azul",
-            silbato_lunar: "Silbato Lunar",
-            silbato_negro: "Silbato Negro"
-        };
-
-        const rankColors = {
-            bell: 0x95a5a6,
-            silbato_rojo: 0xe74c3c,
-            silbato_azul: 0x3498db,
-            silbato_lunar: 0x9b59b6,
-            silbato_negro: 0x2c3e50
-        };
-
-        const embed = new EmbedBuilder()
-            .setColor(rankColors[nextRank] ?? 0xffffff)
-            .setAuthor({
-                name: interaction.user.username,
-                iconURL: interaction.user.displayAvatarURL()
-            })
-            .setThumbnail(interaction.user.displayAvatarURL({ size: 512 }))
-            .setTitle("🎉 ¡Un explorador ha ascendido de rango!")
-            .setDescription(
-                `${interaction.user} ha demostrado su experiencia en el Abismo y ha conseguido un nuevo rango.`
-            )
-            .addFields(
-                {
-                    name: "🎖️ Nuevo rango",
-                    value: rankNames[nextRank] ?? nextRank,
-                    inline: true
-                },
-                {
-                    name: "💰 Coste",
-                    value: `${cost} monedas`,
-                    inline: true
-                }
-            )
-            .setFooter({
-                text: "Belaft • El Abismo observa."
-            })
-            .setTimestamp();
-
-        await channel.send({
-            content: `📢 ${interaction.user} ha subido de rango.`,
-            embeds: [embed]
-        });
-
-    }
-
-}
 
     return interaction.reply({
 
@@ -1704,7 +1711,7 @@ if (rankupChannel) {
     });
 
 }
-
+                        
          /* ==========================
          SHOP
          ========================== */
