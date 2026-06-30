@@ -157,16 +157,21 @@ function saveStatus() {
 
 }
 
-
 /* ==========================
         OBTENER USUARIO
 ========================== */
 
-function getUser(userId) {
+function getUser(guildId, userId) {
 
-    if (!status[userId]) {
+    if (!status[guildId]) {
 
-        status[userId] = {
+        status[guildId] = {};
+
+    }
+
+    if (!status[guildId][userId]) {
+
+        status[guildId][userId] = {
 
             money: 0,
 
@@ -194,29 +199,31 @@ function getUser(userId) {
 
     }
 
+    const user = status[guildId][userId];
+
     // Compatibilidad con usuarios antiguos
 
-    if (typeof status[userId].money !== "number")
-        status[userId].money = 0;
+    if (typeof user.money !== "number")
+        user.money = 0;
 
-    if (typeof status[userId].xp !== "number")
-        status[userId].xp = 0;
+    if (typeof user.xp !== "number")
+        user.xp = 0;
 
-    if (typeof status[userId].rank !== "number")
-        status[userId].rank = 0;
+    if (typeof user.rank !== "number")
+        user.rank = 0;
 
-    if (typeof status[userId].multiplier !== "number")
-        status[userId].multiplier = 1;
+    if (typeof user.multiplier !== "number")
+        user.multiplier = 1;
 
-    if (typeof status[userId].daily !== "number")
-        status[userId].daily = 0;
+    if (typeof user.daily !== "number")
+        user.daily = 0;
 
-    if (!status[userId].inventory)
-        status[userId].inventory = {};
+    if (!user.inventory)
+        user.inventory = {};
 
-    if (!status[userId].stats) {
+    if (!user.stats) {
 
-        status[userId].stats = {
+        user.stats = {
 
             reliquies: 0,
 
@@ -226,15 +233,15 @@ function getUser(userId) {
 
     }
 
-    if (typeof status[userId].stats.reliquies !== "number")
-        status[userId].stats.reliquies = 0;
+    if (typeof user.stats.reliquies !== "number")
+        user.stats.reliquies = 0;
 
-    if (typeof status[userId].stats.sold !== "number")
-        status[userId].stats.sold = 0;
+    if (typeof user.stats.sold !== "number")
+        user.stats.sold = 0;
 
     saveStatus();
 
-    return status[userId];
+    return user;
 
 }
 
