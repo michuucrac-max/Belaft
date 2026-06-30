@@ -1607,9 +1607,9 @@ case "rankup": {
     }
 
 // Enviar anuncio de ascenso
-if (config.rankupChannel) {
+if (config.channels.rankup) {
 
-    const channel = interaction.guild.channels.cache.get(config.rankupChannel);
+    const channel = interaction.guild.channels.cache.get(config.channels.rankup);
 
     if (channel) {
 
@@ -1636,16 +1636,11 @@ if (config.rankupChannel) {
                 iconURL: interaction.user.displayAvatarURL()
             })
             .setThumbnail(interaction.user.displayAvatarURL({ size: 512 }))
-            .setTitle("⛏️ Un explorador continúa su descenso")
+            .setTitle("🎉 ¡Un explorador ha ascendido de rango!")
             .setDescription(
-`*"Cada capa conquistada acerca un poco más a los secretos del Abismo."*`
+                `${interaction.user} ha demostrado su experiencia en el Abismo y ha conseguido un nuevo rango.`
             )
             .addFields(
-                {
-                    name: "👤 Explorador",
-                    value: `${interaction.user}`,
-                    inline: true
-                },
                 {
                     name: "🎖️ Nuevo rango",
                     value: rankNames[nextRank] ?? nextRank,
@@ -1663,6 +1658,7 @@ if (config.rankupChannel) {
             .setTimestamp();
 
         await channel.send({
+            content: `📢 ${interaction.user} ha subido de rango.`,
             embeds: [embed]
         });
 
