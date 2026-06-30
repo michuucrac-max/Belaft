@@ -1,32 +1,32 @@
 {
-"channels": {}
-  },
+    "channels": {},
 
-  "ranks": [
-    "bell",
-    "silbato_rojo",
-    "silbato_azul",
-    "silbato_lunar",
-    "silbato_negro",
-    "silbato_blanco",
-    "narehate"
-  ],
+    "ranks": [
+        "bell",
+        "silbato_rojo",
+        "silbato_azul",
+        "silbato_lunar",
+        "silbato_negro",
+        "silbato_blanco",
+        "narehate"
+    ],
 
-  "roles": {
-    "bell": "BELL",
-    "silbato_rojo": "SILBATO ROJO",
-    "silbato_azul": "SILBATO AZUL",
-    "silbato_lunar": "SILBATO LUNAR",
-    "silbato_negro": "SILBATO NEGRO",
-    "silbato_blanco": "SILBATO BLANCO",
-    "narehate": "NAREHATE"
-  },
+    "roles": {
+        "bell": "Bell",
+        "silbato_rojo": "Silbato Rojo",
+        "silbato_azul": "Silbato Azul",
+        "silbato_lunar": "Silbato Lunar",
+        "silbato_negro": "Silbato Negro",
+        "silbato_blanco": "Silbato Blanco",
+        "narehate": "Narehate"
+    },
 
-  "rankCosts": {
-    "silbato_rojo": 1000,
-    "silbato_azul": 50000,
-    "silbato_lunar": 150000,
-    "silbato_negro": 500000,
-    "silbato_blanco": 99999999
-  }
+    "rankCosts": {
+        "silbato_rojo": 1000,
+        "silbato_azul": 50000,
+        "silbato_lunar": 150000,
+        "silbato_negro": 500000,
+        "silbato_blanco": 99999999,
+        "narehate": 0
+    }
 }
