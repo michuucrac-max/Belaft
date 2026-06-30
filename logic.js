@@ -111,58 +111,40 @@ function saveConfig() {
 }
 
 /* ==========================
-/* ==========================
         STATUS.JSON
 ========================== */
 
 function loadStatus() {
-
     if (!fs.existsSync(STATUS_PATH)) {
-
         status = {};
-
         saveStatus();
-
         return;
-
     }
 
     try {
-
         const data = fs.readFileSync(STATUS_PATH, "utf8");
-
         status = data.trim()
             ? JSON.parse(data)
             : {};
-
-    }
-
-    catch (err) {
-
+    } catch (err) {
         console.log("⚠️ status.json corrupto. Restaurando...");
-
         console.error(err);
-
         status = {};
-
         saveStatus();
-
     }
-
 }
 
 function saveStatus() {
-
-    fs.writeFileSync(
-
-        STATUS_PATH,
-
-        JSON.stringify(status, null, 4),
-
-        "utf8"
-
-    );
-
+    try {
+        fs.writeFileSync(
+            STATUS_PATH,
+            JSON.stringify(status, null, 4),
+            "utf8"
+        );
+        console.log("✅ status.json guardado correctamente");
+    } catch (err) {
+        console.error("❌ Error guardando status.json:", err);
+    }
 }
 
 /* ==========================
@@ -170,87 +152,43 @@ function saveStatus() {
 ========================== */
 
 function getUser(guildId, userId) {
-
     if (!status[guildId]) {
-
         status[guildId] = {};
-
     }
 
     if (!status[guildId][userId]) {
-
         status[guildId][userId] = {
-
             money: 0,
-
             xp: 0,
-
             rank: 0,
-
             multiplier: 1,
-
             daily: 0,
-
             inventory: {},
-
             stats: {
-
                 reliquies: 0,
-
                 sold: 0
-
             }
-
         };
-
         saveStatus();
-
     }
 
     const user = status[guildId][userId];
 
     // Compatibilidad con usuarios antiguos
-
-    if (typeof user.money !== "number")
-        user.money = 0;
-
-    if (typeof user.xp !== "number")
-        user.xp = 0;
-
-    if (typeof user.rank !== "number")
-        user.rank = 0;
-
-    if (typeof user.multiplier !== "number")
-        user.multiplier = 1;
-
-    if (typeof user.daily !== "number")
-        user.daily = 0;
-
-    if (!user.inventory)
-        user.inventory = {};
-
+    if (typeof user.money !== "number") user.money = 0;
+    if (typeof user.xp !== "number") user.xp = 0;
+    if (typeof user.rank !== "number") user.rank = 0;
+    if (typeof user.multiplier !== "number") user.multiplier = 1;
+    if (typeof user.daily !== "number") user.daily = 0;
+    if (!user.inventory) user.inventory = {};
     if (!user.stats) {
-
-        user.stats = {
-
-            reliquies: 0,
-
-            sold: 0
-
-        };
-
+        user.stats = { reliquies: 0, sold: 0 };
     }
-
-    if (typeof user.stats.reliquies !== "number")
-        user.stats.reliquies = 0;
-
-    if (typeof user.stats.sold !== "number")
-        user.stats.sold = 0;
+    if (typeof user.stats.reliquies !== "number") user.stats.reliquies = 0;
+    if (typeof user.stats.sold !== "number") user.stats.sold = 0;
 
     saveStatus();
-
     return user;
-
 }
 
 /* ==========================
