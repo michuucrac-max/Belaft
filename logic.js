@@ -653,7 +653,9 @@ async function handleChannelMenus(interaction) {
 
         case "set_reliquies_channel": {
 
-            config.channels.reliquies = interaction.values[0];
+            config.channels[interaction.guild.id] ??= {};
+
+config.channels[interaction.guild.id].reliquies = interaction.values[0];
 
             saveConfig();
 
@@ -679,7 +681,7 @@ Las reliquias aparecerán automáticamente en este canal.`,
 
 case "sell_item": {
 
-    const user = getUser(interaction.user.id);
+    const user = getUser(interaction.guild.id, interaction.user.id);
 
     const id = interaction.values[0];
 
@@ -807,7 +809,7 @@ Ganaste **${price}** monedas.
 
 case "shop_buy": {
 
-    const user = getUser(interaction.user.id);
+    const user = getUser(interaction.guild.id, interaction.user.id);
 
     const multiplier = parseFloat(interaction.values[0]);
 
@@ -905,7 +907,9 @@ case "shop_buy": {
 
 case "set_rankup_channel": {
 
-    config.channels.rankup = interaction.values[0];
+    config.channels[interaction.guild.id] ??= {};
+
+config.channels[interaction.guild.id].rankup = interaction.values[0];
 
     saveConfig();
 
@@ -931,7 +935,9 @@ Los ascensos se anunciarán aquí.`,
 
 case "set_top_channel": {
 
-    config.channels.tops = interaction.values[0];
+    config.channels[interaction.guild.id] ??= {};
+
+config.channels[interaction.guild.id].tops = interaction.values[0];
 
     saveConfig();
 
@@ -2431,89 +2437,93 @@ Usa **/inventory** para verla.`
 
 export async function updateTopChannel(client) {
 
-    if (!config.channels.tops) return;
+    for (const guild of client.guilds.cache.values()) {
 
-    const channelId = config.channels[guild.id]?.tops;
+        const channelId = config.channels[guild.id]?.tops;
 
-if (!channelId) continue;
+        if (!channelId) continue;
 
-const channel = await client.channels.fetch(channelId).catch(() => null);
+        const channel = await client.channels.fetch(channelId).catch(() => null);
 
-    if (!channel) return;
+        if (!channel) continue;
 
-    const guildUsers = status[guild.id] ?? {};
+        const guildUsers = status[guild.id] ?? {};
 
-    const users = Object.entries(guildUsers);
+        const users = Object.entries(guildUsers);
 
-    if (!users.length) return;
+        if (!users.length) continue;
 
-    const topMoney = [...users]
-        .sort((a, b) => (b[1].money ?? 0) - (a[1].money ?? 0))
-        .slice(0, 10);
+        const topMoney = [...users]
+            .sort((a, b) => (b[1].money ?? 0) - (a[1].money ?? 0))
+            .slice(0, 10);
 
-    const topXP = [...users]
-        .sort((a, b) => (b[1].xp ?? 0) - (a[1].xp ?? 0))
-        .slice(0, 10);
+        const topXP = [...users]
+            .sort((a, b) => (b[1].xp ?? 0) - (a[1].xp ?? 0))
+            .slice(0, 10);
 
-    let text = "# 🏆 TOP DEL ABISMO\n";
+        let text = "# 🏆 TOP DEL ABISMO\n";
 
-    text += "\n## 💰 Monedas\n";
+        text += "\n## 💰 Monedas\n";
 
-    for (let i = 0; i < topMoney.length; i++) {
+        for (let i = 0; i < topMoney.length; i++) {
 
-        const [id, data] = topMoney[i];
+            const [id, data] = topMoney[i];
 
-        const member = await client.users.fetch(id).catch(() => null);
+            const member = await client.users.fetch(id).catch(() => null);
 
-        const medal =
-            i === 0 ? "🥇" :
-            i === 1 ? "🥈" :
-            i === 2 ? "🥉" : "▫️";
+            const medal =
+                i === 0 ? "🥇" :
+                i === 1 ? "🥈" :
+                i === 2 ? "🥉" : "▫️";
 
-        text += `${medal} ${member?.username ?? "Usuario"} — **${data.money ?? 0}**\n`;
+            text += `${medal} ${member?.username ?? "Usuario"} — **${data.money ?? 0}**\n`;
 
-    }
+        }
 
-    text += "\n━━━━━━━━━━━━━━\n";
+        text += "\n━━━━━━━━━━━━━━\n";
 
-    text += "\n## ⭐ XP\n";
+        text += "\n## ⭐ XP\n";
 
-    for (let i = 0; i < topXP.length; i++) {
+        for (let i = 0; i < topXP.length; i++) {
 
-        const [id, data] = topXP[i];
+            const [id, data] = topXP[i];
 
-        const member = await client.users.fetch(id).catch(() => null);
+            const member = await client.users.fetch(id).catch(() => null);
 
-        const medal =
-            i === 0 ? "🥇" :
-            i === 1 ? "🥈" :
-            i === 2 ? "🥉" : "▫️";
+            const medal =
+                i === 0 ? "🥇" :
+                i === 1 ? "🥈" :
+                i === 2 ? "🥉" : "▫️";
 
-        text += `${medal} ${member?.username ?? "Usuario"} — **${data.xp ?? 0} XP**\n`;
+            text += `${medal} ${member?.username ?? "Usuario"} — **${data.xp ?? 0} XP**\n`;
 
-    }
+        }
 
-    let message = null;
+        let message = null;
 
-    if (config.channels.topMessage) {
+        const topMessage = config.channels[guild.id]?.topMessage;
 
-        message = await channel.messages
-            .fetch(config.channels.topMessage)
-            .catch(() => null);
+        if (topMessage) {
 
-    }
+            message = await channel.messages
+                .fetch(topMessage)
+                .catch(() => null);
 
-    if (message) {
+        }
 
-        await message.edit(text);
+        if (message) {
 
-    } else {
+            await message.edit(text);
 
-        message = await channel.send(text);
+        } else {
 
-        config.channels.topMessage = message.id;
+            message = await channel.send(text);
 
-        saveConfig();
+            config.channels[guild.id].topMessage = message.id;
+
+            saveConfig();
+
+        }
 
     }
 
