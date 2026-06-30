@@ -2422,11 +2422,17 @@ export async function updateTopChannel(client) {
 
     if (!config.channels.tops) return;
 
-    const channel = await client.channels.fetch(config.channels.tops).catch(() => null);
+    const channelId = config.channels[guild.id]?.tops;
+
+if (!channelId) continue;
+
+const channel = await client.channels.fetch(channelId).catch(() => null);
 
     if (!channel) return;
 
-    const users = Object.entries(status);
+    const guildUsers = status[guild.id] ?? {};
+
+    const users = Object.entries(guildUsers);
 
     if (!users.length) return;
 
