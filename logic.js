@@ -111,6 +111,7 @@ function saveConfig() {
 }
 
 /* ==========================
+/* ==========================
         STATUS.JSON
 ========================== */
 
@@ -118,24 +119,29 @@ function loadStatus() {
 
     if (!fs.existsSync(STATUS_PATH)) {
 
+        status = {};
+
         saveStatus();
+
         return;
 
     }
 
     try {
 
-        status = JSON.parse(
+        const data = fs.readFileSync(STATUS_PATH, "utf8");
 
-            fs.readFileSync(STATUS_PATH, "utf8")
-
-        );
+        status = data.trim()
+            ? JSON.parse(data)
+            : {};
 
     }
 
-    catch {
+    catch (err) {
 
         console.log("⚠️ status.json corrupto. Restaurando...");
+
+        console.error(err);
 
         status = {};
 
@@ -151,7 +157,9 @@ function saveStatus() {
 
         STATUS_PATH,
 
-        JSON.stringify(status, null, 4)
+        JSON.stringify(status, null, 4),
+
+        "utf8"
 
     );
 
