@@ -3,25 +3,15 @@
 ========================== */
 
 import fs from "fs";
-
 import objects from "./objects.json" with { type: "json" };
-
 import {
-
     ActionRowBuilder,
-
     ChannelSelectMenuBuilder,
-
     StringSelectMenuBuilder,
-
     ChannelType,
-
     EmbedBuilder,
-
     ButtonBuilder,
-
     ButtonStyle
-
 } from "discord.js";
 
 /* ==========================
@@ -51,7 +41,6 @@ let config = {
 
 let status = {};
 
-
 /* ==========================
       INICIALIZACIÓN
 ========================== */
@@ -64,50 +53,29 @@ loadStatus();
 ========================== */
 
 function loadConfig() {
-
     if (!fs.existsSync(CONFIG_PATH)) {
-
         saveConfig();
         return;
-
     }
 
     try {
-
-        config = JSON.parse(
-            fs.readFileSync(CONFIG_PATH, "utf8")
-        );
-
-    }
-
-    catch {
-
+        config = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
+    } catch {
         console.log("⚠️ config.json corrupto. Restaurando...");
-
-        config = {
-            channels: {}
-        };
-
+        config = { channels: {} };
         saveConfig();
-
     }
 
-    // Compatibilidad con versiones antiguas
-    if (!config.channels)
-        config.channels = {};
-
+    if (!config.channels) config.channels = {};
 }
 
 function saveConfig() {
-
-    fs.writeFileSync(
-
-        CONFIG_PATH,
-
-        JSON.stringify(config, null, 4)
-
-    );
-
+    try {
+        fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 4), "utf8");
+        console.log("✅ config.json guardado correctamente");
+    } catch (err) {
+        console.error("❌ Error guardando config.json:", err);
+    }
 }
 
 /* ==========================
@@ -123,9 +91,7 @@ function loadStatus() {
 
     try {
         const data = fs.readFileSync(STATUS_PATH, "utf8");
-        status = data.trim()
-            ? JSON.parse(data)
-            : {};
+        status = data.trim() ? JSON.parse(data) : {};
     } catch (err) {
         console.log("⚠️ status.json corrupto. Restaurando...");
         console.error(err);
@@ -136,11 +102,7 @@ function loadStatus() {
 
 function saveStatus() {
     try {
-        fs.writeFileSync(
-            STATUS_PATH,
-            JSON.stringify(status, null, 4),
-            "utf8"
-        );
+        fs.writeFileSync(STATUS_PATH, JSON.stringify(status, null, 4), "utf8");
         console.log("✅ status.json guardado correctamente");
     } catch (err) {
         console.error("❌ Error guardando status.json:", err);
@@ -152,10 +114,7 @@ function saveStatus() {
 ========================== */
 
 function getUser(guildId, userId) {
-    if (!status[guildId]) {
-        status[guildId] = {};
-    }
-
+    if (!status[guildId]) status[guildId] = {};
     if (!status[guildId][userId]) {
         status[guildId][userId] = {
             money: 0,
@@ -164,26 +123,20 @@ function getUser(guildId, userId) {
             multiplier: 1,
             daily: 0,
             inventory: {},
-            stats: {
-                reliquies: 0,
-                sold: 0
-            }
+            stats: { reliquies: 0, sold: 0 }
         };
         saveStatus();
     }
 
     const user = status[guildId][userId];
 
-    // Compatibilidad con usuarios antiguos
     if (typeof user.money !== "number") user.money = 0;
     if (typeof user.xp !== "number") user.xp = 0;
     if (typeof user.rank !== "number") user.rank = 0;
     if (typeof user.multiplier !== "number") user.multiplier = 1;
     if (typeof user.daily !== "number") user.daily = 0;
     if (!user.inventory) user.inventory = {};
-    if (!user.stats) {
-        user.stats = { reliquies: 0, sold: 0 };
-    }
+    if (!user.stats) user.stats = { reliquies: 0, sold: 0 };
     if (typeof user.stats.reliquies !== "number") user.stats.reliquies = 0;
     if (typeof user.stats.sold !== "number") user.stats.sold = 0;
 
