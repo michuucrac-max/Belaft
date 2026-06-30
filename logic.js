@@ -1053,34 +1053,107 @@ async function handleSlashCommands(interaction, client) {
 
         }
 
-        /* ==========================
-                HELP
-        ========================== */
+/* ==========================
+            HELP
+========================== */
 
-        case "help": {
+case "help": {
 
-            return interaction.reply(`
-# 📜 Comandos
+    const embed = new EmbedBuilder()
 
-🏓 /ping
-🖼️ /avatar
-👤 /userinfo
-🌐 /server
+        .setColor(0x6A4CFF)
 
-💰 /mymoney
-🎒 /inventory
-💸 /sell
-⬆️ /rankup
+        .setTitle("📖 Belaft • Centro de Ayuda")
 
-🛠️ /setmoney
-🛠️ /removemoney
-🛠️ /seemoney
-🛠️ /setchannelreliquies
-`);
+        .setDescription(
+`Bienvenido al sistema de reliquias de **Belaft**.
 
-        }
+Aquí encontrarás todos los comandos disponibles y una breve explicación de cada uno.
 
+━━━━━━━━━━━━━━━━━━`
+        )
 
+        .addFields(
+
+            {
+                name: "⚡ Información",
+                value:
+"🏓 **/ping**\nComprueba si Belaft está en línea.\n\n" +
+
+"📖 **/help**\nMuestra este centro de ayuda.\n\n" +
+
+"🖼️ **/avatar**\nMuestra el avatar de un usuario.\n\n" +
+
+"👤 **/userinfo**\nConsulta información de un usuario.\n\n" +
+
+"🌐 **/server**\nMuestra información del servidor.",
+                inline: false
+            },
+
+            {
+                name: "🎒 Reliquias",
+                value:
+"🎒 **/inventory**\nConsulta todas tus reliquias.\n\n" +
+
+"💸 **/sell**\nVende una reliquia o todo tu inventario.\n\n" +
+
+"🛒 **/shop**\nCompra multiplicadores usando XP.",
+                inline: false
+            },
+
+            {
+                name: "💰 Economía",
+                value:
+"💰 **/mymoney**\nConsulta tu dinero, XP y rango.\n\n" +
+
+"👁️ **/seemoney**\nConsulta el dinero, XP y rango de otro usuario.\n\n" +
+
+"🎁 **/daily**\nReclama tu recompensa diaria.\n\n" +
+
+"⬆️ **/rankup**\nAsciende al siguiente rango cuando cumplas los requisitos.",
+                inline: false
+            },
+
+            {
+                name: "💡 Comunidad",
+                value:
+"💭 **/suggestion**\nEnvía una sugerencia directamente al desarrollador.",
+                inline: false
+            },
+
+            {
+                name: "🛠️ Administración",
+                value:
+"💰 **/setmoney**\nEstablece el dinero de un usuario.\n\n" +
+
+"⭐ **/setxp**\nEstablece el XP de un usuario.\n\n" +
+
+"📡 **/setchannelreliquies**\nConfigura el canal donde aparecerán reliquias.\n\n" +
+
+"🏆 **/setchanneltop**\nConfigura el canal del ranking automático.\n\n" +
+
+"♻️ **/reset**\nReinicia el progreso económico del servidor.",
+                inline: false
+            }
+
+        )
+
+        .setFooter({
+
+            text: "Belaft • Made in Abyss RPG | Gracias por usar Belaft ❤️"
+
+        });
+
+    return interaction.reply({
+
+        embeds: [embed],
+
+        ephemeral: true
+
+    });
+
+}
+                        
 /* ==========================
           MY MONEY
 ========================== */
