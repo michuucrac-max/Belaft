@@ -49,6 +49,57 @@ app.listen(PORT, () => {
   console.log(`🌐 Web iniciada en el puerto ${PORT}`);
 });
 
+/* ==========================
+      ESTADOS ROTATORIOS
+========================== */
+
+const activities = [
+
+    { name: "🌌 Contemplando el Abismo...", type: 3 }, // Watching
+
+    { name: "📜 Todo tiene un valor.", type: 3 },
+
+    { name: "💎 Catalogando reliquias.", type: 0 }, // Playing
+
+    { name: "🐉 Belafu observa en silencio.", type: 3 },
+
+    { name: "🕳️ Descendiendo a la siguiente capa.", type: 0 },
+
+    { name: "🕯️ La codicia transforma el alma.", type: 2 },
+
+    { name: "🪨 Analizando reliquias desconocidas.", type: 0 },
+
+    { name: "📚 Registrando hallazgos del Abismo.", type: 0 },
+
+    { name: "🎒 Usa /inventory", type: 0 },
+
+    { name: "💰 Reclama tu /daily", type: 0 },
+
+    { name: "🏆 Demuestra tu valor", type: 3 },
+
+    { name: "📖 Usa /help", type: 0 }
+
+];
+
+let activityIndex = 0;
+
+// Estado inicial
+client.user.setActivity(
+    activities[activityIndex].name,
+    { type: activities[activityIndex].type }
+);
+
+// Cambiar cada minuto
+setInterval(() => {
+
+    activityIndex = (activityIndex + 1) % activities.length;
+
+    client.user.setActivity(
+        activities[activityIndex].name,
+        { type: activities[activityIndex].type }
+    );
+
+}, 1000 * 60);
 
 /* ==========================
           DISCORD
