@@ -27,12 +27,201 @@
       "id": "metal_piece",
       "name": "Metal",
       "description": "Un pequeño trozo de metal resistente.",
-      "icon": "🔋",
+      "icon": "🔩",
       "value": 15
+    },
+    {
+      "id": "old_coin",
+      "name": "Moneda Antigua",
+      "description": "Una moneda olvidada por exploradores.",
+      "icon": "🪙",
+      "value": 8
+    },
+    {
+      "id": "broken_compass",
+      "name": "Brújula Rota",
+      "description": "Ya no señala ningún rumbo.",
+      "icon": "🧭",
+      "value": 12
+    },
+    {
+      "id": "stone_shard",
+      "name": "Fragmento de Piedra",
+      "description": "Un trozo de roca del Abismo.",
+      "icon": "🪨",
+      "value": 6
+    },
+    {
+      "id": "moss_ball",
+      "name": "Musgo Luminoso",
+      "description": "Emite un tenue resplandor.",
+      "icon": "🌿",
+      "value": 9
+    },
+    {
+      "id": "bone_fragment",
+      "name": "Fragmento de Hueso",
+      "description": "Restos de una criatura desconocida.",
+      "icon": "🦴",
+      "value": 14
+    },
+    {
+      "id": "rope_piece",
+      "name": "Cuerda Desgastada",
+      "description": "Perteneció a un antiguo explorador.",
+      "icon": "🪢",
+      "value": 7
+    },
+    {
+      "id": "old_lens",
+      "name": "Lente Rota",
+      "description": "Un cristal agrietado.",
+      "icon": "🔍",
+      "value": 13
+    },
+    {
+      "id": "shell_piece",
+      "name": "Concha Abisal",
+      "description": "Procede de una criatura marina.",
+      "icon": "🐚",
+      "value": 11
+    },
+    {
+      "id": "wooden_idol",
+      "name": "Ídolo de Madera",
+      "description": "Tallado por una antigua civilización.",
+      "icon": "🪵",
+      "value": 16
+    },
+    {
+      "id": "cracked_mask",
+      "name": "Máscara Agrietada",
+      "description": "Una máscara ceremonial rota.",
+      "icon": "🎭",
+      "value": 18
+    },
+    {
+      "id": "iron_nail",
+      "name": "Clavo de Hierro",
+      "description": "Sorprendentemente resistente al tiempo.",
+      "icon": "📌",
+      "value": 9
+    },
+    {
+      "id": "ancient_scroll",
+      "name": "Pergamino Viejo",
+      "description": "Sus escritos son ilegibles.",
+      "icon": "📜",
+      "value": 17
+    },
+    {
+      "id": "glowing_pebble",
+      "name": "Guijarro Brillante",
+      "description": "Una piedra que nunca deja de brillar.",
+      "icon": "💎",
+      "value": 19
+    },
+    {
+      "id": "fungus_sample",
+      "name": "Hongo Abisal",
+      "description": "Un extraño hongo de las profundidades.",
+      "icon": "🍄",
+      "value": 12
+    },
+    {
+      "id": "old_pickaxe",
+      "name": "Pico Dañado",
+      "description": "Herramienta abandonada hace años.",
+      "icon": "⛏️",
+      "value": 20
+    },
+    {
+      "id": "tiny_fossil",
+      "name": "Pequeño Fósil",
+      "description": "Restos de un ser prehistórico.",
+      "icon": "🦴",
+      "value": 21
+    },
+    {
+      "id": "star_compass_fragment",
+      "name": "Fragmento de Brújula Estelar",
+      "description": "Un pequeño fragmento de una reliquia legendaria.",
+      "icon": "⭐",
+      "value": 22
+    },
+    {
+      "id": "glass_bead",
+      "name": "Cuenta de Cristal",
+      "description": "Una diminuta esfera transparente.",
+      "icon": "🔹",
+      "value": 8
+    },
+    {
+      "id": "ancient_ring",
+      "name": "Anillo Antiguo",
+      "description": "Cubierto de óxido pero intacto.",
+      "icon": "💍",
+      "value": 24
+    },
+    {
+      "id": "small_relic_box",
+      "name": "Caja Desgastada",
+      "description": "Contenía una reliquia hace mucho tiempo.",
+      "icon": "📦",
+      "value": 23
+    },
+    {
+      "id": "dried_flower",
+      "name": "Flor Seca",
+      "description": "Sorprendentemente conservada.",
+      "icon": "🥀",
+      "value": 10
+    },
+    {
+      "id": "orb_piercer_quill",
+      "name": "Púa de Orb Piercer",
+      "description": "Una pequeña espina desprendida de un Orb Piercer.",
+      "icon": "🦔",
+      "value": 25
+    },
+    {
+      "id": "split_pottery",
+      "name": "Cerámica Antigua",
+      "description": "Fragmentos de una vasija olvidada.",
+      "icon": "🏺",
+      "value": 18
+    },
+    {
+      "id": "strange_seed",
+      "name": "Semilla Desconocida",
+      "description": "Nadie sabe qué podría crecer de ella.",
+      "icon": "🌰",
+      "value": 14
+    },
+    {
+      "id": "old_chain",
+      "name": "Cadena Oxidada",
+      "description": "Aún conserva cierta resistencia.",
+      "icon": "⛓️",
+      "value": 16
+    },
+    {
+      "id": "crystal_dust",
+      "name": "Polvo Cristalino",
+      "description": "Brilla al contacto con la luz.",
+      "icon": "✨",
+      "value": 20
+    },
+    {
+      "id": "explorer_badge",
+      "name": "Insignia de Explorador",
+      "description": "Perteneció a un Cave Raider desconocido.",
+      "icon": "🎖️",
+      "value": 26
     }
   ],
 
-  "class3": [
+    "class3": [
     {
       "id": "minor_relic",
       "name": "Reliquia Menor",
@@ -51,12 +240,201 @@
       "id": "ancient_wood",
       "name": "Madera Antigua",
       "description": "Madera resistente proveniente de las profundidades.",
-      "icon": "🌲",
+      "icon": "🪵",
       "value": 17
+    },
+    {
+      "id": "star_compass",
+      "name": "Brújula Estelar",
+      "description": "Una antigua brújula que siempre apunta al Abismo.",
+      "icon": "🧭",
+      "value": 55
+    },
+    {
+      "id": "glowing_orb",
+      "name": "Orbe Luminoso",
+      "description": "Una esfera que nunca deja de emitir luz.",
+      "icon": "💡",
+      "value": 38
+    },
+    {
+      "id": "crystal_leaf",
+      "name": "Hoja Cristalina",
+      "description": "Una hoja endurecida como cristal.",
+      "icon": "🍃",
+      "value": 34
+    },
+    {
+      "id": "deep_shell",
+      "name": "Caparazón Profundo",
+      "description": "Restos de una criatura del Abismo.",
+      "icon": "🐚",
+      "value": 41
+    },
+    {
+      "id": "ancient_gear",
+      "name": "Engranaje Antiguo",
+      "description": "Parte de una máquina olvidada.",
+      "icon": "⚙️",
+      "value": 48
+    },
+    {
+      "id": "explorer_journal",
+      "name": "Diario de Explorador",
+      "description": "Contiene notas ilegibles de un Cave Raider.",
+      "icon": "📖",
+      "value": 45
+    },
+    {
+      "id": "sun_stone",
+      "name": "Piedra Solar",
+      "description": "Absorbe calor durante siglos.",
+      "icon": "☀️",
+      "value": 50
+    },
+    {
+      "id": "moon_fragment",
+      "name": "Fragmento Lunar",
+      "description": "Una roca de brillo plateado.",
+      "icon": "🌙",
+      "value": 52
+    },
+    {
+      "id": "orb_piercer_fang",
+      "name": "Colmillo de Orb Piercer",
+      "description": "Un colmillo sorprendentemente afilado.",
+      "icon": "🦷",
+      "value": 47
+    },
+    {
+      "id": "madokajack_claw",
+      "name": "Garra de Madokajack",
+      "description": "Una garra extremadamente resistente.",
+      "icon": "🦞",
+      "value": 44
+    },
+    {
+      "id": "split_helmet",
+      "name": "Casco Quebrado",
+      "description": "Perteneció a un explorador desconocido.",
+      "icon": "🪖",
+      "value": 39
+    },
+    {
+      "id": "golden_feather",
+      "name": "Pluma Dorada",
+      "description": "Proviene de una extraña ave del Abismo.",
+      "icon": "🪶",
+      "value": 43
+    },
+    {
+      "id": "abyss_pearl",
+      "name": "Perla Abisal",
+      "description": "Formada bajo una enorme presión.",
+      "icon": "⚪",
+      "value": 60
+    },
+    {
+      "id": "echo_stone",
+      "name": "Piedra del Eco",
+      "description": "Repite sonidos de hace varios minutos.",
+      "icon": "🪨",
+      "value": 46
+    },
+    {
+      "id": "strange_hourglass",
+      "name": "Reloj de Arena Extraño",
+      "description": "La arena parece fluir hacia arriba.",
+      "icon": "⏳",
+      "value": 58
+    },
+    {
+      "id": "sealed_box",
+      "name": "Caja Sellada",
+      "description": "Nadie ha logrado abrirla.",
+      "icon": "📦",
+      "value": 54
+    },
+    {
+      "id": "deep_root",
+      "name": "Raíz Profunda",
+      "description": "Una raíz petrificada del Abismo.",
+      "icon": "🌱",
+      "value": 32
+    },
+    {
+      "id": "glass_eye",
+      "name": "Ojo de Cristal",
+      "description": "Observa en silencio a quien lo sostenga.",
+      "icon": "👁️",
+      "value": 49
+    },
+    {
+      "id": "abyss_medallion",
+      "name": "Medallón Abisal",
+      "description": "Símbolo de un antiguo grupo de exploradores.",
+      "icon": "🏅",
+      "value": 57
+    },
+    {
+      "id": "living_branch",
+      "name": "Rama Viviente",
+      "description": "Continúa creciendo incluso después de ser cortada.",
+      "icon": "🌿",
+      "value": 37
+    },
+    {
+      "id": "crystal_scale",
+      "name": "Escama Cristalina",
+      "description": "Escama de una bestia desconocida.",
+      "icon": "🐟",
+      "value": 42
+    },
+    {
+      "id": "abyss_core",
+      "name": "Núcleo Abisal",
+      "description": "Concentra una gran cantidad de energía.",
+      "icon": "💠",
+      "value": 65
+    },
+    {
+      "id": "wind_bell",
+      "name": "Campana del Viento",
+      "description": "Suena incluso cuando no hay brisa.",
+      "icon": "🎐",
+      "value": 53
+    },
+    {
+      "id": "strange_seedling",
+      "name": "Brote Desconocido",
+      "description": "Una planta que parece observarte.",
+      "icon": "🌱",
+      "value": 36
+    },
+    {
+      "id": "relic_lamp",
+      "name": "Lámpara Reliquia",
+      "description": "Nunca necesita combustible.",
+      "icon": "🏮",
+      "value": 61
+    },
+    {
+      "id": "ancient_emblem",
+      "name": "Emblema Antiguo",
+      "description": "Representa una civilización desaparecida.",
+      "icon": "🛡️",
+      "value": 59
+    },
+    {
+      "id": "blue_amber",
+      "name": "Ámbar Azul",
+      "description": "Resina fosilizada de un árbol del Abismo.",
+      "icon": "🔷",
+      "value": 56
     }
   ],
 
-  "class2": [
+    "class2": [
     {
       "id": "rare_artifact",
       "name": "Artefacto Raro",
@@ -70,57 +448,456 @@
       "description": "Su sonido provoca escalofríos.",
       "icon": "🎐",
       "value": 75
+    },
+    {
+      "id": "curse_steel",
+      "name": "Acero de la Maldición",
+      "description": "Metal que resiste la fuerza del Abismo.",
+      "icon": "🛡️",
+      "value": 95
+    },
+    {
+      "id": "eternal_lantern",
+      "name": "Linterna Eterna",
+      "description": "Una lámpara que jamás se apaga.",
+      "icon": "🏮",
+      "value": 90
+    },
+    {
+      "id": "prayer_cube",
+      "name": "Cubo de Oración",
+      "description": "Un cubo cubierto por inscripciones antiguas.",
+      "icon": "🧊",
+      "value": 105
+    },
+    {
+      "id": "life_crystal",
+      "name": "Cristal Vital",
+      "description": "Parece contener energía viva.",
+      "icon": "💎",
+      "value": 100
+    },
+    {
+      "id": "abyss_compass",
+      "name": "Brújula del Abismo",
+      "description": "Siempre señala hacia las profundidades.",
+      "icon": "🧭",
+      "value": 110
+    },
+    {
+      "id": "orb_piercer_spike",
+      "name": "Espina de Orb Piercer",
+      "description": "Una espina extremadamente afilada.",
+      "icon": "🦔",
+      "value": 120
+    },
+    {
+      "id": "crystal_heart",
+      "name": "Corazón Cristalino",
+      "description": "Late muy lentamente.",
+      "icon": "💙",
+      "value": 115
+    },
+    {
+      "id": "golden_tablet",
+      "name": "Tabla Dorada",
+      "description": "Grabada con un idioma perdido.",
+      "icon": "📜",
+      "value": 98
+    },
+    {
+      "id": "memory_orb",
+      "name": "Orbe de los Recuerdos",
+      "description": "Permite revivir recuerdos antiguos.",
+      "icon": "🔮",
+      "value": 125
+    },
+    {
+      "id": "singing_shell",
+      "name": "Concha Cantante",
+      "description": "Produce una melodía al acercarla al oído.",
+      "icon": "🐚",
+      "value": 92
+    },
+    {
+      "id": "ancient_crown",
+      "name": "Corona Antigua",
+      "description": "Perteneció a un gobernante olvidado.",
+      "icon": "👑",
+      "value": 135
+    },
+    {
+      "id": "floating_stone",
+      "name": "Piedra Flotante",
+      "description": "Desafía la gravedad.",
+      "icon": "🪨",
+      "value": 118
+    },
+    {
+      "id": "abyss_mirror",
+      "name": "Espejo Abisal",
+      "description": "Refleja un mundo diferente.",
+      "icon": "🪞",
+      "value": 128
+    },
+    {
+      "id": "deep_clock",
+      "name": "Reloj Profundo",
+      "description": "Su tiempo no coincide con el del exterior.",
+      "icon": "🕰️",
+      "value": 132
+    },
+    {
+      "id": "crystal_horn",
+      "name": "Cuerno Cristalino",
+      "description": "Proviene de una bestia del Abismo.",
+      "icon": "🦄",
+      "value": 122
+    },
+    {
+      "id": "hidden_key",
+      "name": "Llave Perdida",
+      "description": "Quizá abra una reliquia legendaria.",
+      "icon": "🗝️",
+      "value": 108
+    },
+    {
+      "id": "wind_crystal",
+      "name": "Cristal del Viento",
+      "description": "Produce corrientes de aire constantemente.",
+      "icon": "💨",
+      "value": 112
+    },
+    {
+      "id": "echo_medallion",
+      "name": "Medallón del Eco",
+      "description": "Guarda voces del pasado.",
+      "icon": "🎖️",
+      "value": 116
+    },
+    {
+      "id": "abyss_eye",
+      "name": "Ojo del Abismo",
+      "description": "Parece seguir con la mirada a quien lo observe.",
+      "icon": "👁️",
+      "value": 140
+    },
+    {
+      "id": "living_gem",
+      "name": "Gema Viviente",
+      "description": "Una piedra preciosa que palpita lentamente.",
+      "icon": "💠",
+      "value": 145
+    },
+    {
+      "id": "frozen_flame",
+      "name": "Llama Congelada",
+      "description": "Una llama fría encerrada en cristal.",
+      "icon": "🔥",
+      "value": 138
+    },
+    {
+      "id": "ancient_music_box",
+      "name": "Caja Musical Antigua",
+      "description": "Reproduce una melodía desconocida.",
+      "icon": "🎶",
+      "value": 130
+    },
+    {
+      "id": "abyss_anchor",
+      "name": "Ancla Abisal",
+      "description": "Sorprendentemente ligera.",
+      "icon": "⚓",
+      "value": 150
+    },
+    {
+      "id": "sacred_relic",
+      "name": "Reliquia Sagrada",
+      "description": "Un objeto venerado por los Cave Raiders.",
+      "icon": "✨",
+      "value": 160
+    },
+    {
+      "id": "guardian_core",
+      "name": "Núcleo del Guardián",
+      "description": "Parece alimentar antiguas máquinas.",
+      "icon": "⚡",
+      "value": 155
+    },
+    {
+      "id": "abyss_fragment",
+      "name": "Fragmento del Abismo",
+      "description": "Un misterioso fragmento de origen desconocido.",
+      "icon": "🌌",
+      "value": 170
+    },
+    {
+      "id": "light_prism",
+      "name": "Prisma de Luz",
+      "description": "Descompone la luz en colores imposibles.",
+      "icon": "🌈",
+      "value": 165
+    },
+    {
+      "id": "forgotten_totem",
+      "name": "Tótem Olvidado",
+      "description": "Una reliquia ceremonial de una civilización perdida.",
+      "icon": "🗿",
+      "value": 175
     }
   ],
 
-  "class1": [
+    "class1": [
     {
-      "id": "ancient_treasure",
-      "name": "Tesoro Antiguo",
-      "description": "Un tesoro conservado durante siglos.",
-      "icon": "💠",
-      "value": 80
+      "id": "blaze_reap",
+      "name": "Blaze Reap",
+      "description": "Una poderosa reliquia con un filo capaz de atravesar la coraza de bestias del Abismo.",
+      "icon": "🔥",
+      "value": 320
     },
     {
-      "id": "blessed_bone",
-      "name": "Hueso Bendito",
-      "description": "Un extraño hueso con propiedades místicas.",
-      "icon": "🦴",
-      "value": 95
+      "id": "curse_warding_box",
+      "name": "Caja Repelente de la Maldición",
+      "description": "Una reliquia legendaria capaz de desafiar parcialmente la Maldición del Abismo.",
+      "icon": "📦",
+      "value": 360
+    },
+    {
+      "id": "gangway",
+      "name": "Gangway",
+      "description": "Una reliquia que crea un sendero estable sobre terrenos imposibles.",
+      "icon": "🌉",
+      "value": 310
+    },
+    {
+      "id": "unheard_bell",
+      "name": "Campana Inaudible",
+      "description": "Una de las reliquias más famosas del Abismo. Su sonido puede alterar el flujo del tiempo.",
+      "icon": "🔔",
+      "value": 450
+    },
+    {
+      "id": "thousand_men_wedges",
+      "name": "Cuñas de los Mil Hombres",
+      "description": "Las legendarias reliquias que otorgaron a Ozen una fuerza monstruosa.",
+      "icon": "⚙️",
+      "value": 500
+    },
+    {
+      "id": "reg_left_arm",
+      "name": "Brazo Izquierdo de Reg",
+      "description": "Un brazo mecánico perteneciente al Aubade conocido como Reg.",
+      "icon": "🤖",
+      "value": 750,
+      "soulbound": true
+    },
+    {
+      "id": "nanachi_old_helmet",
+      "name": "Casco Antiguo de Nanachi",
+      "description": "El casco que Nanachi utilizó durante los experimentos de Idofront.",
+      "icon": "🎭",
+      "value": 420
+    },
+    {
+      "id": "mitty_containment_vessel",
+      "name": "Cápsula de Contención de Mitty",
+      "description": "Un antiguo recipiente empleado para contener a Mitty.",
+      "icon": "🧪",
+      "value": 650
+    },
+    {
+      "id": "orb_piercer_horn",
+      "name": "Cuerno de Orb Piercer",
+      "description": "El afilado cuerno de un Orb Piercer adulto.",
+      "icon": "🦔",
+      "value": 340
+    },
+    {
+      "id": "orb_piercer_eye",
+      "name": "Ojo de Orb Piercer",
+      "description": "Aún parece seguir el movimiento de quien lo observa.",
+      "icon": "👁️",
+      "value": 360
+    },
+    {
+      "id": "turbinid_dragon_scale",
+      "name": "Escama de Dragón Turbinid",
+      "description": "Una escama extremadamente resistente.",
+      "icon": "🐉",
+      "value": 380
+    },
+    {
+      "id": "amadagachi_claw",
+      "name": "Garra de Amadagachi",
+      "description": "Una enorme garra de una bestia de las capas profundas.",
+      "icon": "🦞",
+      "value": 410
+    },
+    {
+      "id": "crimson_splitjaw_fang",
+      "name": "Colmillo de Crimson Splitjaw",
+      "description": "Un colmillo de una de las criaturas más peligrosas del Abismo.",
+      "icon": "🦷",
+      "value": 390
+    },
+    {
+      "id": "interference_unit_core",
+      "name": "Núcleo de Unidad de Interferencia",
+      "description": "El núcleo de una antigua Unidad de Interferencia.",
+      "icon": "⚛️",
+      "value": 520
     }
   ],
 
   "special": [
     {
-      "id": "special_relic",
-      "name": "Reliquia Especial",
-      "description": "Una reliquia extremadamente difícil de encontrar.",
-      "icon": "✨",
-      "value": 100
+      "id": "sparagmos",
+      "name": "Sparagmos",
+      "description": "La legendaria arma-reliquia utilizada por Bondrewd.",
+      "icon": "⚔️",
+      "value": 2500,
+      "soulbound": true
     },
     {
-      "id": "orb_piercer_spine",
-      "name": "Espina de Orb Piercer",
-      "description": "Una espina extraída de un peligroso Orb Piercer.",
-      "icon": "🦔",
-      "value": 150
+      "id": "zoaholic_fragment",
+      "name": "Fragmento de Zoaholic",
+      "description": "Un fragmento desprendido de la inquietante reliquia Zoaholic.",
+      "icon": "🧠",
+      "value": 3500,
+      "soulbound": true
     },
     {
-      "id": "obsidian_rune",
-      "name": "Runa de Obsidiana",
-      "description": "Una antigua runa tallada en obsidiana.",
-      "icon": "⚜️",
-      "value": 200
+      "id": "cradle_of_desire",
+      "name": "Cuna del Deseo",
+      "description": "Una reliquia capaz de conceder deseos a un precio aterrador.",
+      "icon": "🥚",
+      "value": 5000,
+      "soulbound": true
+    },
+    {
+      "id": "star_compass_pristine",
+      "name": "Brújula Estelar Intacta",
+      "description": "Una Brújula Estelar en perfecto estado de conservación.",
+      "icon": "🧭",
+      "value": 1800
+    },
+    {
+      "id": "ozen_wedge",
+      "name": "Cuña de los Mil Hombres",
+      "description": "Una cuña individual similar a las implantadas en Ozen.",
+      "icon": "🔩",
+      "value": 2200
+    },
+    {
+      "id": "incinerator_crystal",
+      "name": "Cristal del Incinerador",
+      "description": "Un cristal desprendido tras el uso del Incinerador de Reg.",
+      "icon": "☄️",
+      "value": 2600
+    },
+    {
+      "id": "iruburu_core_fragment",
+      "name": "Fragmento del Núcleo de Iruburu",
+      "description": "Un fragmento cristalizado proveniente de la Aldea Hueca.",
+      "icon": "🏘️",
+      "value": 3200
+    },
+    {
+      "id": "golden_city_fragment",
+      "name": "Fragmento de la Ciudad Dorada",
+      "description": "Un misterioso fragmento de la legendaria Ciudad Dorada.",
+      "icon": "🏛️",
+      "value": 6000
+    },
+    {
+      "id": "aubade_core",
+      "name": "Núcleo Aubade",
+      "description": "El núcleo de un Aubade, una reliquia viviente de origen desconocido.",
+      "icon": "💠",
+      "value": 8000,
+      "soulbound": true
     }
   ],
 
-  "ultra": [
+    "ultra": [
     {
-      "id": "abyss_heart",
-      "name": "Corazón Abisal",
-      "description": "Una reliquia legendaria vinculada al Abismo.",
+      "id": "essence_of_the_abyss",
+      "name": "Esencia del Abismo",
+      "description": "Una misteriosa condensación de la fuerza que impregna el Abismo. Nadie sabe cómo se formó.",
       "icon": "🌑",
       "value": 100000,
+      "soulbound": true
+    },
+    {
+      "id": "golden_city_keystone",
+      "name": "Piedra Angular de la Ciudad Dorada",
+      "description": "Un fragmento de la legendaria Ciudad Dorada. Irradia una energía desconocida.",
+      "icon": "🏛️",
+      "value": 120000,
+      "soulbound": true
+    },
+    {
+      "id": "aubade_core_complete",
+      "name": "Núcleo Aubade Completo",
+      "description": "El núcleo intacto de un Aubade. Se cree que contiene una tecnología imposible de replicar.",
+      "icon": "⚛️",
+      "value": 150000,
+      "soulbound": true
+    },
+    {
+      "id": "original_cradle_of_desire",
+      "name": "Cuna del Deseo Original",
+      "description": "Una de las auténticas reliquias capaces de conceder deseos. Su poder supera la comprensión humana.",
+      "icon": "🥚",
+      "value": 250000,
+      "soulbound": true
+    },
+    {
+      "id": "true_zoaholic",
+      "name": "Zoaholic",
+      "description": "La reliquia original capaz de transferir la conciencia entre cuerpos.",
+      "icon": "🧠",
+      "value": 300000,
+      "soulbound": true
+    },
+    {
+      "id": "reg_incinerator_core",
+      "name": "Núcleo del Incinerador",
+      "description": "El núcleo energético responsable del devastador Incinerador de Reg.",
+      "icon": "☄️",
+      "value": 220000,
+      "soulbound": true
+    },
+    {
+      "id": "true_blessing_fragment",
+      "name": "Fragmento de la Bendición",
+      "description": "Una cristalización de la Bendición del Abismo. Su sola presencia resulta inquietante.",
+      "icon": "✨",
+      "value": 180000,
+      "soulbound": true
+    },
+    {
+      "id": "layer7_relic",
+      "name": "Reliquia de la Séptima Capa",
+      "description": "Una reliquia recuperada de la Séptima Capa. Ningún Cave Raider sabe cómo llegó a la superficie.",
+      "icon": "🕳️",
+      "value": 400000,
+      "soulbound": true
+    },
+    {
+      "id": "unknown_sovereign_relic",
+      "name": "Reliquia del Soberano Desconocido",
+      "description": "Una reliquia perteneciente a un Silbato Blanco cuya identidad se perdió hace siglos.",
+      "icon": "👑",
+      "value": 500000,
+      "soulbound": true
+    },
+    {
+      "id": "bottomless_core",
+      "name": "Corazón del Fondo",
+      "description": "Un objeto encontrado cerca del fondo del Abismo. Su origen continúa siendo un misterio.",
+      "icon": "🌌",
+      "value": 1000000,
       "soulbound": true
     }
   ]
