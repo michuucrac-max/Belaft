@@ -2161,10 +2161,6 @@ case "setchannelrankup": {
 
 export async function executeMessageLogic(message) {
 
-    console.log("📩 Mensaje recibido");
-    console.log("Canal del mensaje:", message.channel.id);
-    console.log("Canal configurado:", config.channels.reliquies);
-
     // Ignorar bots
     if (message.author.bot) return;
 
@@ -2205,23 +2201,15 @@ if (Math.random() > relicChance) {
 
     relicChance = Math.min(relicChance + 0.005, 0.35); // +0.5% hasta 35%
 
-    console.log(`❌ No salió reliquia. Nueva probabilidad: ${(relicChance * 100).toFixed(1)}%`);
-
     return;
 
 }
 
-console.log(`🎉 ¡Salió reliquia! Probabilidad usada: ${(relicChance * 100).toFixed(1)}%`);
-
 // Reiniciar al mínimo
 relicChance = 0.10;
 
-    console.log("🎲 Se generará una reliquia");
-
     // Elegir objeto
     const item = getRandomObject();
-
-    console.log("Objeto obtenido:", item);
 
     if (!item) {
         console.log("❌ getRandomObject devolvió null");
@@ -2231,15 +2219,11 @@ relicChance = 0.10;
     // Obtener usuario
     const user = getUser(message.guild.id, message.author.id);
 
-    console.log("Usuario antes:", JSON.stringify(user, null, 2));
-
     // Añadir objeto
     user.inventory[item.id] ??= 0;
     user.inventory[item.id]++;
 
     user.stats.reliquies++;
-
-    console.log("Usuario después:", JSON.stringify(user, null, 2));
 
     // Guardar
     saveStatus();
@@ -2272,15 +2256,11 @@ Usa **/inventory** para verla.`;
 
             await lastMessage.edit(text);
 
-            console.log("✅ DM actualizado");
-
         } catch {
 
             const sent = await dm.send(text);
 
             LAST_DM.set(message.author.id, sent.id);
-
-            console.log("✅ Nuevo DM enviado");
 
         }
 
@@ -2289,9 +2269,6 @@ Usa **/inventory** para verla.`;
         const sent = await dm.send(text);
 
         LAST_DM.set(message.author.id, sent.id);
-
-        console.log("✅ Primer DM enviado");
-
     }
 
 } catch (err) {
