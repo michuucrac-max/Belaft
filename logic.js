@@ -21,7 +21,7 @@ import {
 const CONFIG_PATH = "./config.json";
 const STATUS_PATH = "./status.json";
 
-const RELIC_CHANCE = 0.005;
+let relicChance = 0.10; // 10% inicial
 
 /* ==========================
         SISTEMA XP
@@ -2199,11 +2199,21 @@ if (!reliquiesChannel) return;
 
 if (message.channel.id !== reliquiesChannel) return;
 
-    // Probabilidad
-    if (Math.random() > RELIC_CHANCE) {
-        console.log("❌ No salió reliquia");
-        return;
-    }
+    // Probabilidad global dinámica
+if (Math.random() > relicChance) {
+
+    relicChance = Math.min(relicChance + 0.005, 0.35); // +0.5% hasta 35%
+
+    console.log(`❌ No salió reliquia. Nueva probabilidad: ${(relicChance * 100).toFixed(1)}%`);
+
+    return;
+
+}
+
+console.log(`🎉 ¡Salió reliquia! Probabilidad usada: ${(relicChance * 100).toFixed(1)}%`);
+
+// Reiniciar al mínimo
+relicChance = 0.10;
 
     console.log("🎲 Se generará una reliquia");
 
