@@ -28,6 +28,7 @@ let relicChance = 0.10; // 10% inicial
 ========================== */
 
 const XP_COOLDOWN = new Map();
+const LAST_DM = new Map();
 
 /* ==========================
            CONFIG
@@ -2245,10 +2246,10 @@ relicChance = 0.10;
 
     console.log("✅ Status guardado");
 
-    // Intentar enviar DM
-    try {
+    // Intentar enviar o actualizar DM
+try {
 
-        await message.author.send(
+    const text =
 `# 🎉 ¡Has encontrado una reliquia!
 
 ${item.icon} **${item.name}**
@@ -2257,17 +2258,47 @@ ${item.icon} **${item.name}**
 
 📦 Se añadió automáticamente a tu inventario.
 
-Usa **/inventory** para verla.`
-        );
+Usa **/inventory** para verla.`;
 
-        console.log("✅ DM enviado");
+    const dm = await message.author.createDM();
 
-    } catch (err) {
+    const lastMessageId = LAST_DM.get(message.author.id);
 
-        console.log("❌ No pude enviar el DM:", err.message);
+    if (lastMessageId) {
+
+        try {
+
+            const lastMessage = await dm.messages.fetch(lastMessageId);
+
+            await lastMessage.edit(text);
+
+            console.log("✅ DM actualizado");
+
+        } catch {
+
+            const sent = await dm.send(text);
+
+            LAST_DM.set(message.author.id, sent.id);
+
+            console.log("✅ Nuevo DM enviado");
+
+        }
+
+    } else {
+
+        const sent = await dm.send(text);
+
+        LAST_DM.set(message.author.id, sent.id);
+
+        console.log("✅ Primer DM enviado");
 
     }
 
+} catch (err) {
+
+    console.log("❌ No pude enviar el DM:", err.message);
+
+     }
 }
 
 /* ==========================
