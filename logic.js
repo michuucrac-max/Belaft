@@ -396,6 +396,185 @@ function unlockMerchantName(user) {
 
 }
 
+async function giveSpecialRole(member, roleKey) {
+
+    const roleName = config.specialRoles?.[roleKey];
+
+    if (!roleName) return false;
+
+    const role = member.guild.roles.cache.find(
+        r => r.name.toLowerCase() === roleName.toLowerCase()
+    );
+
+    if (!role) return false;
+
+    if (member.roles.cache.has(role.id))
+        return true;
+
+    try {
+
+        await member.roles.add(role);
+
+        return true;
+
+    } catch {
+
+        return false;
+
+    }
+
+}
+
+/* ==========================
+     SPECIAL ROLES
+========================== */
+
+const SPECIAL_ROLES = {
+
+    mercado_negro: {
+        name: "Mercado Negro",
+        color: "#2B2D31"
+    },
+
+    conocedor: {
+        name: "Conocedor",
+        color: "#6A0DAD"
+    },
+
+    millonario: {
+        name: "Millonario",
+        color: "#FFD700"
+    },
+
+    billonario: {
+        name: "Billonario",
+        color: "#00BFFF"
+    },
+
+    trillonario: {
+        name: "Trillonario",
+        color: "#FF0000"
+    },
+
+    coleccionista_1000: {
+        name: "Coleccionista I",
+        color: "#2ECC71"
+    },
+
+    coleccionista_10000: {
+        name: "Coleccionista II",
+        color: "#3498DB"
+    },
+
+    coleccionista_100000: {
+        name: "Coleccionista III",
+        color: "#9B59B6"
+    }
+
+};
+
+async function giveSpecialRole(member, roleKey) {
+
+    const data = SPECIAL_ROLES[roleKey];
+
+    if (!data) return false;
+
+    let role = member.guild.roles.cache.find(
+
+        r => r.name === data.name
+
+    );
+
+    if (!role) {
+
+        role = await member.guild.roles.create({
+
+            name: data.name,
+
+            color: data.color,
+
+            hoist: true,
+
+            mentionable: false,
+
+            reason: "Rol especial de Belaft"
+
+        });
+
+    }
+
+    if (!member.roles.cache.has(role.id)) {
+
+        await member.roles.add(role);
+
+    }
+
+    return true;
+
+}
+
+/* ==========================
+      MERCHANT SHOP
+========================== */
+
+const MERCHANT_ITEMS = [
+
+    // ==========================
+    // MULTIPLICADORES ILEGALES
+    // ==========================
+
+    {
+        id: "illegal_x5",
+        name: "⚡ Catalizador Prohibido",
+        description: "x5 durante 15 minutos.",
+        price: 8000,
+        type: "boost",
+        multiplier: 5,
+        duration: 15 * 60 * 1000
+    },
+
+    {
+        id: "illegal_x10",
+        name: "🔥 Sangre del Abismo",
+        description: "x10 durante 5 minutos.",
+        price: 25000,
+        type: "boost",
+        multiplier: 10,
+        duration: 5 * 60 * 1000
+    },
+
+    {
+        id: "illegal_x15",
+        name: "☠️ Reliquia Corrupta",
+        description: "x15 durante 2 minutos.",
+        price: 60000,
+        type: "boost",
+        multiplier: 15,
+        duration: 2 * 60 * 1000
+    },
+
+    {
+        id: "illegal_x20",
+        name: "💀 Corazón del Abismo",
+        description: "x20 durante 45 segundos.",
+        price: 150000,
+        type: "boost",
+        multiplier: 20,
+        duration: 45 * 1000
+    },
+
+    {
+        id: "illegal_x50",
+        name: "🌑 Bendición Desconocida",
+        description: "x50 durante 10 segundos.",
+        price: 500000,
+        type: "boost",
+        multiplier: 50,
+        duration: 10 * 1000
+    }
+
+];
+
 /* ==========================
    MERCHANT ENCOUNTER
 ========================== */
@@ -406,12 +585,34 @@ async function openMerchantEncounter(interaction, user) {
 
 if (firstMeet) {
 
-    // Aquí luego daremos el rango Mercado Negro
+    await giveSpecialRole(
+
+        interaction.member,
+
+        "mercado_negro"
+
+    );
 
 }
           
     const merchantName = getMerchantName(user);
 
+          if (
+
+    merchantName === "Nachi"
+
+) {
+
+    await giveSpecialRole(
+
+        interaction.member,
+
+        "conocedor"
+
+    );
+
+          }
+          
     const dialogues = getMerchantDialogue(user);
 
     const dialogue =
