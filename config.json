@@ -21,6 +21,18 @@
         "narehate": "Narehate"
     },
 
+    "specialRoles": {
+        "mercado_negro": "Mercado Negro",
+        "conocedor": "Conocedor",
+        "coleccionista_1000": "Coleccionista I",
+        "coleccionista_10000": "Coleccionista II",
+        "coleccionista_100000": "Coleccionista III",
+        "millonario": "Millonario",
+        "billonario": "Billonario",
+        "trillonario": "Trillonario",
+        "developer": "Developer"
+    },
+
     "rankCosts": {
         "silbato_rojo": 1000,
         "silbato_azul": 50000,
