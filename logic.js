@@ -124,18 +124,36 @@ function getUser(guildId, userId) {
             multiplier: 1,
             daily: 0,
             inventory: {},
-            stats: { reliquies: 0, sold: 0 },
+            stats: {
+                reliquies: 0,
+                sold: 0
+            },
+                  
+            merchant: {
+            visits: 0,
+            purchases: 0,
+            friendship: 0,
+            unlockedName: false,
+            lastVisit: 0,
+            spawnChance: 0.02,
 
-            // ==========================
-            // BLACK MARKET
-            // ==========================
-            blackMarket: {
-                visits: 0,
-                purchases: 0,
-                unlockedName: false,
-                friendship: 0,
-                lastVisit: 0
-            }
+            firstMeet: false,
+            knowsName: false,
+
+            mood: "normal",
+
+            coupons: {
+                discount10: 0,
+                discount25: 0,
+                discount50: 0,
+                freeBuy: 0
+            },
+
+            boosts: {
+                multiplier: 1,
+                expires: 0
+              }
+            },
         };
         saveStatus();
     }
@@ -147,43 +165,309 @@ function getUser(guildId, userId) {
     if (typeof user.rank !== "number") user.rank = 0;
     if (typeof user.multiplier !== "number") user.multiplier = 1;
     if (typeof user.daily !== "number") user.daily = 0;
-    if (!user.inventory) user.inventory = {};
-    if (!user.stats) user.stats = { reliquies: 0, sold: 0 };
-    if (typeof user.stats.reliquies !== "number") user.stats.reliquies = 0;
-    if (typeof user.stats.sold !== "number") user.stats.sold = 0;
 
-    // ==========================
-    // BLACK MARKET
-    // ==========================
-    if (!user.blackMarket) {
-        user.blackMarket = {
+    if (!user.inventory) user.inventory = {};
+
+    if (!user.stats)
+        user.stats = {
+            reliquies: 0,
+            sold: 0
+        };
+
+    if (typeof user.stats.reliquies !== "number")
+        user.stats.reliquies = 0;
+
+    if (typeof user.stats.sold !== "number")
+        user.stats.sold = 0;
+
+    /* ==========================
+         MERCHANT DATA
+    ========================== */
+
+    if (!user.merchant) {
+
+        user.merchant = {
             visits: 0,
             purchases: 0,
-            unlockedName: false,
             friendship: 0,
-            lastVisit: 0
+            unlockedName: false,
+            lastVisit: 0,
+            spawnChance: 0.02
         };
+
     }
 
-    if (typeof user.blackMarket.visits !== "number")
-        user.blackMarket.visits = 0;
+    if (typeof user.merchant.visits !== "number")
+        user.merchant.visits = 0;
 
-    if (typeof user.blackMarket.purchases !== "number")
-        user.blackMarket.purchases = 0;
+    if (typeof user.merchant.purchases !== "number")
+        user.merchant.purchases = 0;
 
-    if (typeof user.blackMarket.friendship !== "number")
-        user.blackMarket.friendship = 0;
+    if (typeof user.merchant.friendship !== "number")
+        user.merchant.friendship = 0;
 
-    if (typeof user.blackMarket.lastVisit !== "number")
-        user.blackMarket.lastVisit = 0;
+    if (typeof user.merchant.lastVisit !== "number")
+        user.merchant.lastVisit = 0;
 
-    if (typeof user.blackMarket.unlockedName !== "boolean")
-        user.blackMarket.unlockedName = false;
+    if (typeof user.merchant.spawnChance !== "number")
+        user.merchant.spawnChance = 0.02;
+
+    if (typeof user.merchant.unlockedName !== "boolean")
+        user.merchant.unlockedName = false;
 
     saveStatus();
+
     return user;
 }
 
+/* ==========================
+      MERCHANT SYSTEM
+========================== */
+
+const MERCHANT_CONFIG = {
+
+    startHour: 20,
+    endHour: 6,
+
+    baseChance: 0.02,
+    maxChance: 0.20,
+    chanceIncrease: 0.01,
+
+    revealVisits: 200,
+    revealPurchases: 50
+
+};
+
+function isMerchantAvailable() {
+
+    const hour = new Date().getHours();
+
+    return hour >= MERCHANT_CONFIG.startHour ||
+           hour < MERCHANT_CONFIG.endHour;
+
+}
+
+function shouldSpawnMerchant(user) {
+
+    if (!isMerchantAvailable())
+        return false;
+
+    const appear = Math.random() < user.merchant.spawnChance;
+
+    if (appear) {
+
+        user.merchant.spawnChance =
+            MERCHANT_CONFIG.baseChance;
+
+    } else {
+
+        user.merchant.spawnChance = Math.min(
+
+            MERCHANT_CONFIG.maxChance,
+
+            user.merchant.spawnChance +
+            MERCHANT_CONFIG.chanceIncrease
+
+        );
+
+    }
+
+    saveStatus();
+
+    return appear;
+
+}
+
+function getMerchantName(user) {
+
+    if (
+
+        user.merchant.unlockedName ||
+
+        (
+
+            user.merchant.visits >= MERCHANT_CONFIG.revealVisits &&
+
+            user.merchant.purchases >= MERCHANT_CONFIG.revealPurchases
+
+        )
+
+    ) {
+
+        unlockMerchantName(user);
+
+             return "Nachi";
+
+    }
+
+    return "???";
+
+}
+
+function getMerchantDialogue(user) {
+
+    const friendship = user.merchant.friendship;
+
+    if (friendship < 5)
+
+        return [
+
+            "Vaya... un cliente a estas horas.",
+
+            "No esperaba encontrar a alguien despierto.",
+
+            "Habla bajo...",
+
+            "No preguntes de dónde viene mi mercancía."
+
+        ];
+
+    if (friendship < 20)
+
+        return [
+
+            "Has vuelto.",
+
+            "Empiezo a reconocerte.",
+
+            "Siempre apareces cuando cae la noche."
+
+        ];
+
+    if (friendship < 50)
+
+        return [
+
+            "Me alegra volver a verte.",
+
+            "No muchos encuentran este lugar.",
+
+            "Las mejores reliquias esperan a los pacientes."
+
+        ];
+
+    return [
+
+        "Sabía que vendrías.",
+
+        "Siempre encuentro algo interesante para ti.",
+
+        "¿Qué buscas esta noche?"
+
+    ];
+
+}
+
+function registerMerchantVisit(user) {
+
+    user.merchant.visits++;
+
+    user.merchant.friendship++;
+
+    user.merchant.lastVisit = Date.now();
+
+    saveStatus();
+
+}
+
+/* ==========================
+      MERCHANT REWARDS
+========================== */
+
+function unlockMerchant(user) {
+
+    if (user.merchant.firstMeet)
+        return false;
+
+    user.merchant.firstMeet = true;
+
+    return true;
+
+}
+
+function unlockMerchantName(user) {
+
+    if (user.merchant.knowsName)
+        return false;
+
+    user.merchant.knowsName = true;
+
+    return true;
+
+}
+
+/* ==========================
+   MERCHANT ENCOUNTER
+========================== */
+
+async function openMerchantEncounter(interaction, user) {
+
+    const firstMeet = unlockMerchant(user);
+
+if (firstMeet) {
+
+    // Aquí luego daremos el rango Mercado Negro
+
+}
+          
+    const merchantName = getMerchantName(user);
+
+    const dialogues = getMerchantDialogue(user);
+
+    const dialogue =
+        dialogues[Math.floor(Math.random() * dialogues.length)];
+
+    const row = new ActionRowBuilder()
+
+        .addComponents(
+
+            new ButtonBuilder()
+                .setCustomId("merchant_shop")
+                .setLabel("🛍 Ver mercancía")
+                .setStyle(ButtonStyle.Primary),
+
+            new ButtonBuilder()
+                .setCustomId("merchant_talk")
+                .setLabel("💬 Hablar")
+                .setStyle(ButtonStyle.Secondary),
+
+            new ButtonBuilder()
+                .setCustomId("merchant_leave")
+                .setLabel("🚪 Marcharse")
+                .setStyle(ButtonStyle.Danger)
+
+        );
+
+    return interaction.editReply({
+
+        content: firstMeet
+? `# 🌑 Una presencia desconocida...
+
+El aire se vuelve extrañamente pesado...
+
+Una figura emerge de la oscuridad.
+
+## 🕶️ ???
+
+*"Vaya... hacía mucho que nadie conseguía encontrarme."*
+
+🏅 **Has obtenido el rango oculto:** **Mercado Negro**
+
+-# El comerciante permanece inmóvil observándote.`
+: `# 🌑 Un comerciante misterioso
+
+## 🕶️ ${merchantName}
+
+*"${dialogue}"*
+
+-# El comerciante permanece inmóvil observándote.`,
+              
+        components: [row]
+
+    });
+
+}
+          
 /* ==========================
    SINCRONIZAR RANGO CON ROLES
 ========================== */
@@ -360,7 +644,7 @@ if (
 }
 
 /* ==========================
-       BOTONES
+       BOTONES (de arriba)
 ========================== */
 
 if (interaction.isButton()) {
@@ -934,12 +1218,130 @@ El Top automático aparecerá aquí.`,
 
 
 /* ==========================
-          BOTONES
+          BOTONES (de abajo)
 ========================== */
 
 async function handleButtons(interaction) {
 
     switch (interaction.customId) {
+
+        /* ==========================
+           MERCHANT BUTTONS
+        ========================== */
+
+        case "merchant_leave": {
+
+            return interaction.update({
+
+                content:
+`# 🌑 El comerciante desaparece
+
+*"Quizá volvamos a encontrarnos..."*`,
+
+                components: []
+
+            });
+
+        }
+
+        case "merchant_talk": {
+
+            const user = getUser(
+                interaction.guild.id,
+                interaction.user.id
+            );
+
+            user.merchant.friendship++;
+
+            saveStatus();
+
+            const merchantName = getMerchantName(user);
+
+            const dialogues = getMerchantDialogue(user);
+
+            const dialogue =
+                dialogues[Math.floor(Math.random() * dialogues.length)];
+
+            const row = new ActionRowBuilder()
+
+                .addComponents(
+
+                    new ButtonBuilder()
+                        .setCustomId("merchant_shop")
+                        .setLabel("🛍 Ver mercancía")
+                        .setStyle(ButtonStyle.Primary),
+
+                    new ButtonBuilder()
+                        .setCustomId("merchant_talk")
+                        .setLabel("💬 Hablar")
+                        .setStyle(ButtonStyle.Secondary),
+
+                    new ButtonBuilder()
+                        .setCustomId("merchant_leave")
+                        .setLabel("🚪 Marcharse")
+                        .setStyle(ButtonStyle.Danger)
+
+                );
+
+            return interaction.update({
+
+                content:
+`# 🌑 ${merchantName}
+
+*"${dialogue}"*`,
+
+                components: [row]
+
+            });
+
+        }
+
+        case "merchant_shop": {
+
+            const row = new ActionRowBuilder()
+
+                .addComponents(
+
+                    new ButtonBuilder()
+                        .setCustomId("merchant_back")
+                        .setLabel("⬅ Volver")
+                        .setStyle(ButtonStyle.Secondary),
+
+                    new ButtonBuilder()
+                        .setCustomId("merchant_leave")
+                        .setLabel("🚪 Marcharse")
+                        .setStyle(ButtonStyle.Danger)
+
+                );
+
+            return interaction.update({
+
+                content:
+`# 🛍 Mercado Negro
+
+🚧 El comerciante todavía está organizando su mercancía.
+
+Vuelve más tarde...`,
+
+                components: [row]
+
+            });
+
+        }
+
+        case "merchant_back": {
+
+            const user = getUser(
+                interaction.guild.id,
+                interaction.user.id
+            );
+
+            return openMerchantEncounter(
+                interaction,
+                user
+            );
+
+        }
 
         default: {
 
@@ -956,7 +1358,6 @@ async function handleButtons(interaction) {
     }
 
 }
-
 
 /* ==========================
           MODALES
@@ -1620,87 +2021,40 @@ case "rankup": {
 
 case "shop": {
 
-    const user = getUser(interaction.guild.id, interaction.user.id);
+    const user = getUser(
+        interaction.guild.id,
+        interaction.user.id
+    );
 
     // ==========================
-    // BLACK MARKET
+    // MERCHANT EVENT
     // ==========================
 
-    if (shouldOpenBlackMarket()) {
+    if (shouldSpawnMerchant(user)) {
 
-        // Compatibilidad con usuarios antiguos
-        if (!user.blackMarket) {
-            user.blackMarket = {
-                visits: 0,
-                purchases: 0,
-                unlockedName: false,
-                friendship: 0,
-                lastVisit: 0
-            };
-        }
+        registerMerchantVisit(user);
 
-        const merchantName = getBlackMarketName(user.blackMarket);
+        return interaction.reply({
 
-const dialogues = [
+            content:
+`🌑 *Sientes una presencia observándote...*`,
 
-    "Vaya... un cliente a estas horas.",
+            ephemeral: true
 
-    "No esperaba encontrar a alguien despierto.",
+        }).then(async () => {
 
-    "Las mejores reliquias nunca se venden de día.",
+            await new Promise(resolve =>
+                setTimeout(resolve, 1800)
+            );
 
-    "No preguntes de dónde conseguí estas cosas.",
+            return openMerchantEncounter(
+                interaction,
+                user
+            );
 
-    "El Abismo siempre recompensa a los curiosos.",
+        });
 
-    "Habla bajo... hay oídos en todas partes."
-
-];
-
-const dialogue =
-    dialogues[Math.floor(Math.random() * dialogues.length)];
-
-const row = new ActionRowBuilder()
-.addComponents(
-
-    new ButtonBuilder()
-        .setCustomId("blackmarket_shop")
-        .setLabel("🛍 Ver mercancía")
-        .setStyle(ButtonStyle.Primary),
-
-    new ButtonBuilder()
-        .setCustomId("blackmarket_talk")
-        .setLabel("💬 Hablar")
-        .setStyle(ButtonStyle.Secondary),
-
-    new ButtonBuilder()
-        .setCustomId("blackmarket_leave")
-        .setLabel("🚪 Marcharse")
-        .setStyle(ButtonStyle.Danger)
-
-);
-
-user.blackMarket.visits++;
-user.blackMarket.lastVisit = Date.now();
-
-saveStatus();
-
-return interaction.reply({
-
-content:
-`# 🌑 Un comerciante misterioso
-
-## 🕶️ ${merchantName}
-
-*"${dialogue}"*
-
--# El comerciante permanece inmóvil mientras te observa en silencio.`,
-
-components: [row],
-
-ephemeral: true
-
-});
+    }
 
     // ==========================
     // NORMAL SHOP
