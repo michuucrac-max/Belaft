@@ -943,6 +943,49 @@ async function handleModals(interaction) {
 
 }
 
+/* ==========================
+      BLACK MARKET
+========================== */
+
+const BLACK_MARKET = {
+
+    startHour: 20,
+
+    endHour: 6,
+
+    chance: 0.02,
+
+    revealNameAt: 200
+
+};
+
+function isBlackMarketNight() {
+
+    const hour = new Date().getHours();
+
+    return hour >= BLACK_MARKET.startHour ||
+
+           hour < BLACK_MARKET.endHour;
+
+}
+
+function shouldOpenBlackMarket() {
+
+    return isBlackMarketNight() &&
+
+           Math.random() < BLACK_MARKET.chance;
+
+}
+
+function getBlackMarketName(visits) {
+
+    if (visits >= BLACK_MARKET.revealNameAt)
+
+        return "Nachi";
+
+    return "???";
+
+}
 
 /* ==========================
       SLASH COMMANDS
@@ -1531,15 +1574,50 @@ case "rankup": {
         }).catch(() => {});
     }
 }
-
-                        
-         /* ==========================
+       
+/* ==========================
          SHOP
-         ========================== */
+========================== */
 
 case "shop": {
 
-const user = getUser(interaction.guild.id, interaction.user.id);
+    const user = getUser(interaction.guild.id, interaction.user.id);
+
+    // ==========================
+    // BLACK MARKET
+    // ==========================
+
+    if (shouldOpenBlackMarket()) {
+
+        const merchantName = getBlackMarketName(
+            user.blackMarketVisits || 0
+        );
+
+        user.blackMarketVisits =
+            (user.blackMarketVisits || 0) + 1;
+
+        saveData();
+
+        return interaction.reply({
+
+            content:
+`# 🌑 Un comerciante ha aparecido...
+
+🕶️ **${merchantName}**
+
+*"Vaya... un cliente a estas horas."*
+
+> 🚧 El Mercado Negro aún está en construcción.`,
+
+            ephemeral: true
+
+        });
+
+    }
+
+    // ==========================
+    // NORMAL SHOP
+    // ==========================
 
     const row = new ActionRowBuilder()
 
@@ -1554,38 +1632,33 @@ const user = getUser(interaction.guild.id, interaction.user.id);
                 .addOptions([
 
                     {
-                        label: "Multiplicador x1.10",
+                        label: "📈 Multiplicador x1.10",
                         description: "100 XP",
-                        value: "1.1",
-                        emoji: "📈"
+                        value: "1.1"
                     },
 
                     {
-                        label: "Multiplicador x1.25",
+                        label: "📈 Multiplicador x1.25",
                         description: "250 XP",
-                        value: "1.25",
-                        emoji: "📈"
+                        value: "1.25"
                     },
 
                     {
-                        label: "Multiplicador x1.50",
+                        label: "📈 Multiplicador x1.50",
                         description: "600 XP",
-                        value: "1.5",
-                        emoji: "📈"
+                        value: "1.5"
                     },
 
                     {
-                        label: "Multiplicador x2",
+                        label: "📈 Multiplicador x2",
                         description: "1500 XP",
-                        value: "2",
-                        emoji: "📈"
+                        value: "2"
                     },
 
                     {
-                        label: "Multiplicador x3",
+                        label: "📈 Multiplicador x3",
                         description: "4000 XP",
-                        value: "3",
-                        emoji: "📈"
+                        value: "3"
                     }
 
                 ])
@@ -2373,62 +2446,6 @@ export async function updateTopChannel(client) {
         }
 
     }
-
-}
-
-/* ==========================
-    ADMIN CHANNEL FINDER
-========================== */
-
-export async function findAdminChannel(guild) {
-
-    const priorities = [
-        "administración",
-        "administracion",
-        "admin",
-        "admins",
-        "moderación",
-        "moderacion",
-        "mod",
-        "mods",
-        "staff",
-        "logs",
-        "registro"
-    ];
-
-    const channels = guild.channels.cache.filter(channel =>
-        channel.type === ChannelType.GuildText
-    );
-
-    for (const priority of priorities) {
-
-        const channel = channels.find(c => {
-
-            const name = c.name.toLowerCase();
-
-            return (
-                name.includes(priority) &&
-                c.permissionsFor(guild.members.me)?.has([
-                    "ViewChannel",
-                    "SendMessages"
-                ])
-            );
-
-        });
-
-        if (channel) return channel;
-
-    }
-
-    return await guild.channels.create({
-
-        name: "administración",
-
-        type: ChannelType.GuildText,
-
-        reason: "Canal automático para la administración de Belaft"
-
-    });
 
 }
 
