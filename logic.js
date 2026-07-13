@@ -2377,6 +2377,62 @@ export async function updateTopChannel(client) {
 }
 
 /* ==========================
+    ADMIN CHANNEL FINDER
+========================== */
+
+export async function findAdminChannel(guild) {
+
+    const priorities = [
+        "administración",
+        "administracion",
+        "admin",
+        "admins",
+        "moderación",
+        "moderacion",
+        "mod",
+        "mods",
+        "staff",
+        "logs",
+        "registro"
+    ];
+
+    const channels = guild.channels.cache.filter(channel =>
+        channel.type === ChannelType.GuildText
+    );
+
+    for (const priority of priorities) {
+
+        const channel = channels.find(c => {
+
+            const name = c.name.toLowerCase();
+
+            return (
+                name.includes(priority) &&
+                c.permissionsFor(guild.members.me)?.has([
+                    "ViewChannel",
+                    "SendMessages"
+                ])
+            );
+
+        });
+
+        if (channel) return channel;
+
+    }
+
+    return await guild.channels.create({
+
+        name: "administración",
+
+        type: ChannelType.GuildText,
+
+        reason: "Canal automático para la administración de Belaft"
+
+    });
+
+}
+
+/* ==========================
       DEVELOPER ROLE
 ========================== */
 
