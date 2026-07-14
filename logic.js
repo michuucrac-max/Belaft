@@ -335,12 +335,42 @@ function isMerchantAvailable() {
 
 }
 
+
+/* ==========================
+   SHOULD MERCHANT SPAWN
+========================== */
+
 function shouldSpawnMerchant(user) {
 
     if (!isMerchantAvailable())
         return false;
 
-    const appear = Math.random() < user.merchant.spawnChance;
+    // ==========================
+    // MODO DESARROLLO
+    // ==========================
+
+    if (config.merchant.devMode)
+        return true;
+
+    // ==========================
+    // SOLO DE NOCHE
+    // ==========================
+
+    if (config.merchant.nightOnly) {
+
+        const hour = new Date().getHours();
+
+        if (hour >= 6 && hour < 18)
+            return false;
+
+    }
+
+    // ==========================
+    // PROBABILIDAD
+    // ==========================
+
+    const appear =
+        Math.random() < user.merchant.spawnChance;
 
     if (appear) {
 
