@@ -133,6 +133,8 @@ function getUser(guildId, userId) {
             visits: 0,
             purchases: 0,
             friendship: 0,
+            stock: [],
+            selectedItem: null,
             unlockedName: false,
             lastVisit: 0,
             spawnChance: 0.02,
@@ -576,12 +578,82 @@ const MERCHANT_ITEMS = [
 ];
 
 /* ==========================
+   MERCHANT UTILS
+========================== */
+
+function getMerchantItem(id) {
+
+    return MERCHANT_ITEMS.find(
+        item => item.id === id
+    );
+
+}
+
+/* ==========================
+      MERCHANT STOCK
+========================== */
+
+function generateMerchantStock() {
+
+    const stock = [];
+
+    // Siempre disponible
+    stock.push("illegal_x5");
+
+    // 50%
+    if (Math.random() < 0.5)
+        stock.push("illegal_x10");
+
+    // 20%
+    if (Math.random() < 0.2)
+        stock.push("illegal_x15");
+
+    // 5%
+    if (Math.random() < 0.05)
+        stock.push("illegal_x20");
+
+    // 0.5%
+    if (Math.random() < 0.005)
+        stock.push("illegal_x50");
+
+    // Cupones
+    if (Math.random() < 0.40)
+        stock.push("coupon_10");
+
+    if (Math.random() < 0.20)
+        stock.push("coupon_25");
+
+    if (Math.random() < 0.08)
+        stock.push("coupon_50");
+
+    // XP
+    stock.push("money_to_xp_small");
+
+    if (Math.random() < 0.5)
+        stock.push("money_to_xp_medium");
+
+    if (Math.random() < 0.2)
+        stock.push("money_to_xp_large");
+
+    return stock;
+
+}
+
+/* ==========================
    MERCHANT ENCOUNTER
 ========================== */
 
 async function openMerchantEncounter(interaction, user) {
 
     const firstMeet = unlockMerchant(user);
+
+if (!user.merchant.stock.length) {
+
+    user.merchant.stock = generateMerchantStock();
+
+    saveStatus();
+
+}
 
 if (firstMeet) {
 
@@ -1497,38 +1569,320 @@ async function handleButtons(interaction) {
 
         }
 
-        case "merchant_shop": {
+        /* ==========================
+      MERCHANT SHOP
+========================== */
 
-            const row = new ActionRowBuilder()
+case "merchant_shop": {
 
-                .addComponents(
+    const user = getUser(
+        interaction.guild.id,
+        interaction.user.id
+    );
 
-                    new ButtonBuilder()
-                        .setCustomId("merchant_back")
-                        .setLabel("⬅ Volver")
-                        .setStyle(ButtonStyle.Secondary),
+    const merchantName = getMerchantName(user);
 
-                    new ButtonBuilder()
-                        .setCustomId("merchant_leave")
-                        .setLabel("🚪 Marcharse")
-                        .setStyle(ButtonStyle.Danger)
+    const options = [];
 
-                );
+    for (const itemId of user.merchant.stock) {
 
-            return interaction.update({
+        const item = getMerchantItem(itemId);
 
-                content:
+        if (!item) continue;
+
+        options.push({
+
+            label: item.name,
+
+            description: `${item.description} • ${item.price.toLocaleString()} XP`,
+
+            value: item.id
+
+        });
+
+    }
+
+    if (!options.length) {
+
+        return interaction.update({
+
+            content:
 `# 🛍 Mercado Negro
 
-🚧 El comerciante todavía está organizando su mercancía.
+## 🕶️ ${merchantName}
 
-Vuelve más tarde...`,
+*"Parece que hoy no traje mercancía..."*`,
 
-                components: [row]
+            components: []
 
-            });
+        });
+
+    }
+
+    const selectRow = new ActionRowBuilder()
+
+        .addComponents(
+
+            new StringSelectMenuBuilder()
+
+                .setCustomId("merchant_select")
+
+                .setPlaceholder("Selecciona un artículo")
+
+                .addOptions(options)
+
+        );
+
+    const buttonRow = new ActionRowBuilder()
+
+        .addComponents(
+
+            new ButtonBuilder()
+
+                .setCustomId("merchant_buy")
+
+                .setLabel("💰 Comprar")
+
+                .setStyle(ButtonStyle.Success),
+
+            new ButtonBuilder()
+
+                .setCustomId("merchant_talk")
+
+                .setLabel("💬 Hablar")
+
+                .setStyle(ButtonStyle.Secondary),
+
+            new ButtonBuilder()
+
+                .setCustomId("merchant_back")
+
+                .setLabel("⬅ Volver")
+
+                .setStyle(ButtonStyle.Primary),
+
+            new ButtonBuilder()
+
+                .setCustomId("merchant_leave")
+
+                .setLabel("🚪 Marcharse")
+
+                .setStyle(ButtonStyle.Danger)
+
+        );
+
+    return interaction.update({
+
+        content:
+`# 🛍 Mercado Negro
+
+## 🕶️ ${merchantName}
+
+⭐ XP: **${user.xp.toLocaleString()}**
+💰 Monedas: **${user.money.toLocaleString()}**
+
+${merchantName === "???"
+? "*\"Todo tiene un precio... pero aún no el derecho de conocer mi nombre.\"*"
+: "*\"Bienvenido de nuevo. Observa con cuidado mi mercancía.\"*"}
+
+Selecciona un objeto del menú para ver su información.`,
+
+        components: [
+
+            selectRow,
+
+            buttonRow
+
+        ]
+
+    });
+
+}
+
+/* ==========================
+      MERCHANT SELECT
+========================== */
+
+case "merchant_select": {
+
+    const user = getUser(
+        interaction.guild.id,
+        interaction.user.id
+    );
+
+    const item = getMerchantItem(
+        interaction.values[0]
+    );
+
+    if (!item) {
+
+        return interaction.reply({
+
+            content: "❌ Ese objeto ya no está disponible.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+    user.merchant.selectedItem = item.id;
+
+    saveStatus();
+
+    const buttonRow = new ActionRowBuilder()
+
+        .addComponents(
+
+            new ButtonBuilder()
+
+                .setCustomId("merchant_buy")
+
+                .setLabel("💰 Comprar")
+
+                .setStyle(ButtonStyle.Success),
+
+            new ButtonBuilder()
+
+                .setCustomId("merchant_shop")
+
+                .setLabel("⬅ Volver")
+
+                .setStyle(ButtonStyle.Secondary)
+
+        );
+
+    return interaction.update({
+
+        content:
+`# 📦 ${item.name}
+
+${item.description}
+
+💰 Precio: **${item.price.toLocaleString()} XP**
+
+${item.type === "boost"
+? `⚡ Multiplicador: **x${item.multiplier}**
+⏳ Duración: **${Math.floor(item.duration / 60000)} minutos**`
+: ""}
+
+*"${getMerchantName(user) === "???"
+? "No hago reembolsos."
+: "Si lo compras, será tu responsabilidad."}"*`,
+
+        components: [buttonRow]
+
+    });
+
+}
+
+/* ==========================
+      MERCHANT BUY
+========================== */
+
+case "merchant_buy": {
+
+    const user = getUser(
+        interaction.guild.id,
+        interaction.user.id
+    );
+
+    const item = getMerchantItem(
+        user.merchant.selectedItem
+    );
+
+    if (!item) {
+
+        return interaction.reply({
+
+            content: "❌ Primero selecciona un objeto.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+    if (user.xp < item.price) {
+
+        return interaction.reply({
+
+            content:
+`❌ No tienes suficiente XP.
+
+Necesitas **${item.price.toLocaleString()} XP**.`,
+
+            ephemeral: true
+
+        });
+
+    }
+
+    user.xp -= item.price;
+
+    user.merchant.purchases++;
+    user.merchant.friendship++;
+
+    switch (item.type) {
+
+        case "boost": {
+
+            user.merchant.boosts = {
+
+                multiplier: item.multiplier,
+
+                expires: Date.now() + item.duration
+
+            };
+
+            break;
 
         }
+
+        case "exchange": {
+
+            user.xp += item.xp;
+
+            break;
+
+        }
+
+        case "coupon": {
+
+            user.merchant.coupons[item.coupon]++;
+
+            break;
+
+        }
+
+    }
+
+    saveStatus();
+
+    return interaction.update({
+
+        content:
+`# ✅ Compra realizada
+
+Has comprado:
+
+## ${item.name}
+
+💰 Coste: **${item.price.toLocaleString()} XP**
+
+🤝 Amistad: **${user.merchant.friendship}**
+
+🛍 Compras: **${user.merchant.purchases}**
+
+*"${getMerchantName(user) === "???"
+? "Buen negocio."
+: "Sabía que escogerías ese."}"*`,
+
+        components: []
+
+    });
+
+}
 
         case "merchant_back": {
 
