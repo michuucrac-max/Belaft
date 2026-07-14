@@ -1153,84 +1153,7 @@ if (interaction.isButton()) {
 
     }
 
-    // ===== RESTO DE BOTONES =====
-
-/* ==========================
-      MERCHANT SELECT
-========================== */
-
-case "merchant_select": {
-
-    const user = getUser(
-        interaction.guild.id,
-        interaction.user.id
-    );
-
-    const item = getMerchantItem(
-        interaction.values[0]
-    );
-
-    if (!item) {
-
-        return interaction.reply({
-
-            content: "❌ Ese objeto ya no está disponible.",
-
-            ephemeral: true
-
-        });
-
-    }
-
-    user.merchant.selectedItem = item.id;
-
-    saveStatus();
-
-    const buttonRow = new ActionRowBuilder()
-
-        .addComponents(
-
-            new ButtonBuilder()
-
-                .setCustomId("merchant_buy")
-
-                .setLabel("💰 Comprar")
-
-                .setStyle(ButtonStyle.Success),
-
-            new ButtonBuilder()
-
-                .setCustomId("merchant_shop")
-
-                .setLabel("⬅ Volver")
-
-                .setStyle(ButtonStyle.Secondary)
-
-        );
-
-    return interaction.update({
-
-        content:
-`# 📦 ${item.name}
-
-${item.description}
-
-💰 Precio: **${item.price.toLocaleString()} XP**
-
-${item.type === "boost"
-? `⚡ Multiplicador: **x${item.multiplier}**
-⏳ Duración: **${Math.floor(item.duration / 60000)} minutos**`
-: ""}
-
-*"${getMerchantName(user) === "???"
-? "No hago reembolsos."
-: "Si lo compras, será tu responsabilidad."}"*`,
-
-        components: [buttonRow]
-
-    });
-
-}
+    // ===== RESTO DE BOTONES ===== //
 
     /* ==========================
         RESET BUTTONS
@@ -1639,6 +1562,83 @@ case "shop_buy": {
 ⭐ XP restante: **${user.xp}**`,
 
         components: []
+
+    });
+
+}
+
+/* ==========================
+      MERCHANT SELECT
+========================== */
+
+case "merchant_select": {
+
+    const user = getUser(
+        interaction.guild.id,
+        interaction.user.id
+    );
+
+    const item = getMerchantItem(
+        interaction.values[0]
+    );
+
+    if (!item) {
+
+        return interaction.reply({
+
+            content: "❌ Ese objeto ya no está disponible.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+    user.merchant.selectedItem = item.id;
+
+    saveStatus();
+
+    const buttonRow = new ActionRowBuilder()
+
+        .addComponents(
+
+            new ButtonBuilder()
+
+                .setCustomId("merchant_buy")
+
+                .setLabel("💰 Comprar")
+
+                .setStyle(ButtonStyle.Success),
+
+            new ButtonBuilder()
+
+                .setCustomId("merchant_shop")
+
+                .setLabel("⬅ Volver")
+
+                .setStyle(ButtonStyle.Secondary)
+
+        );
+
+    return interaction.update({
+
+        content:
+`# 📦 ${item.name}
+
+${item.description}
+
+💰 Precio: **${item.price.toLocaleString()} XP**
+
+${item.type === "boost"
+? `⚡ Multiplicador: **x${item.multiplier}**
+⏳ Duración: **${Math.floor(item.duration / 60000)} minutos**`
+: ""}
+
+*"${getMerchantName(user) === "???"
+? "No hago reembolsos."
+: "Si lo compras, será tu responsabilidad."}"*`,
+
+        components: [buttonRow]
 
     });
 
