@@ -545,35 +545,6 @@ function unlockMerchantName(user) {
 
 }
 
-async function giveSpecialRole(member, roleKey) {
-
-    const roleName = config.specialRoles?.[roleKey];
-
-    if (!roleName) return false;
-
-    const role = member.guild.roles.cache.find(
-        r => r.name.toLowerCase() === roleName.toLowerCase()
-    );
-
-    if (!role) return false;
-
-    if (member.roles.cache.has(role.id))
-        return true;
-
-    try {
-
-        await member.roles.add(role);
-
-        return true;
-
-    } catch {
-
-        return false;
-
-    }
-
-}
-
 /* ==========================
      SPECIAL ROLES
 ========================== */
