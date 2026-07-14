@@ -117,59 +117,48 @@ function saveStatus() {
 function getUser(guildId, userId) {
     if (!status[guildId]) status[guildId] = {};
     if (!status[guildId][userId]) {
-        status[guildId][userId] = {
-            money: 0,
-            xp: 0,
-            rank: 0,
-            multiplier: 1,
-            daily: 0,
-            inventory: {},
-            stats: {
-                reliquies: 0,
-                sold: 0
-            },
-                  
-          merchant: {
-
-    visits: 0,
-
-    purchases: 0,
-
-    friendship: 0,
-
-    unlockedName: false,
-
-    firstEncounter: false,
-
-    questCompleted: false,
-
-    selectedItem: null,
-
-    boosts: {
-
-        multiplier: 1,
-
-        expires: 0
-
+       status[guildId][userId] = {
+    money: 0,
+    xp: 0,
+    rank: 0,
+    multiplier: 1,
+    daily: 0,
+    inventory: {},
+    stats: {
+        reliquies: 0,
+        sold: 0
     },
 
-    stock: []
+    merchant: {
+        visits: 0,
+        purchases: 0,
+        friendship: 0,
+        stock: [],
+        selectedItem: null,
+        unlockedName: false,
+        lastVisit: 0,
+        spawnChance: 0.02,
 
-},
+        firstMeet: false,
+        knowsName: false,
 
-            coupons: {
-                discount10: 0,
-                discount25: 0,
-                discount50: 0,
-                freeBuy: 0
-            },
+        mood: "normal",
 
-            boosts: {
-                multiplier: 1,
-                expires: 0
-              }
-            },
-        };
+        coupons: {
+            discount10: 0,
+            discount25: 0,
+            discount50: 0,
+            freeBuy: 0
+        },
+
+        boosts: {
+            multiplier: 1,
+            expires: 0
+        }
+
+    }
+
+};
         saveStatus();
     }
 
