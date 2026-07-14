@@ -129,20 +129,33 @@ function getUser(guildId, userId) {
                 sold: 0
             },
                   
-            merchant: {
-            visits: 0,
-            purchases: 0,
-            friendship: 0,
-            stock: [],
-            selectedItem: null,
-            unlockedName: false,
-            lastVisit: 0,
-            spawnChance: 0.02,
+          merchant: {
 
-            firstMeet: false,
-            knowsName: false,
+    visits: 0,
 
-            mood: "normal",
+    purchases: 0,
+
+    friendship: 0,
+
+    unlockedName: false,
+
+    firstEncounter: false,
+
+    questCompleted: false,
+
+    selectedItem: null,
+
+    boosts: {
+
+        multiplier: 1,
+
+        expires: 0
+
+    },
+
+    stock: []
+
+},
 
             coupons: {
                 discount10: 0,
@@ -442,6 +455,48 @@ function registerMerchantVisit(user) {
     user.merchant.lastVisit = Date.now();
 
     saveStatus();
+
+}
+
+/* ==========================
+      MERCHANT QUEST
+========================== */
+
+function updateMerchantQuest(user) {
+
+    if (
+
+        user.merchant.questCompleted ||
+
+        user.merchant.unlockedName
+
+    ) {
+
+        return false;
+
+    }
+
+    if (
+
+        user.merchant.visits >= 10 &&
+
+        user.merchant.friendship >= 15 &&
+
+        user.merchant.purchases >= 5
+
+    ) {
+
+        user.merchant.questCompleted = true;
+
+        user.merchant.unlockedName = true;
+
+        saveStatus();
+
+        return true;
+
+    }
+
+    return false;
 
 }
 
@@ -1575,74 +1630,194 @@ async function handleButtons(interaction) {
            MERCHANT BUTTONS
         ========================== */
 
-        case "merchant_leave": {
+/* ==========================
+      MERCHANT LEAVE
+========================== */
 
-            return interaction.update({
+case "merchant_leave": {
 
-                content:
+    const user = getUser(
+        interaction.guild.id,
+        interaction.user.id
+    );
+
+    const merchantName = getMerchantName(user);
+
+    const despedidas = [
+
+        "Hasta la próxima... si sobrevives.",
+
+        "El Abismo siempre trae nuevos clientes.",
+
+        "Nos volveremos a encontrar.",
+
+        "No olvides... todo tiene un precio.",
+
+        "Camina con cuidado."
+
+    ];
+
+    const despedida = despedidas[
+        Math.floor(Math.random() * despedidas.length)
+    ];
+
+    return interaction.update({
+
+        content:
 `# 🌑 El comerciante desaparece
 
-*"Quizá volvamos a encontrarnos..."*`,
+## 🕶️ ${merchantName}
 
-                components: []
+*"${despedida}"*
 
-            });
+-# En un instante, ya no queda rastro del misterioso comerciante.`,
 
-        }
+        components: []
 
-        case "merchant_talk": {
+    });
 
-            const user = getUser(
-                interaction.guild.id,
-                interaction.user.id
-            );
+}
+                        
+/* ==========================
+      MERCHANT TALK
+========================== */
 
-            user.merchant.friendship++;
+case "merchant_talk": {
 
-            saveStatus();
+    const user = getUser(
+        interaction.guild.id,
+        interaction.user.id
+    );
 
-            const merchantName = getMerchantName(user);
+    const merchantName = getMerchantName(user);
 
-            const dialogues = getMerchantDialogue(user);
+    const friendship = user.merchant.friendship;
 
-            const dialogue =
-                dialogues[Math.floor(Math.random() * dialogues.length)];
+    const unlocked = updateMerchantQuest(user);
 
-            const row = new ActionRowBuilder()
+    let dialogues = [];
 
-                .addComponents(
+    if (friendship < 5) {
 
-                    new ButtonBuilder()
-                        .setCustomId("merchant_shop")
-                        .setLabel("🛍 Ver mercancía")
-                        .setStyle(ButtonStyle.Primary),
+        dialogues = [
 
-                    new ButtonBuilder()
-                        .setCustomId("merchant_talk")
-                        .setLabel("💬 Hablar")
-                        .setStyle(ButtonStyle.Secondary),
+            "No me gusta perder el tiempo.",
 
-                    new ButtonBuilder()
-                        .setCustomId("merchant_leave")
-                        .setLabel("🚪 Marcharse")
-                        .setStyle(ButtonStyle.Danger)
+            "Compra... o vete.",
 
-                );
+            "Las preguntas cuestan caro.",
 
-            return interaction.update({
+            "No suelo confiar en los exploradores."
 
-                content:
-`# 🌑 ${merchantName}
+        ];
 
-*"${dialogue}"*`,
+    } else if (friendship < 15) {
 
-                components: [row]
+        dialogues = [
 
-            });
+            "Empiezas a ser un cliente frecuente.",
 
-        }
+            "Quizá vuelva a verte.",
 
-        /* ==========================
+            "No todos llegan tan lejos.",
+
+            "Tienes buen ojo para los negocios."
+
+        ];
+
+    } else if (friendship < 30) {
+
+        dialogues = [
+
+            "Hace mucho que nadie hablaba conmigo.",
+
+            "No suelo tener amigos.",
+
+            "Empiezo a confiar un poco en ti.",
+
+            "Tal vez algún día responda tus preguntas."
+
+        ];
+
+    } else {
+
+        dialogues = [
+
+            "Has demostrado que eres diferente.",
+
+            "Creo que ya puedo confiar en ti.",
+
+            "Mi nombre... quizá pronto lo descubras.",
+
+            "Hay cosas del Abismo que nadie debería saber."
+
+        ];
+
+    }
+
+    const dialogue = dialogues[
+        Math.floor(Math.random() * dialogues.length)
+    ];
+
+    const row = new ActionRowBuilder()
+
+        .addComponents(
+
+            new ButtonBuilder()
+
+                .setCustomId("merchant_shop")
+
+                .setLabel("🛒 Comprar")
+
+                .setStyle(ButtonStyle.Primary),
+
+            new ButtonBuilder()
+
+                .setCustomId("merchant_leave")
+
+                .setLabel("🚪 Marcharse")
+
+                .setStyle(ButtonStyle.Secondary)
+
+        );
+
+          if (unlocked) {
+
+    return interaction.update({
+
+        content:
+`# 🌑 El comerciante sonríe
+
+*"Supongo... que ya es hora de dejar de esconderme."*
+
+**Mi nombre es ${getMerchantName(user)}.**
+
+🎉 Has descubierto la identidad del comerciante.
+
+🏆 Has desbloqueado el rango **Conocedor**.`,
+
+        components: []
+
+    });
+
+}
+
+    return interaction.update({
+
+        content:
+`# 💬 ${merchantName}
+
+*"${dialogue}"*
+
+🤝 Amistad: **${friendship}**`,
+
+        components: [row]
+
+    });
+
+}
+
+/* ==========================
       MERCHANT SHOP
 ========================== */
 
@@ -1655,19 +1830,22 @@ case "merchant_shop": {
 
     const merchantName = getMerchantName(user);
 
-    const options = [];
+    const stock = generateMerchantStock(user);
 
-    for (const itemId of user.merchant.stock) {
+    const menu = new StringSelectMenuBuilder()
 
-        const item = getMerchantItem(itemId);
+        .setCustomId("merchant_select")
 
-        if (!item) continue;
+        .setPlaceholder("🛍 ¿Qué deseas comprar?");
 
-        options.push({
+    for (const item of stock) {
+
+        menu.addOptions({
 
             label: item.name,
 
-            description: `${item.description} • ${item.price.toLocaleString()} XP`,
+            description:
+                `${item.price.toLocaleString()} XP`,
 
             value: item.id
 
@@ -1675,48 +1853,13 @@ case "merchant_shop": {
 
     }
 
-    if (!options.length) {
+    const menuRow = new ActionRowBuilder()
 
-        return interaction.update({
+        .addComponents(menu);
 
-            content:
-`# 🛍 Mercado Negro
-
-## 🕶️ ${merchantName}
-
-*"Parece que hoy no traje mercancía..."*`,
-
-            components: []
-
-        });
-
-    }
-
-    const selectRow = new ActionRowBuilder()
+    const buttons = new ActionRowBuilder()
 
         .addComponents(
-
-            new StringSelectMenuBuilder()
-
-                .setCustomId("merchant_select")
-
-                .setPlaceholder("Selecciona un artículo")
-
-                .addOptions(options)
-
-        );
-
-    const buttonRow = new ActionRowBuilder()
-
-        .addComponents(
-
-            new ButtonBuilder()
-
-                .setCustomId("merchant_buy")
-
-                .setLabel("💰 Comprar")
-
-                .setStyle(ButtonStyle.Success),
 
             new ButtonBuilder()
 
@@ -1725,14 +1868,6 @@ case "merchant_shop": {
                 .setLabel("💬 Hablar")
 
                 .setStyle(ButtonStyle.Secondary),
-
-            new ButtonBuilder()
-
-                .setCustomId("merchant_back")
-
-                .setLabel("⬅ Volver")
-
-                .setStyle(ButtonStyle.Primary),
 
             new ButtonBuilder()
 
@@ -1747,31 +1882,29 @@ case "merchant_shop": {
     return interaction.update({
 
         content:
-`# 🛍 Mercado Negro
+
+`# 🌑 Mercado Negro
 
 ## 🕶️ ${merchantName}
 
-⭐ XP: **${user.xp.toLocaleString()}**
-💰 Monedas: **${user.money.toLocaleString()}**
+⭐ Tu XP: **${user.xp.toLocaleString()}**
 
-${merchantName === "???"
-? "*\"Todo tiene un precio... pero aún no el derecho de conocer mi nombre.\"*"
-: "*\"Bienvenido de nuevo. Observa con cuidado mi mercancía.\"*"}
+*"Todo tiene un precio..."*
 
-Selecciona un objeto del menú para ver su información.`,
+Selecciona un objeto para ver sus detalles.`,
 
         components: [
 
-            selectRow,
+            menuRow,
 
-            buttonRow
+            buttons
 
         ]
 
     });
 
 }
-
+                        
 /* ==========================
       MERCHANT SELECT
 ========================== */
@@ -1866,67 +1999,46 @@ case "merchant_buy": {
 
     if (!item) {
 
-        return interaction.reply({
+        return interaction.update({
 
-            content: "❌ Primero selecciona un objeto.",
+            content: "❌ Ese objeto ya no existe.",
 
-            ephemeral: true
+            components: []
 
         });
 
     }
 
-    if (user.xp < item.price) {
+    if (!hasXP(user, item.price)) {
 
-        return interaction.reply({
+        return interaction.update({
 
             content:
 `❌ No tienes suficiente XP.
 
-Necesitas **${item.price.toLocaleString()} XP**.`,
+⭐ Necesitas **${item.price.toLocaleString()} XP**
+⭐ Tienes **${user.xp.toLocaleString()} XP**`,
 
-            ephemeral: true
+            components: []
 
         });
 
     }
 
-    user.xp -= item.price;
+    removeXP(user, item.price);
 
     user.merchant.purchases++;
     user.merchant.friendship++;
 
-    switch (item.type) {
+    if (item.type === "boost") {
 
-        case "boost": {
+        user.merchant.boosts = {
 
-            user.merchant.boosts = {
+            multiplier: item.multiplier,
 
-                multiplier: item.multiplier,
+            expires: Date.now() + item.duration
 
-                expires: Date.now() + item.duration
-
-            };
-
-            break;
-
-        }
-
-        case "exchange": {
-
-            user.xp += item.xp;
-
-            break;
-
-        }
-
-        case "coupon": {
-
-            user.merchant.coupons[item.coupon]++;
-
-            break;
-
-        }
+        };
 
     }
 
@@ -1937,19 +2049,15 @@ Necesitas **${item.price.toLocaleString()} XP**.`,
         content:
 `# ✅ Compra realizada
 
-Has comprado:
+Has obtenido:
 
 ## ${item.name}
 
-💰 Coste: **${item.price.toLocaleString()} XP**
+⭐ XP restante: **${user.xp.toLocaleString()}**
 
 🤝 Amistad: **${user.merchant.friendship}**
 
-🛍 Compras: **${user.merchant.purchases}**
-
-*"${getMerchantName(user) === "???"
-? "Buen negocio."
-: "Sabía que escogerías ese."}"*`,
+🛍 Compras: **${user.merchant.purchases}**`,
 
         components: []
 
@@ -3001,10 +3109,10 @@ Vuelve en **${hours}h ${minutes}m**.`,
 
     const xp = getRandom(40, 80);
 
-    user.money += coins;
-
-    user.xp += xp;
-
+    giveMoney(user, coins);
+          
+    giveXP(user, xp);
+          
     user.daily = now;
 
     let relicText = "";
