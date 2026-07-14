@@ -2788,7 +2788,7 @@ case "shop": {
         interaction.user.id
     );
 
-    if (shouldMerchantAppear(user)) {
+    if (shouldSpawnMerchant(user)) {
 
         return openMerchantEncounter(
             interaction,
