@@ -1,5 +1,10 @@
 {
     "channels": {},
+    "merchant": {
+    "devMode": true,
+    "nightOnly": true,
+    "defaultSpawnChance": 0.02
+},
 
     "ranks": [
         "bell",
