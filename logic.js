@@ -1155,6 +1155,83 @@ if (interaction.isButton()) {
 
     // ===== RESTO DE BOTONES =====
 
+/* ==========================
+      MERCHANT SELECT
+========================== */
+
+case "merchant_select": {
+
+    const user = getUser(
+        interaction.guild.id,
+        interaction.user.id
+    );
+
+    const item = getMerchantItem(
+        interaction.values[0]
+    );
+
+    if (!item) {
+
+        return interaction.reply({
+
+            content: "❌ Ese objeto ya no está disponible.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+    user.merchant.selectedItem = item.id;
+
+    saveStatus();
+
+    const buttonRow = new ActionRowBuilder()
+
+        .addComponents(
+
+            new ButtonBuilder()
+
+                .setCustomId("merchant_buy")
+
+                .setLabel("💰 Comprar")
+
+                .setStyle(ButtonStyle.Success),
+
+            new ButtonBuilder()
+
+                .setCustomId("merchant_shop")
+
+                .setLabel("⬅ Volver")
+
+                .setStyle(ButtonStyle.Secondary)
+
+        );
+
+    return interaction.update({
+
+        content:
+`# 📦 ${item.name}
+
+${item.description}
+
+💰 Precio: **${item.price.toLocaleString()} XP**
+
+${item.type === "boost"
+? `⚡ Multiplicador: **x${item.multiplier}**
+⏳ Duración: **${Math.floor(item.duration / 60000)} minutos**`
+: ""}
+
+*"${getMerchantName(user) === "???"
+? "No hago reembolsos."
+: "Si lo compras, será tu responsabilidad."}"*`,
+
+        components: [buttonRow]
+
+    });
+
+}
+
     /* ==========================
         RESET BUTTONS
 ========================== */
@@ -1856,7 +1933,14 @@ case "merchant_shop": {
 
     const merchantName = getMerchantName(user);
 
-    const stock = generateMerchantStock(user);
+    // Mantener el mismo stock durante la visita
+    if (!user.merchant.stock || !user.merchant.stock.length) {
+
+        user.merchant.stock = generateMerchantStock();
+
+        saveStatus();
+
+    }
 
     const menu = new StringSelectMenuBuilder()
 
@@ -1864,14 +1948,18 @@ case "merchant_shop": {
 
         .setPlaceholder("🛍 ¿Qué deseas comprar?");
 
-    for (const item of stock) {
+    for (const id of user.merchant.stock) {
+
+        const item = getMerchantItem(id);
+
+        // Ignorar objetos que aún no existen
+        if (!item) continue;
 
         menu.addOptions({
 
             label: item.name,
 
-            description:
-                `${item.price.toLocaleString()} XP`,
+            description: `${item.price.toLocaleString()} XP`,
 
             value: item.id
 
@@ -1926,83 +2014,6 @@ Selecciona un objeto para ver sus detalles.`,
             buttons
 
         ]
-
-    });
-
-}
-                        
-/* ==========================
-      MERCHANT SELECT
-========================== */
-
-case "merchant_select": {
-
-    const user = getUser(
-        interaction.guild.id,
-        interaction.user.id
-    );
-
-    const item = getMerchantItem(
-        interaction.values[0]
-    );
-
-    if (!item) {
-
-        return interaction.reply({
-
-            content: "❌ Ese objeto ya no está disponible.",
-
-            ephemeral: true
-
-        });
-
-    }
-
-    user.merchant.selectedItem = item.id;
-
-    saveStatus();
-
-    const buttonRow = new ActionRowBuilder()
-
-        .addComponents(
-
-            new ButtonBuilder()
-
-                .setCustomId("merchant_buy")
-
-                .setLabel("💰 Comprar")
-
-                .setStyle(ButtonStyle.Success),
-
-            new ButtonBuilder()
-
-                .setCustomId("merchant_shop")
-
-                .setLabel("⬅ Volver")
-
-                .setStyle(ButtonStyle.Secondary)
-
-        );
-
-    return interaction.update({
-
-        content:
-`# 📦 ${item.name}
-
-${item.description}
-
-💰 Precio: **${item.price.toLocaleString()} XP**
-
-${item.type === "boost"
-? `⚡ Multiplicador: **x${item.multiplier}**
-⏳ Duración: **${Math.floor(item.duration / 60000)} minutos**`
-: ""}
-
-*"${getMerchantName(user) === "???"
-? "No hago reembolsos."
-: "Si lo compras, será tu responsabilidad."}"*`,
-
-        components: [buttonRow]
 
     });
 
