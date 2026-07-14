@@ -223,6 +223,79 @@ function getUser(guildId, userId) {
 }
 
 /* ==========================
+      REWARD SYSTEM
+========================== */
+
+function giveXP(user, amount) {
+
+    amount = Math.floor(amount);
+
+    if (user.merchant?.boosts) {
+
+        if (user.merchant.boosts.expires > Date.now()) {
+
+            amount *= user.merchant.boosts.multiplier;
+
+        } else {
+
+            user.merchant.boosts.multiplier = 1;
+            user.merchant.boosts.expires = 0;
+
+        }
+
+    }
+
+    amount = Math.floor(amount);
+
+    user.xp += amount;
+
+    saveStatus();
+
+    return amount;
+
+}
+
+function giveMoney(user, amount) {
+
+    amount = Math.floor(amount);
+
+    user.money += Math.floor(amount);
+
+    saveStatus();
+
+    return amount;
+
+}
+
+function removeXP(user, amount) {
+
+    user.xp = Math.max(0, user.xp - Math.floor(amount));
+
+    saveStatus();
+
+}
+
+function removeMoney(user, amount) {
+
+    user.money = Math.max(0, user.money - Math.floor(amount));
+
+    saveStatus();
+
+}
+
+function hasXP(user, amount) {
+
+    return user.xp >= amount;
+
+}
+
+function hasMoney(user, amount) {
+
+    return user.money >= amount;
+
+}
+
+/* ==========================
       MERCHANT SYSTEM
 ========================== */
 
