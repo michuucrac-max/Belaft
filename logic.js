@@ -644,6 +644,42 @@ async function giveSpecialRole(member, roleKey) {
 }
 
 /* ==========================
+      MERCHANT ROLES
+========================== */
+
+async function giveMerchantRole(member, roleKey) {
+
+    const roleName = config.specialRoles[roleKey];
+
+    if (!roleName) return;
+
+    let role = member.guild.roles.cache.find(
+        r => r.name === roleName
+    );
+
+    if (!role) {
+
+        role = await member.guild.roles.create({
+
+            name: roleName,
+
+            mentionable: false,
+
+            reason: "Rol especial del Mercado Negro"
+
+        });
+
+    }
+
+    if (!member.roles.cache.has(role.id)) {
+
+        await member.roles.add(role);
+
+    }
+
+}
+
+/* ==========================
       MERCHANT SHOP
 ========================== */
 
@@ -2752,7 +2788,7 @@ case "rankup": {
 }
        
 /* ==========================
-         SHOP
+          SHOP
 ========================== */
 
 case "shop": {
@@ -2762,39 +2798,14 @@ case "shop": {
         interaction.user.id
     );
 
-    // ==========================
-    // MERCHANT EVENT
-    // ==========================
+    if (shouldMerchantAppear(user)) {
 
-    if (shouldSpawnMerchant(user)) {
-
-        registerMerchantVisit(user);
-
-        return interaction.reply({
-
-            content:
-`🌑 *Sientes una presencia observándote...*`,
-
-            ephemeral: true
-
-        }).then(async () => {
-
-            await new Promise(resolve =>
-                setTimeout(resolve, 1800)
-            );
-
-            return openMerchantEncounter(
-                interaction,
-                user
-            );
-
-        });
+        return openMerchantEncounter(
+            interaction,
+            user
+        );
 
     }
-
-    // ==========================
-    // NORMAL SHOP
-    // ==========================
 
     const row = new ActionRowBuilder()
 
@@ -2847,11 +2858,9 @@ case "shop": {
         content:
 `# 🛒 Tienda
 
-⭐ Tu XP: **${user.xp}**
+⭐ XP: **${user.xp.toLocaleString()}**
 
-📈 Multiplicador actual: **x${user.multiplier}**
-
-Compra un multiplicador permanente.`,
+📈 Multiplicador: **x${user.multiplier}**`,
 
         components: [row],
 
