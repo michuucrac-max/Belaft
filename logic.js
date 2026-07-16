@@ -117,21 +117,34 @@ function saveStatus() {
 function getUser(guildId, userId) {
     if (!status[guildId]) status[guildId] = {};
     if (!status[guildId][userId]) {
-        status[guildId][userId] = {
-            money: 0,
-            xp: 0,
-            rank: 0,
-            multiplier: 1,
-            daily: 0,
-            inventory: {},
-            stats: { reliquies: 0, sold: 0 }
-        };
+     status[guildId][userId] = {
+    money: 0,
+    xp: 0,
+    rank: 0,
+
+    multiplier: 1,          // permanente
+    tempMultiplier: 1,      // temporal
+    tempMultiplierEnd: 0,   // fecha de expiración
+
+    daily: 0,
+
+    inventory: {},
+
+    stats: {
+        reliquies: 0,
+        sold: 0
+    }
+};
         saveStatus();
     }
 
     const user = status[guildId][userId];
 
     if (typeof user.money !== "number") user.money = 0;
+    if (typeof user.tempMultiplier !== "number")
+    user.tempMultiplier = 1;
+    if (typeof user.tempMultiplierEnd !== "number")
+    user.tempMultiplierEnd = 0;
     if (typeof user.xp !== "number") user.xp = 0;
     if (typeof user.rank !== "number") user.rank = 0;
     if (typeof user.multiplier !== "number") user.multiplier = 1;
