@@ -105,3 +105,167 @@ Los datos económicos se guardan en el almacenamiento utilizado por Belafu, por 
 Esto permite que la progresión de los usuarios se mantenga a lo largo del tiempo.
 ñ
 💰 En Belafu, cada moneda representa una parte de tu progreso. Adminístrala bien: el Abismo siempre tiene algo que cobrar.
+
+Sí. Viendo tu código real, creo que esta parte del README puede ser mucho más interesante: explicar cómo está construido actualmente Belafu y después presentar cómo podría evolucionar sin decir que ya tiene cosas que todavía no tiene.
+
+# 🧩 4. Arquitectura y estructura del código
+
+Belafu está construido con JavaScript y Discord.js, utilizando una estructura en la que la lógica principal del bot se concentra en módulos que manejan los comandos, eventos, economía, roles y sistemas automáticos.
+Actualmente, una parte importante de la lógica está concentrada en logic.js, donde se encuentran los distintos sistemas del bot. Por ejemplo, el archivo contiene el manejo de comandos slash mediante handleSlashCommands(), además de la lógica de mensajes, botones, modales y actualización del ranking.
+
+# 📁 Estructura actual
+
+De forma simplificada, el proyecto puede representarse así:
+Belafu/
+│
+├── index.js
+│
+├── logic.js
+│
+├── cmd.json
+│
+├── status.json
+├── config.json
+├── codes.json
+│
+└── package.json
+
+Los nombres exactos de los archivos de datos pueden variar según la versión del proyecto.
+
+# 🚀 index.js
+
+index.js funciona como el punto de entrada del bot.
+Su función principal es iniciar el cliente de Discord, cargar la configuración necesaria y conectar Belafu con Discord.
+También es el lugar apropiado para ejecutar procesos que deben comenzar cuando el bot inicia, como:
+
+Discord Client
+      │
+      ├── Login
+      │
+      ├── Registrar comandos
+      │
+      ├── Inicializar sistemas
+      │
+      └── Iniciar tareas automáticas
+      
+# ⚙️ logic.js
+
+Aquí se encuentra gran parte del comportamiento de Belafu.
+Actualmente existen diferentes capas de lógica:
+
+logic.js
+│
+├── Slash Commands
+│
+├── Message Logic
+│
+├── Select Menus
+│
+├── Buttons
+│
+├── Modals
+│
+├── Economía
+│
+├── Reliquias
+│
+├── Rangos
+│
+├── Rankings
+│
+└── Developer System
+
+Por ejemplo, los comandos slash son distribuidos mediante handleSlashCommands(interaction, client) y posteriormente un switch determina qué lógica corresponde a cada comando.
+
+El sistema de mensajes está separado mediante executeMessageLogic(), donde actualmente se procesa, entre otras cosas, la obtención de XP y la aparición de reliquias. 
+
+# 💰 Economía
+
+La economía utiliza funciones y estructuras compartidas para obtener y guardar los datos de los usuarios.
+Por ejemplo:
+const user = getUser(
+    interaction.guild.id,
+    interaction.user.id
+);
+Después, los cambios se guardan mediante:
+saveStatus();
+Esto aparece en diferentes sistemas, como daily, venta de reliquias y códigos promocionales. 
+
+# 🏆 Rankings
+
+El sistema de Top también está separado mediante:
+updateTopChannel(client)
+Este obtiene los usuarios almacenados del servidor, los ordena por dinero y XP y genera el ranking correspondiente.
+
+# 🔮 ¿Cómo podría estructurarse en el futuro?
+
+Aunque la estructura actual funciona, a medida que Belafu crezca sería conveniente dividir logic.js.
+En lugar de tener prácticamente todos los sistemas dentro del mismo archivo:
+logic.js
+   ↓
+TODO
+podría evolucionar hacia:
+
+Belafu/
+│
+├── src/
+│   │
+│   ├── index.js
+│   │
+│   ├── commands/
+│   │   ├── economy/
+│   │   │   ├── daily.js
+│   │   │   ├── balance.js
+│   │   │   ├── setmoney.js
+│   │   │   └── pay.js
+│   │   │
+│   │   ├── inventory/
+│   │   │   ├── inventory.js
+│   │   │   └── sell.js
+│   │   │
+│   │   └── admin/
+│   │       ├── setxp.js
+│   │       └── reset.js
+│   │
+│   ├── events/
+│   │   ├── ready.js
+│   │   ├── interactionCreate.js
+│   │   └── messageCreate.js
+│   │
+│   ├── systems/
+│   │   ├── economy.js
+│   │   ├── ranks.js
+│   │   ├── relics.js
+│   │   ├── developer.js
+│   │   └── rankings.js
+│   │
+│   ├── utils/
+│   │   ├── database.js
+│   │   ├── roles.js
+│   │   └── random.js
+│   │
+│   └── config/
+│       └── config.js
+│
+├── data/
+│   ├── status.json
+│   ├── config.json
+│   └── codes.json
+│
+├── cmd.json
+└── package.json
+
+# 🧠 La ventaja
+
+Así, si mañana /setmoney tiene un error, no tendrías que buscarlo entre cientos o miles de líneas de logic.js.
+Irías directamente a:
+commands/
+└── economy/
+    └── setmoney.js
+Y si el problema está en la sincronización de rangos:
+systems/
+└── ranks.js
+
+Esto sería una evolución natural del proyecto, no una obligación inmediata. Tu estructura actual ya separa varias responsabilidades mediante funciones como handleSlashCommands, executeMessageLogic y updateTopChannel; simplemente podría llevarse esa separación un paso más lejos.
+
+🛠️ Belafu comenzó como un bot, pero su estructura está preparada para convertirse progresivamente en un proyecto mucho más modular.
