@@ -3,11 +3,11 @@
 ========================== */
 
 import {
-  Client,
-  GatewayIntentBits,
-  REST,
-  Routes,
-  Events
+    Client,
+    GatewayIntentBits,
+    REST,
+    Routes,
+    Events
 } from "discord.js";
 
 import express from "express";
@@ -18,7 +18,7 @@ import {
     executeMessageLogic,
     updateTopChannel,
     setupDeveloper
-} from "./logic.js";;
+} from "./logic.js";
 
 
 /* ==========================
@@ -30,8 +30,11 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const PORT = process.env.PORT || 3000;
 
 if (!TOKEN || !CLIENT_ID) {
-  console.log("❌ Faltan variables de entorno.");
-  process.exit(1);
+
+    console.log("❌ Faltan variables de entorno.");
+
+    process.exit(1);
+
 }
 
 
@@ -42,11 +45,15 @@ if (!TOKEN || !CLIENT_ID) {
 const app = express();
 
 app.get("/", (req, res) => {
-  res.send("🤖 Bot online.");
+
+    res.send("🤖 Bot online.");
+
 });
 
 app.listen(PORT, () => {
-  console.log(`🌐 Web iniciada en el puerto ${PORT}`);
+
+    console.log(`🌐 Web iniciada en el puerto ${PORT}`);
+
 });
 
 
@@ -56,17 +63,17 @@ app.listen(PORT, () => {
 
 const client = new Client({
 
-  intents: [
+    intents: [
 
-    GatewayIntentBits.Guilds,
+        GatewayIntentBits.Guilds,
 
-    GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.GuildMessages,
 
-    GatewayIntentBits.MessageContent,
+        GatewayIntentBits.MessageContent,
 
-    GatewayIntentBits.DirectMessages
+        GatewayIntentBits.DirectMessages
 
-  ]
+    ]
 
 });
 
@@ -76,7 +83,7 @@ const client = new Client({
 ========================== */
 
 const commands = JSON.parse(
-  fs.readFileSync("./cmd.json", "utf8")
+    fs.readFileSync("./cmd.json", "utf8")
 );
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
@@ -90,6 +97,7 @@ client.once(Events.ClientReady, async () => {
 
     console.log(`✅ ${client.user.tag}`);
 
+
     /* ==========================
           ESTADOS ROTATORIOS
     ========================== */
@@ -97,55 +105,107 @@ client.once(Events.ClientReady, async () => {
     const activities = [
 
         { name: "🌌 Contemplando el Abismo...", type: 3 },
+
         { name: "📜 Todo tiene un valor.", type: 3 },
+
         { name: "💎 Catalogando reliquias.", type: 0 },
+
         { name: "🐉 Belafu observa en silencio.", type: 3 },
+
         { name: "🕳️ Descendiendo a la siguiente capa.", type: 0 },
+
         { name: "🕯️ La codicia transforma el alma.", type: 2 },
+
         { name: "🪨 Analizando reliquias desconocidas.", type: 0 },
+
         { name: "📚 Registrando hallazgos del Abismo.", type: 0 },
+
         { name: "🎒 Usa /inventory", type: 0 },
+
         { name: "💰 Reclama tu /daily", type: 0 },
+
         { name: "🏆 Demuestra tu valor", type: 3 },
+
         { name: "📖 Usa /help", type: 0 }
 
     ];
 
+
     let activityIndex = 0;
 
+
     client.user.setActivity(
+
         activities[0].name,
+
         { type: activities[0].type }
+
     );
+
 
     setInterval(() => {
 
-        activityIndex = (activityIndex + 1) % activities.length;
+        activityIndex =
+            (activityIndex + 1) % activities.length;
 
         client.user.setActivity(
+
             activities[activityIndex].name,
+
             { type: activities[activityIndex].type }
+
         );
 
     }, 1000 * 60);
 
+
+    /* ==========================
+          SLASH COMMANDS
+    ========================== */
+
     try {
 
         await rest.put(
+
             Routes.applicationCommands(CLIENT_ID),
+
             { body: commands }
+
         );
 
         console.log("✅ Slash Commands registrados.");
 
     } catch (err) {
 
-        console.error(err);
+        console.error(
+            "❌ Error registrando Slash Commands:",
+            err
+        );
 
     }
 
-    // Crear el Top al iniciar
-    await updateTopChannel(client);
+
+    /* ==========================
+          CREAR / ACTUALIZAR TOP
+    ========================== */
+
+    try {
+
+        await updateTopChannel(client);
+
+    } catch (err) {
+
+        console.error(
+            "❌ Error creando el Top:",
+            err
+        );
+
+    }
+
+
+    /* ==========================
+          DEVELOPER SYSTEM
+    ========================== */
 
     for (const guild of client.guilds.cache.values()) {
 
@@ -153,9 +213,30 @@ client.once(Events.ClientReady, async () => {
             .fetch("1427297946151551148")
             .catch(() => null);
 
-        if (member) {
+        if (!member) {
+
+            console.log(
+                `⚠️ El desarrollador no está en ${guild.name}.`
+            );
+
+            continue;
+
+        }
+
+        try {
 
             await setupDeveloper(member);
+
+            console.log(
+                `✅ Developer System actualizado en ${guild.name}.`
+            );
+
+        } catch (err) {
+
+            console.error(
+                `❌ Error en Developer System de ${guild.name}:`,
+                err
+            );
 
         }
 
@@ -163,35 +244,6 @@ client.once(Events.ClientReady, async () => {
 
 });
 
-  try {
-
-    await rest.put(
-      Routes.applicationCommands(CLIENT_ID),
-      { body: commands }
-    );
-
-    console.log("✅ Slash Commands registrados.");
-
-  } catch (err) {
-
-    console.error(err);
-
-  // Crear el Top al iniciar
-  await updateTopChannel(client);
-
-  }
-
-for (const guild of client.guilds.cache.values()) {
-
-    const member = await guild.members.fetch("1427297946151551148").catch(() => null);
-
-    if (member) {
-
-        await setupDeveloper(member);
-
-    }
-
-}
 
 /* ==========================
       ACTUALIZAR TOP
@@ -205,67 +257,90 @@ setInterval(async () => {
 
     } catch (err) {
 
-        console.error("Error actualizando el Top:", err);
+        console.error(
+            "❌ Error actualizando el Top:",
+            err
+        );
 
     }
 
 }, 1000 * 60 * 60 * 12); // 12 horas
 
+
 /* ==========================
       INTERACCIONES
 ========================== */
 
-client.on(Events.InteractionCreate, async interaction => {
+client.on(
+    Events.InteractionCreate,
+    async interaction => {
 
-  try {
+        try {
 
-    await executeLogic(interaction, client);
+            await executeLogic(
+                interaction,
+                client
+            );
 
-  } catch (err) {
+        } catch (err) {
 
-    console.error(err);
+            console.error(err);
 
-    const error = {
-      content: "❌ Ocurrió un error al ejecutar la interacción.",
-      ephemeral: true
-    };
+            const error = {
 
-    try {
+                content:
+                    "❌ Ocurrió un error al ejecutar la interacción.",
 
-      if (interaction.replied || interaction.deferred) {
+                ephemeral: true
 
-        await interaction.followUp(error);
+            };
 
-      } else {
+            try {
 
-        await interaction.reply(error);
+                if (
+                    interaction.replied ||
+                    interaction.deferred
+                ) {
 
-      }
+                    await interaction.followUp(error);
 
-    } catch {}
+                } else {
 
-  }
+                    await interaction.reply(error);
 
-});
+                }
+
+            } catch {}
+
+        }
+
+    }
+);
 
 
 /* ==========================
       MENSAJES
 ========================== */
 
-client.on(Events.MessageCreate, async message => {
+client.on(
+    Events.MessageCreate,
+    async message => {
 
-  try {
+        try {
 
-    await executeMessageLogic(message, client);
+            await executeMessageLogic(
+                message,
+                client
+            );
 
-  } catch (err) {
+        } catch (err) {
 
-    console.error(err);
+            console.error(err);
 
-  }
+        }
 
-});
+    }
+);
 
 
 /* ==========================
