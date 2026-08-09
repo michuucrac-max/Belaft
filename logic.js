@@ -115,11 +115,6 @@ function saveStatus() {
 ========================== */
 
 const CODES_FILE = "./codes.json";
-/* ==========================
-        PROMO CODES
-========================== */
-
-const CODES_FILE = "./codes.json";
 
 let codes = JSON.parse(
     fs.readFileSync(CODES_FILE, "utf8")
