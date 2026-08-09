@@ -4,6 +4,18 @@
     "description": "Comprueba si el bot responde."
   },
   {
+  "name": "redeem",
+  "description": "Canjea un código promocional.",
+  "options": [
+    {
+      "name": "codigo",
+      "description": "Código promocional",
+      "type": 3,
+      "required": true
+    }
+  ]
+  },
+  {
     "name": "help",
     "description": "Lista de comandos."
   },
