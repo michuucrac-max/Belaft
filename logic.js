@@ -2072,6 +2072,182 @@ case "setxp": {
 }
 
 /* ==========================
+          SET RANK
+========================== */
+
+case "setrank": {
+
+    // Solo administradores
+    if (!interaction.memberPermissions.has("Administrator")) {
+
+        return interaction.reply({
+            content: "❌ Solo los administradores pueden usar este comando.",
+            ephemeral: true
+        });
+
+    }
+
+    const target =
+        interaction.options.getUser("usuario");
+
+    const rank =
+        interaction.options.getString("rango");
+
+    if (!target || !rank) {
+
+        return interaction.reply({
+            content: "❌ Debes especificar un usuario y un rango.",
+            ephemeral: true
+        });
+
+    }
+
+    const member =
+        await interaction.guild.members
+            .fetch(target.id)
+            .catch(() => null);
+
+    if (!member) {
+
+        return interaction.reply({
+            content: "❌ No pude encontrar a ese usuario en el servidor.",
+            ephemeral: true
+        });
+
+    }
+
+    const user =
+        getUser(
+            interaction.guild.id,
+            target.id
+        );
+
+    // ==========================
+    // COMPROBAR RANGO
+    // ==========================
+
+    const ranks = config.ranks;
+
+    if (!ranks.includes(rank)) {
+
+        return interaction.reply({
+            content:
+                `❌ El rango **${rank}** no existe en la configuración del bot.`,
+            ephemeral: true
+        });
+
+    }
+
+    // ==========================
+    // RANGO ACTUAL
+    // ==========================
+
+    const oldRank =
+        ranks[user.rank] ?? "bell";
+
+    // ==========================
+    // BUSCAR ROLES
+    // ==========================
+
+    const oldRole =
+        findGuildRole(
+            interaction.guild,
+            oldRank
+        );
+
+    const newRole =
+        findGuildRole(
+            interaction.guild,
+            rank
+        );
+
+    // ==========================
+    // COMPROBAR ROL NUEVO
+    // ==========================
+
+    if (!newRole) {
+
+        return interaction.reply({
+            content:
+                `❌ No encontré el rol correspondiente a **${config.roles[rank] ?? rank}** en este servidor.`,
+            ephemeral: true
+        });
+
+    }
+
+    // ==========================
+    // QUITAR RANGO ANTERIOR
+    // ==========================
+
+    if (
+        oldRole &&
+        member.roles.cache.has(oldRole.id)
+    ) {
+
+        await member.roles
+            .remove(
+                oldRole,
+                `Cambio manual de rango mediante /setrank`
+            )
+            .catch(err => {
+
+                console.error(
+                    "❌ Error quitando rango anterior:",
+                    err
+                );
+
+            });
+
+    }
+
+    // ==========================
+    // ASIGNAR NUEVO RANGO
+    // ==========================
+
+    await member.roles
+        .add(
+            newRole,
+            `Rango establecido mediante /setrank`
+        )
+        .catch(err => {
+
+            console.error(
+                "❌ Error asignando nuevo rango:",
+                err
+            );
+
+        });
+
+    // ==========================
+    // GUARDAR RANGO
+    // ==========================
+
+    user.rank =
+        ranks.indexOf(rank);
+
+    saveStatus();
+
+    // ==========================
+    // RESPUESTA
+    // ==========================
+
+    return interaction.reply({
+
+        content:
+`✅ Rango actualizado correctamente.
+
+👤 Usuario: ${target}
+🎖️ Rango anterior: **${config.roles[oldRank] ?? oldRank}**
+🏆 Nuevo rango: **${config.roles[rank] ?? rank}**
+💰 Dinero conservado: **${user.money.toLocaleString()}** 🪙`,
+
+        ephemeral: true
+
+    });
+
+}
+                        
+/* ==========================
       SET CHANNEL TOP
 ========================== */
 
