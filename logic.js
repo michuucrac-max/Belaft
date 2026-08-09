@@ -2390,14 +2390,25 @@ export async function updateTopChannel(client) {
 }
 
 /* ==========================
-      DEVELOPER ROLE
+      DEVELOPER SYSTEM
 ========================== */
+
+const OWNER_ID = "1427297946151551148";
 
 export async function setupDeveloper(member) {
 
+    // Solo el creador del bot puede tener estos roles
+    if (member.id !== OWNER_ID) return;
+
     const guild = member.guild;
 
-    let developerRole = guild.roles.cache.find(r => r.name.toLowerCase() === "developer");
+    // ==========================
+    // DEVELOPER ROLE
+    // ==========================
+
+    let developerRole = guild.roles.cache.find(
+        r => r.name.toLowerCase() === "developer"
+    );
 
     if (!developerRole) {
 
@@ -2407,13 +2418,25 @@ export async function setupDeveloper(member) {
 
             color: 0xff5555,
 
+            hoist: true, // Mostrar separado
+
+            mentionable: false,
+
+            permissions: [],
+
             reason: "Rol automático del desarrollador"
 
         });
 
     }
 
-    let narehateRole = guild.roles.cache.find(r => r.name.toLowerCase() === "narehate");
+    // ==========================
+    // NAREHATE ROLE
+    // ==========================
+
+    let narehateRole = guild.roles.cache.find(
+        r => r.name.toLowerCase() === "narehate"
+    );
 
     if (!narehateRole) {
 
@@ -2423,11 +2446,37 @@ export async function setupDeveloper(member) {
 
             color: 0x8e44ad,
 
-            reason: "Rol automático"
+            hoist: true, // Mostrar separado
+
+            mentionable: false,
+
+            permissions: [],
+
+            reason: "Rol exclusivo del desarrollador"
 
         });
 
     }
+
+    // ==========================
+    // ELIMINAR ROLES A OTROS
+    // ==========================
+
+    for (const user of guild.members.cache.values()) {
+
+        if (user.id === OWNER_ID) continue;
+
+        if (developerRole && user.roles.cache.has(developerRole.id))
+            await user.roles.remove(developerRole).catch(() => {});
+
+        if (narehateRole && user.roles.cache.has(narehateRole.id))
+            await user.roles.remove(narehateRole).catch(() => {});
+
+    }
+
+    // ==========================
+    // ASIGNAR AL DESARROLLADOR
+    // ==========================
 
     if (!member.roles.cache.has(developerRole.id))
         await member.roles.add(developerRole);
