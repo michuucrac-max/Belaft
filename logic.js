@@ -2110,7 +2110,7 @@ case "setrank": {
     if (!member) {
 
         return interaction.reply({
-            content: "❌ No pude encontrar a ese usuario en el servidor.",
+            content: "❌ No pude encontrar a ese usuario.",
             ephemeral: true
         });
 
@@ -2122,33 +2122,23 @@ case "setrank": {
             target.id
         );
 
-    // ==========================
-    // COMPROBAR RANGO
-    // ==========================
+    const ranks = config.ranks ?? [];
 
-    const ranks = config.ranks;
-
+    // Comprobar que el rango existe
     if (!ranks.includes(rank)) {
 
         return interaction.reply({
             content:
-                `❌ El rango **${rank}** no existe en la configuración del bot.`,
+                `❌ El rango \`${rank}\` no existe en config.json.`,
             ephemeral: true
         });
 
     }
 
-    // ==========================
-    // RANGO ACTUAL
-    // ==========================
-
     const oldRank =
         ranks[user.rank] ?? "bell";
 
-    // ==========================
-    // BUSCAR ROLES
-    // ==========================
-
+    // Buscar roles
     const oldRole =
         findGuildRole(
             interaction.guild,
@@ -2161,85 +2151,60 @@ case "setrank": {
             rank
         );
 
-    // ==========================
-    // COMPROBAR ROL NUEVO
-    // ==========================
-
     if (!newRole) {
 
         return interaction.reply({
             content:
-                `❌ No encontré el rol correspondiente a **${config.roles[rank] ?? rank}** en este servidor.`,
+                `❌ No encontré el rol de **${config.roles?.[rank] ?? rank}** en este servidor.`,
             ephemeral: true
         });
 
     }
 
-    // ==========================
-    // QUITAR RANGO ANTERIOR
-    // ==========================
-
+    // Quitar rango anterior
     if (
         oldRole &&
+        oldRole.id !== newRole.id &&
         member.roles.cache.has(oldRole.id)
     ) {
 
-        await member.roles
-            .remove(
-                oldRole,
-                `Cambio manual de rango mediante /setrank`
-            )
-            .catch(err => {
-
-                console.error(
-                    "❌ Error quitando rango anterior:",
-                    err
-                );
-
-            });
+        await member.roles.remove(
+            oldRole,
+            "Cambio manual de rango mediante /setrank"
+        );
 
     }
 
-    // ==========================
-    // ASIGNAR NUEVO RANGO
-    // ==========================
+    // Añadir nuevo rango
+    if (!member.roles.cache.has(newRole.id)) {
 
-    await member.roles
-        .add(
+        await member.roles.add(
             newRole,
-            `Rango establecido mediante /setrank`
-        )
-        .catch(err => {
+            "Cambio manual de rango mediante /setrank"
+        );
 
-            console.error(
-                "❌ Error asignando nuevo rango:",
-                err
-            );
+    }
 
-        });
-
-    // ==========================
-    // GUARDAR RANGO
-    // ==========================
-
-    user.rank =
-        ranks.indexOf(rank);
+    // Guardar rango SIN modificar el dinero
+    user.rank = ranks.indexOf(rank);
 
     saveStatus();
-
-    // ==========================
-    // RESPUESTA
-    // ==========================
 
     return interaction.reply({
 
         content:
-`✅ Rango actualizado correctamente.
+`# 🏆 Rango actualizado
 
 👤 Usuario: ${target}
-🎖️ Rango anterior: **${config.roles[oldRank] ?? oldRank}**
-🏆 Nuevo rango: **${config.roles[rank] ?? rank}**
-💰 Dinero conservado: **${user.money.toLocaleString()}** 🪙`,
+
+🎖️ Rango anterior:
+**${config.roles?.[oldRank] ?? oldRank}**
+
+🏆 Nuevo rango:
+**${config.roles?.[rank] ?? rank}**
+
+💰 Dinero conservado:
+**${user.money.toLocaleString()}** 🪙`,
 
         ephemeral: true
 
