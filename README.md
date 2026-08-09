@@ -61,3 +61,47 @@ El rango Developer identifica exclusivamente al desarrollador de Belafu.
 Este rol cuenta con permisos especiales para administrar y mantener el bot, mientras que el sistema automático se encarga de impedir que otros usuarios conserven dicho rango.
 
 “El Abismo no espera a nadie. Cada descenso es una oportunidad para descubrir hasta dónde puedes llegar.” 🕳️
+
+# 💰 3. Sistema de economía
+
+La economía es uno de los sistemas principales de Belafu. Cada usuario posee un balance propio que puede aumentar o disminuir dependiendo de las acciones que realice dentro del bot.
+Las monedas funcionan como uno de los principales indicadores de progreso: cuanto mayor sea la riqueza de un usuario, mayor será su posición dentro de los rangos económicos.
+
+# 🪙 Dinero
+
+Cada usuario dispone de una cantidad de monedas que se almacena junto con sus datos. Estas monedas pueden utilizarse en los diferentes sistemas económicos que ofrece Belafu.
+El balance puede consultarse mediante los comandos correspondientes de economía.
+
+👤 Usuario
+   │
+   └── 💰 Balance
+          │
+          ├── Ganancias
+          ├── Gastos
+          └── 📈 Progreso económico
+          
+# 📅 Recompensas
+
+Belafu cuenta con sistemas de recompensa que permiten a los usuarios obtener monedas mediante su actividad.
+Uno de los sistemas principales es la recompensa diaria, mediante la cual un usuario puede reclamar su recompensa cuando corresponda.
+
+# 💸 Transferencias
+
+La economía también permite que los usuarios interactúen entre sí mediante el movimiento de monedas, haciendo que el dinero no sea únicamente un contador individual, sino parte de la economía del servidor.
+
+# 🛠️ Administración
+
+El sistema cuenta además con herramientas administrativas para modificar la economía cuando sea necesario.
+Por ejemplo:
+
+/setmoney
+
+permite establecer la cantidad de dinero de un usuario.
+Estas herramientas están destinadas a la administración del bot y no forman parte de las acciones económicas normales de los usuarios.
+
+# 💾 Persistencia
+
+Los datos económicos se guardan en el almacenamiento utilizado por Belafu, por lo que reiniciar el bot no significa reiniciar automáticamente la economía.
+Esto permite que la progresión de los usuarios se mantenga a lo largo del tiempo.
+ñ
+💰 En Belafu, cada moneda representa una parte de tu progreso. Adminístrala bien: el Abismo siempre tiene algo que cobrar.
