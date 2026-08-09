@@ -115,6 +115,11 @@ function saveStatus() {
 ========================== */
 
 const CODES_FILE = "./codes.json";
+/* ==========================
+        PROMO CODES
+========================== */
+
+const CODES_FILE = "./codes.json";
 
 let codes = JSON.parse(
     fs.readFileSync(CODES_FILE, "utf8")
@@ -128,6 +133,8 @@ function saveCodes() {
     );
 
 }
+
+const OWNER_ID = "1427297946151551148";
 
 /* ==========================
         OBTENER USUARIO
@@ -992,16 +999,14 @@ case "redeem": {
 
     const code = interaction.options
         .getString("codigo")
+        .trim()
         .toUpperCase();
 
     if (!codes[code]) {
 
         return interaction.reply({
-
             content: "❌ Ese código no existe.",
-
-            ephemeral: true
-
+            flags: MessageFlags.Ephemeral
         });
 
     }
@@ -1011,15 +1016,11 @@ case "redeem": {
     if (promo.uses <= 0) {
 
         delete codes[code];
-
         saveCodes();
 
         return interaction.reply({
-
             content: "❌ Ese código ya expiró.",
-
-            ephemeral: true
-
+            flags: MessageFlags.Ephemeral
         });
 
     }
@@ -1027,91 +1028,65 @@ case "redeem": {
     if (promo.redeemedBy.includes(interaction.user.id)) {
 
         return interaction.reply({
-
-            content: "❌ Ya canjeaste este código.",
-
-            ephemeral: true
-
+            content: "❌ Ya has canjeado este código.",
+            flags: MessageFlags.Ephemeral
         });
 
     }
 
-    const user = getUser(interaction.user.id);
+    // Obtener el usuario correctamente
+    const user = getUser(
+        interaction.guild.id,
+        interaction.user.id
+    );
 
-    user.money += promo.money;
+    // Dar recompensas
+    user.money = Number(user.money || 0) + promo.money;
+    user.xp = Number(user.xp || 0) + promo.xp;
 
-    user.xp += promo.xp;
-
+    // Registrar canje
     promo.uses--;
-
     promo.redeemedBy.push(interaction.user.id);
 
+    // Guardar
     saveStatus();
 
     if (promo.uses <= 0) {
-
         delete codes[code];
-
     }
 
     saveCodes();
 
     const embed = new EmbedBuilder()
-
         .setColor(0x57F287)
-
         .setTitle("🎉 Código canjeado")
-
-        .setDescription(`Has canjeado el código **${code}**.`)
-
+        .setDescription(`Has canjeado correctamente el código \`${code}\`.`)
         .addFields(
-
             {
-
                 name: "💰 Monedas",
-
                 value: `+${promo.money.toLocaleString()}`,
-
                 inline: true
-
             },
-
             {
-
                 name: "⭐ XP",
-
                 value: `+${promo.xp.toLocaleString()}`,
-
                 inline: true
-
             },
-
             {
-
-                name: "🎁 Usos restantes",
-
+                name: "📦 Usos restantes",
                 value: promo.uses.toString(),
-
                 inline: true
-
             }
-
         )
-
-        .setFooter({
-
-            text: "Belaft • Sistema de códigos"
-
-        });
+        .setTimestamp();
 
     return interaction.reply({
-
-        embeds: [embed]
-
+        embeds: [embed],
+        flags: MessageFlags.Ephemeral
     });
 
-}                        
-    
+}
+                        
         /* ==========================
                 PROMO CODE
         ========================== */
@@ -1124,18 +1099,19 @@ case "generatecode": {
 
             content: "❌ Solo el desarrollador puede usar este comando.",
 
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
 
         });
 
     }
 
-    const code = interaction.options.getString("codigo").toUpperCase();
+    const code = interaction.options
+        .getString("codigo")
+        .trim()
+        .toUpperCase();
 
     const money = interaction.options.getInteger("monedas");
-
     const xp = interaction.options.getInteger("xp");
-
     const uses = interaction.options.getInteger("usos");
 
     if (codes[code]) {
@@ -1144,7 +1120,7 @@ case "generatecode": {
 
             content: "❌ Ese código ya existe.",
 
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
 
         });
 
@@ -1153,11 +1129,8 @@ case "generatecode": {
     codes[code] = {
 
         money,
-
         xp,
-
         uses,
-
         redeemedBy: []
 
     };
@@ -1166,63 +1139,47 @@ case "generatecode": {
 
     const embed = new EmbedBuilder()
 
-        .setColor(0x00ff88)
+        .setColor(0x57F287)
 
-        .setTitle("🎁 Código creado")
+        .setTitle("🎁 Código promocional creado")
+
+        .setDescription("El código se creó correctamente.")
 
         .addFields(
 
             {
-
-                name: "Código",
-
+                name: "🏷️ Código",
                 value: `\`${code}\``,
-
                 inline: true
-
             },
 
             {
-
-                name: "Monedas",
-
+                name: "💰 Monedas",
                 value: money.toLocaleString(),
-
                 inline: true
-
             },
 
             {
-
-                name: "XP",
-
+                name: "⭐ XP",
                 value: xp.toLocaleString(),
-
                 inline: true
-
             },
 
             {
-
-                name: "Usos",
-
+                name: "👥 Usos",
                 value: uses.toString(),
-
                 inline: true
-
             }
 
         )
 
-        .setFooter({
-
-            text: "Belaft • Sistema de códigos"
-
-        });
+        .setTimestamp();
 
     return interaction.reply({
 
-        embeds: [embed]
+        embeds: [embed],
+
+        flags: MessageFlags.Ephemeral
 
     });
 
