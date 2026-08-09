@@ -188,3 +188,52 @@
     "default_member_permissions": "8"
   }
 ]
+},
+{
+    "name": "setrank",
+    "description": "Establece manualmente el rango de un usuario.",
+    "options": [
+        {
+            "name": "usuario",
+            "description": "Usuario al que se le cambiará el rango.",
+            "type": 6,
+            "required": true
+        },
+        {
+            "name": "rango",
+            "description": "Rango que se asignará.",
+            "type": 3,
+            "required": true,
+            "choices": [
+                {
+                    "name": "Bell",
+                    "value": "bell"
+                },
+                {
+                    "name": "Silbato Rojo",
+                    "value": "silbato_rojo"
+                },
+                {
+                    "name": "Silbato Azul",
+                    "value": "silbato_azul"
+                },
+                {
+                    "name": "Silbato Lunar",
+                    "value": "silbato_lunar"
+                },
+                {
+                    "name": "Silbato Negro",
+                    "value": "silbato_negro"
+                },
+                {
+                    "name": "Silbato Blanco",
+                    "value": "silbato_blanco"
+                },
+                {
+                    "name": "Narehate",
+                    "value": "narehate"
+                }
+            ]
+        }
+    ]
+}
