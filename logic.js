@@ -1979,31 +1979,51 @@ case "setmoney": {
     const target = interaction.options.getUser("usuario");
     const amount = interaction.options.getInteger("cantidad");
 
-    const user = getUser(interaction.guild.id, target.id);
+    if (!target) {
 
-    user.money += amount;
+        return interaction.reply({
+            content: "❌ Debes seleccionar un usuario.",
+            ephemeral: true
+        });
+
+    }
+
+    if (amount === null || amount < 0) {
+
+        return interaction.reply({
+            content: "❌ La cantidad debe ser un número igual o mayor que 0.",
+            ephemeral: true
+        });
+
+    }
+
+    const user = getUser(
+        interaction.guild.id,
+        target.id
+    );
+
+    // ESTABLECER el dinero, no sumarlo
+    user.money = amount;
 
     saveStatus();
 
-await syncSpecialRoles(interaction, user);
+    // Actualizar roles/rango si corresponde
+    await syncSpecialRoles(interaction, user);
 
     return interaction.reply({
 
         content:
-`✅ Monedas entregadas correctamente.
+`✅ Dinero actualizado correctamente.
 
 👤 Usuario: ${target}
-
-💰 Cantidad: **${amount}**
-
-🪙 Total: **${user.money}**`,
+💰 Nuevo dinero: **${user.money}**`,
 
         ephemeral: true
 
     });
 
 }
-
+                        
          /* ==========================
           SET XP
          ========================== */
