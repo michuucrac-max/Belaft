@@ -146,3 +146,26 @@
     "default_member_permissions": "8"
   }
 ]
+},
+{
+  "name": "missions",
+  "description": "Gestiona tus misiones diarias.",
+  "options": [
+    {
+      "name": "accion",
+      "description": "Qué deseas hacer.",
+      "type": 3,
+      "required": true,
+      "choices": [
+        {
+          "name": "Ver",
+          "value": "view"
+        },
+        {
+          "name": "Reclamar",
+          "value": "claim"
+        }
+      ]
+    }
+  ]
+}
