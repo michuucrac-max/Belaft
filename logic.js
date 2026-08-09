@@ -111,6 +111,27 @@ function saveStatus() {
 }
 
 /* ==========================
+        PROMO CODES
+========================== */
+
+const CODES_FILE = "./codes.json";
+
+let codes = JSON.parse(
+    fs.readFileSync(CODES_FILE, "utf8")
+);
+
+function saveCodes() {
+
+    fs.writeFileSync(
+        CODES_FILE,
+        JSON.stringify(codes, null, 2)
+    );
+
+}
+
+const OWNER_ID = "1427297946151551148";
+
+/* ==========================
         OBTENER USUARIO
 ========================== */
 
