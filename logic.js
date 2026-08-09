@@ -999,7 +999,7 @@ case "redeem": {
 
         return interaction.reply({
             content: "❌ Ese código no existe.",
-            flags: MessageFlags.Ephemeral
+            ephemeral: true
         });
 
     }
@@ -1012,8 +1012,8 @@ case "redeem": {
         saveCodes();
 
         return interaction.reply({
-            content: "❌ Ese código ya expiró.",
-            flags: MessageFlags.Ephemeral
+            content: "❌ Ese código ya no tiene usos disponibles.",
+            ephemeral: true
         });
 
     }
@@ -1022,26 +1022,22 @@ case "redeem": {
 
         return interaction.reply({
             content: "❌ Ya has canjeado este código.",
-            flags: MessageFlags.Ephemeral
+            ephemeral: true
         });
 
     }
 
-    // Obtener el usuario correctamente
     const user = getUser(
         interaction.guild.id,
         interaction.user.id
     );
 
-    // Dar recompensas
-    user.money = Number(user.money || 0) + promo.money;
-    user.xp = Number(user.xp || 0) + promo.xp;
+    user.money += promo.money;
+    user.xp += promo.xp;
 
-    // Registrar canje
     promo.uses--;
     promo.redeemedBy.push(interaction.user.id);
 
-    // Guardar
     saveStatus();
 
     if (promo.uses <= 0) {
@@ -1053,7 +1049,7 @@ case "redeem": {
     const embed = new EmbedBuilder()
         .setColor(0x57F287)
         .setTitle("🎉 Código canjeado")
-        .setDescription(`Has canjeado correctamente el código \`${code}\`.`)
+        .setDescription(`Has canjeado correctamente el código **${code}**.`)
         .addFields(
             {
                 name: "💰 Monedas",
@@ -1067,7 +1063,7 @@ case "redeem": {
             },
             {
                 name: "📦 Usos restantes",
-                value: promo.uses.toString(),
+                value: `${promo.uses}`,
                 inline: true
             }
         )
@@ -1075,11 +1071,11 @@ case "redeem": {
 
     return interaction.reply({
         embeds: [embed],
-        flags: MessageFlags.Ephemeral
+        ephemeral: true
     });
 
 }
-                        
+    
         /* ==========================
                 PROMO CODE
         ========================== */
@@ -1092,7 +1088,7 @@ case "generatecode": {
 
             content: "❌ Solo el desarrollador puede usar este comando.",
 
-            flags: MessageFlags.Ephemeral
+            ephemeral: true
 
         });
 
@@ -1113,7 +1109,7 @@ case "generatecode": {
 
             content: "❌ Ese código ya existe.",
 
-            flags: MessageFlags.Ephemeral
+            ephemeral: true
 
         });
 
@@ -1134,34 +1130,50 @@ case "generatecode": {
 
         .setColor(0x57F287)
 
-        .setTitle("🎁 Código promocional creado")
+        .setTitle("🎁 Código creado")
 
-        .setDescription("El código se creó correctamente.")
+        .setDescription("El código promocional fue creado correctamente.")
 
         .addFields(
 
             {
+
                 name: "🏷️ Código",
+
                 value: `\`${code}\``,
+
                 inline: true
+
             },
 
             {
+
                 name: "💰 Monedas",
+
                 value: money.toLocaleString(),
+
                 inline: true
+
             },
 
             {
+
                 name: "⭐ XP",
+
                 value: xp.toLocaleString(),
+
                 inline: true
+
             },
 
             {
-                name: "👥 Usos",
+
+                name: "📦 Usos",
+
                 value: uses.toString(),
+
                 inline: true
+
             }
 
         )
@@ -1172,7 +1184,7 @@ case "generatecode": {
 
         embeds: [embed],
 
-        flags: MessageFlags.Ephemeral
+        ephemeral: true
 
     });
 
