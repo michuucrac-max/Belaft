@@ -1,0 +1,37 @@
+{
+  "daily": [
+    {
+      "id": "sell5",
+      "title": "Comerciante Novato",
+      "description": "Vende 5 reliquias.",
+      "goal": 5,
+      "type": "sell",
+      "reward": {
+        "money": 500,
+        "xp": 100
+      }
+    },
+    {
+      "id": "earn1000",
+      "title": "Buen Negocio",
+      "description": "Consigue 1000 monedas.",
+      "goal": 1000,
+      "type": "earn",
+      "reward": {
+        "money": 1000,
+        "xp": 150
+      }
+    },
+    {
+      "id": "find3",
+      "title": "Explorador",
+      "description": "Encuentra 3 reliquias.",
+      "goal": 3,
+      "type": "find",
+      "reward": {
+        "money": 700,
+        "xp": 120
+      }
+    }
+  ]
+}
