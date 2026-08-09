@@ -23,3 +23,41 @@ Belafu no se limita a responder comandos: mantiene información de los usuarios 
 
 El objetivo de Belafu es crear una experiencia de progresión y economía dentro de Discord, combinando sistemas de juego con una temática inspirada en Made in Abyss.
 El proyecto está pensado para seguir creciendo mediante nuevos comandos, sistemas, objetos y mecánicas.
+
+# 🕳️ 2. Concepto y Lore
+
+Belafu toma como inspiración el universo de Made in Abyss para construir una experiencia en la que cada usuario representa, de cierta manera, a un explorador que se adentra progresivamente en el Abismo.
+El Abismo no es solamente el escenario del bot: representa la progresión del usuario. A medida que aumenta su riqueza, consigue recursos y avanza dentro de los diferentes sistemas de Belafu, su posición dentro de la comunidad también puede cambiar.
+
+# 🧭 El descenso
+
+Todo explorador comienza desde abajo. Para progresar deberá conseguir monedas, participar en los sistemas disponibles y administrar correctamente sus recursos.
+La economía funciona como uno de los principales indicadores de progreso:
+
+🕳️ Abismo
+   ↓
+🪙 Conseguir recursos
+   ↓
+💰 Aumentar la riqueza
+   ↓
+🏆 Alcanzar nuevos rangos
+   ↓
+💎 Mayor progreso
+
+# 🎺 Los silbatos
+
+Los silbatos representan diferentes niveles dentro de la exploración del Abismo.
+Estos rangos pueden utilizarse como parte de la identidad del usuario dentro del servidor, diferenciando su progreso y posición.
+Belafu también cuenta con rangos especiales que no forman parte de la progresión normal.
+
+# 🟣 Narehate
+
+El rango Narehate representa una categoría especial dentro del sistema de Belafu.
+A diferencia de los rangos de silbato, un Narehate no utiliza los silbatos tradicionales. Por ello, el sistema puede gestionar automáticamente los roles correspondientes para mantener esta distinción.
+
+# 🔴 Developer
+
+El rango Developer identifica exclusivamente al desarrollador de Belafu.
+Este rol cuenta con permisos especiales para administrar y mantener el bot, mientras que el sistema automático se encarga de impedir que otros usuarios conserven dicho rango.
+
+“El Abismo no espera a nadie. Cada descenso es una oportunidad para descubrir hasta dónde puedes llegar.” 🕳️
