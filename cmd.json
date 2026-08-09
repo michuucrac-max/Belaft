@@ -141,31 +141,38 @@
   "default_member_permissions": "8"
   },
   {
+  "name": "generatecode",
+  "description": "Genera un código promocional.",
+  "options": [
+    {
+      "name": "codigo",
+      "description": "Nombre del código",
+      "type": 3,
+      "required": true
+    },
+    {
+      "name": "monedas",
+      "description": "Monedas que entregará",
+      "type": 4,
+      "required": true
+    },
+    {
+      "name": "xp",
+      "description": "XP que entregará",
+      "type": 4,
+      "required": true
+    },
+    {
+      "name": "usos",
+      "description": "Cantidad de usos",
+      "type": 4,
+      "required": true
+    }
+  ]
+  },
+  {
     "name": "setchannelreliquies",
     "description": "Configurar el canal de reliquias.",
     "default_member_permissions": "8"
   }
 ]
-},
-{
-  "name": "missions",
-  "description": "Gestiona tus misiones diarias.",
-  "options": [
-    {
-      "name": "accion",
-      "description": "Qué deseas hacer.",
-      "type": 3,
-      "required": true,
-      "choices": [
-        {
-          "name": "Ver",
-          "value": "view"
-        },
-        {
-          "name": "Reclamar",
-          "value": "claim"
-        }
-      ]
-    }
-  ]
-}
