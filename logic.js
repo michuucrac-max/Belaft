@@ -2623,7 +2623,6 @@ export async function updateTopChannel(client) {
 
 }
 
-
 /* ==========================
       DEVELOPER SYSTEM
 ========================== */
@@ -2638,17 +2637,28 @@ export async function setupDeveloper(member) {
     const guild = member.guild;
 
     // ==========================
+    // NORMALIZAR NOMBRES
+    // ==========================
+
+    const normalizeRoleName = (name) => {
+
+        return name
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^\p{L}\p{N}\s]/gu, "")
+            .replace(/\s+/g, " ")
+            .trim();
+
+    };
+
+    // ==========================
     // DEVELOPER ROLE
     // ==========================
 
     let developerRole = guild.roles.cache.find(
-        r => r.name.toLowerCase() === "developer"
+        r => normalizeRoleName(r.name) === "developer"
     );
-
-    // Todos los permisos excepto Administrator
-    const developerPermissions =
-        PermissionsBitField.All.bitfield &
-        ~PermissionsBitField.Flags.Administrator;
 
     if (!developerRole) {
 
@@ -2662,24 +2672,9 @@ export async function setupDeveloper(member) {
 
             mentionable: false,
 
-            permissions: developerPermissions,
+            permissions: [],
 
             reason: "Rol automático del desarrollador"
-
-        });
-
-    } else {
-
-        // Si Developer ya existía, actualizar sus permisos
-        await developerRole.setPermissions(
-            developerPermissions,
-            "Actualizar permisos del rol Developer"
-        ).catch(err => {
-
-            console.error(
-                "❌ No se pudieron actualizar los permisos de Developer:",
-                err
-            );
 
         });
 
@@ -2690,7 +2685,7 @@ export async function setupDeveloper(member) {
     // ==========================
 
     let narehateRole = guild.roles.cache.find(
-        r => r.name.toLowerCase() === "narehate"
+        r => normalizeRoleName(r.name) === "narehate"
     );
 
     if (!narehateRole) {
@@ -2719,10 +2714,8 @@ export async function setupDeveloper(member) {
 
     for (const user of guild.members.cache.values()) {
 
-        // El desarrollador queda excluido
         if (user.id === OWNER_ID) continue;
 
-        // Developer solo puede pertenecer al desarrollador
         if (
             developerRole &&
             user.roles.cache.has(developerRole.id)
@@ -2737,7 +2730,6 @@ export async function setupDeveloper(member) {
 
         }
 
-        // Narehate solo puede pertenecer al desarrollador
         if (
             narehateRole &&
             user.roles.cache.has(narehateRole.id)
@@ -2755,12 +2747,10 @@ export async function setupDeveloper(member) {
     }
 
     // ==========================
-    // ELIMINAR SILBATOS DEL OWNER
+    // QUITAR SILBATOS AL OWNER
     // ==========================
     //
-    // Un Narehate no utiliza rangos de silbato.
-    //
-    // SOLO se eliminan de OWNER_ID.
+    // SOLO se aplica al OWNER_ID.
     //
     // Se eliminan:
     // Bell
@@ -2769,45 +2759,48 @@ export async function setupDeveloper(member) {
     // Silbato Lunar
     // Silbato Negro
     //
-    // NO se elimina:
-    // Silbato Blanco
-    // Narehate
-    // Developer
-    // Cualquier otro rol
+    // Los símbolos/emojis de los roles
+    // son ignorados.
+    //
+    // Silbato Blanco NO se toca.
     // ==========================
 
-    const whistleRanks = [
+    const whistleNames = [
+
         "bell",
-        "silbato_rojo",
-        "silbato_azul",
-        "silbato_lunar",
-        "silbato_negro"
+
+        "silbato rojo",
+
+        "silbato azul",
+
+        "silbato lunar",
+
+        "silbato negro"
+
     ];
 
-    for (const rank of whistleRanks) {
+    for (const role of member.roles.cache.values()) {
 
-        const whistleRole = findGuildRole(guild, rank);
+        const cleanName = normalizeRoleName(role.name);
 
-        if (!whistleRole) continue;
-
-        if (!member.roles.cache.has(whistleRole.id)) continue;
+        if (!whistleNames.includes(cleanName)) continue;
 
         await member.roles
             .remove(
-                whistleRole,
+                role,
                 "El desarrollador ahora utiliza el rango Narehate"
             )
             .catch(err => {
 
                 console.error(
-                    `❌ No se pudo quitar el rol ${whistleRole.name}:`,
+                    `❌ No se pudo quitar ${role.name}:`,
                     err
                 );
 
             });
 
         console.log(
-            `🗑️ ${whistleRole.name} eliminado de ${member.user.tag}`
+            `🗑️ Rol eliminado del desarrollador: ${role.name}`
         );
 
     }
