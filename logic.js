@@ -2623,6 +2623,7 @@ export async function updateTopChannel(client) {
 
 }
 
+
 /* ==========================
       DEVELOPER SYSTEM
 ========================== */
@@ -2657,7 +2658,7 @@ export async function setupDeveloper(member) {
 
             color: 0xff5555,
 
-            hoist: true, // Mostrar separado
+            hoist: true,
 
             mentionable: false,
 
@@ -2669,12 +2670,18 @@ export async function setupDeveloper(member) {
 
     } else {
 
-        // Actualizar permisos del Developer aunque el rol
-        // ya existiera antes de esta modificación
+        // Si Developer ya existía, actualizar sus permisos
         await developerRole.setPermissions(
             developerPermissions,
             "Actualizar permisos del rol Developer"
-        ).catch(() => {});
+        ).catch(err => {
+
+            console.error(
+                "❌ No se pudieron actualizar los permisos de Developer:",
+                err
+            );
+
+        });
 
     }
 
@@ -2694,7 +2701,7 @@ export async function setupDeveloper(member) {
 
             color: 0x8e44ad,
 
-            hoist: true, // Mostrar separado
+            hoist: true,
 
             mentionable: false,
 
@@ -2712,10 +2719,10 @@ export async function setupDeveloper(member) {
 
     for (const user of guild.members.cache.values()) {
 
-        // El creador queda excluido
+        // El desarrollador queda excluido
         if (user.id === OWNER_ID) continue;
 
-        // Quitar Developer a cualquier otra persona
+        // Developer solo puede pertenecer al desarrollador
         if (
             developerRole &&
             user.roles.cache.has(developerRole.id)
@@ -2730,7 +2737,7 @@ export async function setupDeveloper(member) {
 
         }
 
-        // Quitar Narehate a cualquier otra persona
+        // Narehate solo puede pertenecer al desarrollador
         if (
             narehateRole &&
             user.roles.cache.has(narehateRole.id)
@@ -2748,18 +2755,25 @@ export async function setupDeveloper(member) {
     }
 
     // ==========================
-    // ELIMINAR SILBATOS DEL DESARROLLADOR
+    // ELIMINAR SILBATOS DEL OWNER
     // ==========================
     //
-    // Según el Lore:
-    // Narehate no utiliza rangos de silbato.
+    // Un Narehate no utiliza rangos de silbato.
     //
     // SOLO se eliminan de OWNER_ID.
-    // No se toca a ningún otro miembro.
     //
-    // Se eliminan desde Bell hasta Silbato Negro.
-    // Silbato Blanco NO se elimina.
-    // Cualquier otro rol tampoco se elimina.
+    // Se eliminan:
+    // Bell
+    // Silbato Rojo
+    // Silbato Azul
+    // Silbato Lunar
+    // Silbato Negro
+    //
+    // NO se elimina:
+    // Silbato Blanco
+    // Narehate
+    // Developer
+    // Cualquier otro rol
     // ==========================
 
     const whistleRanks = [
@@ -2774,25 +2788,32 @@ export async function setupDeveloper(member) {
 
         const whistleRole = findGuildRole(guild, rank);
 
-        if (
-            whistleRole &&
-            member.roles.cache.has(whistleRole.id)
-        ) {
+        if (!whistleRole) continue;
 
-            await member.roles
-                .roles
-                .remove(
-                    whistleRole,
-                    "El desarrollador ahora utiliza el rango Narehate"
-                )
-                .catch(() => {});
+        if (!member.roles.cache.has(whistleRole.id)) continue;
 
-        }
+        await member.roles
+            .remove(
+                whistleRole,
+                "El desarrollador ahora utiliza el rango Narehate"
+            )
+            .catch(err => {
+
+                console.error(
+                    `❌ No se pudo quitar el rol ${whistleRole.name}:`,
+                    err
+                );
+
+            });
+
+        console.log(
+            `🗑️ ${whistleRole.name} eliminado de ${member.user.tag}`
+        );
 
     }
 
     // ==========================
-    // ASIGNAR AL DESARROLLADOR
+    // ASIGNAR DEVELOPER
     // ==========================
 
     if (!member.roles.cache.has(developerRole.id)) {
@@ -2804,6 +2825,10 @@ export async function setupDeveloper(member) {
 
     }
 
+    // ==========================
+    // ASIGNAR NAREHATE
+    // ==========================
+
     if (!member.roles.cache.has(narehateRole.id)) {
 
         await member.roles.add(
@@ -2812,5 +2837,9 @@ export async function setupDeveloper(member) {
         );
 
     }
+
+    console.log(
+        `✅ Developer System actualizado para ${member.user.tag} en ${guild.name}`
+    );
 
 }
