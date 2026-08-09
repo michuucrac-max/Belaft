@@ -2037,47 +2037,13 @@ case "setmoney": {
         }
 
     }
-
-}
-                        
-         /* ==========================
-          SET XP
-         ========================== */
-
-case "setxp": {
-
-    const target = interaction.options.getUser("usuario");
-
-    const amount = interaction.options.getInteger("cantidad");
-
-    const user = getUser(interaction.guild.id, target.id);
-
-    user.xp = Math.max(0, amount);
-
-    saveStatus();
-
-    return interaction.reply({
-
-        content:
-`⭐ XP actualizado correctamente.
-
-👤 Usuario: ${target.username}
-
-⭐ XP: **${user.xp}**`,
-
-        ephemeral: true
-
-    });
-
-}
-
+          
 /* ==========================
           SET RANK
 ========================== */
 
 case "setrank": {
 
-    // Solo administradores
     if (!interaction.memberPermissions.has("Administrator")) {
 
         return interaction.reply({
@@ -2102,6 +2068,27 @@ case "setrank": {
 
     }
 
+    const user =
+        getUser(
+            interaction.guild.id,
+            target.id
+        );
+
+    const ranks = config.ranks ?? [];
+
+    if (!ranks.includes(rank)) {
+
+        return interaction.reply({
+            content:
+                `❌ El rango \`${rank}\` no existe.`,
+            ephemeral: true
+        });
+
+    }
+
+    const oldRank =
+        ranks[user.rank] ?? "bell";
+
     const member =
         await interaction.guild.members
             .fetch(target.id)
@@ -2116,29 +2103,6 @@ case "setrank": {
 
     }
 
-    const user =
-        getUser(
-            interaction.guild.id,
-            target.id
-        );
-
-    const ranks = config.ranks ?? [];
-
-    // Comprobar que el rango existe
-    if (!ranks.includes(rank)) {
-
-        return interaction.reply({
-            content:
-                `❌ El rango \`${rank}\` no existe en config.json.`,
-            ephemeral: true
-        });
-
-    }
-
-    const oldRank =
-        ranks[user.rank] ?? "bell";
-
-    // Buscar roles
     const oldRole =
         findGuildRole(
             interaction.guild,
@@ -2155,7 +2119,7 @@ case "setrank": {
 
         return interaction.reply({
             content:
-                `❌ No encontré el rol de **${config.roles?.[rank] ?? rank}** en este servidor.`,
+                `❌ No encontré el rol correspondiente a **${config.roles?.[rank] ?? rank}**.`,
             ephemeral: true
         });
 
@@ -2185,7 +2149,7 @@ case "setrank": {
 
     }
 
-    // Guardar rango SIN modificar el dinero
+    // Guardar el rango
     user.rank = ranks.indexOf(rank);
 
     saveStatus();
@@ -2193,7 +2157,7 @@ case "setrank": {
     return interaction.reply({
 
         content:
-`# 🏆 Rango actualizado
+`🏆 **Rango actualizado**
 
 👤 Usuario: ${target}
 
@@ -2203,8 +2167,41 @@ case "setrank": {
 🏆 Nuevo rango:
 **${config.roles?.[rank] ?? rank}**
 
-💰 Dinero conservado:
-**${user.money.toLocaleString()}** 🪙`,
+💰 Dinero:
+**${user.money.toLocaleString()}** 🪙
+
+> El dinero del usuario no ha sido modificado.`,
+
+        ephemeral: true
+
+    });
+
+}
+                        
+         /* ==========================
+          SET XP
+         ========================== */
+
+case "setxp": {
+
+    const target = interaction.options.getUser("usuario");
+
+    const amount = interaction.options.getInteger("cantidad");
+
+    const user = getUser(interaction.guild.id, target.id);
+
+    user.xp = Math.max(0, amount);
+
+    saveStatus();
+
+    return interaction.reply({
+
+        content:
+`⭐ XP actualizado correctamente.
+
+👤 Usuario: ${target.username}
+
+⭐ XP: **${user.xp}**`,
 
         ephemeral: true
 
