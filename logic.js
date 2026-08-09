@@ -2623,7 +2623,7 @@ export async function updateTopChannel(client) {
 
 }
 
-    /* ==========================
+/* ==========================
       DEVELOPER SYSTEM
 ========================== */
 
@@ -2631,7 +2631,7 @@ const OWNER_ID = "1427297946151551148";
 
 export async function setupDeveloper(member) {
 
-    // Solo el creador del bot puede tener estos roles
+    // Solo el creador del bot puede ejecutar este sistema
     if (member.id !== OWNER_ID) return;
 
     const guild = member.guild;
@@ -2660,6 +2660,11 @@ export async function setupDeveloper(member) {
         r => normalizeRoleName(r.name) === "developer"
     );
 
+    // Todos los permisos excepto Administrator
+    const developerPermissions =
+        PermissionsBitField.All.bitfield &
+        ~PermissionsBitField.Flags.Administrator;
+
     if (!developerRole) {
 
         developerRole = await guild.roles.create({
@@ -2672,10 +2677,7 @@ export async function setupDeveloper(member) {
 
             mentionable: false,
 
-            // ADMINISTRADOR
-            permissions: [
-                PermissionsBitField.Flags.Administrator
-            ],
+            permissions: developerPermissions,
 
             reason: "Rol automático del desarrollador"
 
@@ -2683,14 +2685,14 @@ export async function setupDeveloper(member) {
 
     } else {
 
-        // Si el rol ya existe, asegurarse de que tenga Administrator
+        // Actualizar permisos del Developer existente
         await developerRole.setPermissions(
-            PermissionsBitField.Flags.Administrator,
-            "Permiso de administrador para el desarrollador"
+            developerPermissions,
+            "Actualizar permisos del rol Developer"
         ).catch(err => {
 
             console.error(
-                "❌ No se pudo actualizar Developer:",
+                "❌ No se pudieron actualizar los permisos de Developer:",
                 err
             );
 
@@ -2727,41 +2729,43 @@ export async function setupDeveloper(member) {
     }
 
     // ==========================
-    // ELIMINAR ROLES A OTROS
+    // ELIMINAR DEVELOPER Y NAREHATE
+    // A CUALQUIERA QUE NO SEA EL OWNER
     // ==========================
 
     for (const user of guild.members.cache.values()) {
 
-        // El desarrollador queda excluido
         if (user.id === OWNER_ID) continue;
 
-        // Quitar Developer a cualquier otra persona
-        if (
-            developerRole &&
-            user.roles.cache.has(developerRole.id)
-        ) {
+        // Quitar Developer
+        if (user.roles.cache.has(developerRole.id)) {
 
             await user.roles
                 .remove(
                     developerRole,
-                    "Rol Developer exclusivo del creador"
+                    "Developer exclusivo del creador"
                 )
                 .catch(() => {});
 
+            console.log(
+                `🗑️ Developer eliminado de ${user.user.tag}`
+            );
+
         }
 
-        // Quitar Narehate a cualquier otra persona
-        if (
-            narehateRole &&
-            user.roles.cache.has(narehateRole.id)
-        ) {
+        // Quitar Narehate
+        if (user.roles.cache.has(narehateRole.id)) {
 
             await user.roles
                 .remove(
                     narehateRole,
-                    "Rol Narehate exclusivo del creador"
+                    "Narehate exclusivo del creador"
                 )
                 .catch(() => {});
+
+            console.log(
+                `🗑️ Narehate eliminado de ${user.user.tag}`
+            );
 
         }
 
@@ -2769,21 +2773,6 @@ export async function setupDeveloper(member) {
 
     // ==========================
     // QUITAR SILBATOS AL OWNER
-    // ==========================
-    //
-    // SOLO se aplica al OWNER_ID.
-    //
-    // Se eliminan:
-    // Bell
-    // Silbato Rojo
-    // Silbato Azul
-    // Silbato Lunar
-    // Silbato Negro
-    //
-    // Los emojis/símbolos de los roles
-    // son ignorados.
-    //
-    // Silbato Blanco NO se toca.
     // ==========================
 
     const whistleNames = [
@@ -2817,7 +2806,7 @@ export async function setupDeveloper(member) {
             });
 
         console.log(
-            `🗑️ Rol eliminado del desarrollador: ${role.name}`
+            `🗑️ Rol de silbato eliminado del desarrollador: ${role.name}`
         );
 
     }
@@ -2851,5 +2840,96 @@ export async function setupDeveloper(member) {
     console.log(
         `✅ Developer System actualizado para ${member.user.tag} en ${guild.name}`
     );
+
+}
+
+
+/* ==========================
+   LIMPIEZA AUTOMÁTICA CADA MINUTO
+========================== */
+
+export function startDeveloperCleanup(client) {
+
+    setInterval(async () => {
+
+        console.log(
+            "🔄 Comprobando roles Developer/Narehate..."
+        );
+
+        for (const guild of client.guilds.cache.values()) {
+
+            try {
+
+                // Buscar Developer
+                const developerRole = guild.roles.cache.find(
+                    r => r.name.toLowerCase() === "developer"
+                );
+
+                // Buscar Narehate
+                const narehateRole = guild.roles.cache.find(
+                    r => r.name.toLowerCase() === "narehate"
+                );
+
+                if (!developerRole && !narehateRole)
+                    continue;
+
+                // Revisar miembros
+                for (const user of guild.members.cache.values()) {
+
+                    // El OWNER puede conservarlos
+                    if (user.id === OWNER_ID) continue;
+
+                    // Eliminar Developer
+                    if (
+                        developerRole &&
+                        user.roles.cache.has(developerRole.id)
+                    ) {
+
+                        await user.roles
+                            .remove(
+                                developerRole,
+                                "Developer exclusivo del creador"
+                            )
+                            .catch(() => {});
+
+                        console.log(
+                            `🗑️ Developer eliminado de ${user.user.tag} en ${guild.name}`
+                        );
+
+                    }
+
+                    // Eliminar Narehate
+                    if (
+                        narehateRole &&
+                        user.roles.cache.has(narehateRole.id)
+                    ) {
+
+                        await user.roles
+                            .remove(
+                                narehateRole,
+                                "Narehate exclusivo del creador"
+                            )
+                            .catch(() => {});
+
+                        console.log(
+                            `🗑️ Narehate eliminado de ${user.user.tag} en ${guild.name}`
+                        );
+
+                    }
+
+                }
+
+            } catch (err) {
+
+                console.error(
+                    `❌ Error limpiando roles en ${guild.name}:`,
+                    err
+                );
+
+            }
+
+        }
+
+    }, 60 * 1000);
 
 }
