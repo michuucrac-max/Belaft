@@ -1040,6 +1040,8 @@ case "redeem": {
 
     saveStatus();
 
+await syncSpecialRoles(interaction, user);
+
     if (promo.uses <= 0) {
         delete codes[code];
     }
@@ -1579,6 +1581,8 @@ case "sell": {
 
         saveStatus();
 
+await syncSpecialRoles(interaction, user);
+
         return interaction.reply({
 
             content:
@@ -1980,6 +1984,8 @@ case "setmoney": {
 
     saveStatus();
 
+await syncSpecialRoles(interaction, user);
+
     return interaction.reply({
 
         content:
@@ -2127,6 +2133,8 @@ ${relic.icon} **${relic.name}**`;
     }
 
     saveStatus();
+
+await syncSpecialRoles(interaction, user);
 
     return interaction.reply({
 
