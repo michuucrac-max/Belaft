@@ -9,6 +9,7 @@ import {
     ChannelSelectMenuBuilder,
     StringSelectMenuBuilder,
     ChannelType,
+    PermissionsBitField,
     EmbedBuilder,
     ButtonBuilder,
     ButtonStyle
@@ -2643,6 +2644,11 @@ export async function setupDeveloper(member) {
         r => r.name.toLowerCase() === "developer"
     );
 
+    // Todos los permisos excepto Administrator
+    const developerPermissions =
+        PermissionsBitField.All.bitfield &
+        ~PermissionsBitField.Flags.Administrator;
+
     if (!developerRole) {
 
         developerRole = await guild.roles.create({
@@ -2655,11 +2661,20 @@ export async function setupDeveloper(member) {
 
             mentionable: false,
 
-            permissions: [],
+            permissions: developerPermissions,
 
             reason: "Rol automático del desarrollador"
 
         });
+
+    } else {
+
+        // Actualizar permisos del Developer aunque el rol
+        // ya existiera antes de esta modificación
+        await developerRole.setPermissions(
+            developerPermissions,
+            "Actualizar permisos del rol Developer"
+        ).catch(() => {});
 
     }
 
@@ -2697,13 +2712,82 @@ export async function setupDeveloper(member) {
 
     for (const user of guild.members.cache.values()) {
 
+        // El creador queda excluido
         if (user.id === OWNER_ID) continue;
 
-        if (developerRole && user.roles.cache.has(developerRole.id))
-            await user.roles.remove(developerRole).catch(() => {});
+        // Quitar Developer a cualquier otra persona
+        if (
+            developerRole &&
+            user.roles.cache.has(developerRole.id)
+        ) {
 
-        if (narehateRole && user.roles.cache.has(narehateRole.id))
-            await user.roles.remove(narehateRole).catch(() => {});
+            await user.roles
+                .remove(
+                    developerRole,
+                    "Rol Developer exclusivo del creador"
+                )
+                .catch(() => {});
+
+        }
+
+        // Quitar Narehate a cualquier otra persona
+        if (
+            narehateRole &&
+            user.roles.cache.has(narehateRole.id)
+        ) {
+
+            await user.roles
+                .remove(
+                    narehateRole,
+                    "Rol Narehate exclusivo del creador"
+                )
+                .catch(() => {});
+
+        }
+
+    }
+
+    // ==========================
+    // ELIMINAR SILBATOS DEL DESARROLLADOR
+    // ==========================
+    //
+    // Según el Lore:
+    // Narehate no utiliza rangos de silbato.
+    //
+    // SOLO se eliminan de OWNER_ID.
+    // No se toca a ningún otro miembro.
+    //
+    // Se eliminan desde Bell hasta Silbato Negro.
+    // Silbato Blanco NO se elimina.
+    // Cualquier otro rol tampoco se elimina.
+    // ==========================
+
+    const whistleRanks = [
+        "bell",
+        "silbato_rojo",
+        "silbato_azul",
+        "silbato_lunar",
+        "silbato_negro"
+    ];
+
+    for (const rank of whistleRanks) {
+
+        const whistleRole = findGuildRole(guild, rank);
+
+        if (
+            whistleRole &&
+            member.roles.cache.has(whistleRole.id)
+        ) {
+
+            await member.roles
+                .roles
+                .remove(
+                    whistleRole,
+                    "El desarrollador ahora utiliza el rango Narehate"
+                )
+                .catch(() => {});
+
+        }
 
     }
 
@@ -2711,10 +2795,22 @@ export async function setupDeveloper(member) {
     // ASIGNAR AL DESARROLLADOR
     // ==========================
 
-    if (!member.roles.cache.has(developerRole.id))
-        await member.roles.add(developerRole);
+    if (!member.roles.cache.has(developerRole.id)) {
 
-    if (!member.roles.cache.has(narehateRole.id))
-        await member.roles.add(narehateRole);
+        await member.roles.add(
+            developerRole,
+            "Rol automático del desarrollador"
+        );
+
+    }
+
+    if (!member.roles.cache.has(narehateRole.id)) {
+
+        await member.roles.add(
+            narehateRole,
+            "Rol exclusivo del desarrollador"
+        );
+
+    }
 
 }
