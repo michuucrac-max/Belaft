@@ -747,23 +747,23 @@ case "shop_buy": {
     switch (multiplier) {
 
         case 1.1:
-            price = 1000;
+            price = 500;
             break;
 
         case 1.25:
-            price = 15000;
+            price = 2000;
             break;
 
         case 1.5:
-            price = 30000;
+            price = 5000;
             break;
 
         case 2:
-            price = 100000;
+            price = 10000;
             break;
 
         case 3:
-            price = 5000000;
+            price = 50000;
             break;
 
         default:
@@ -1568,35 +1568,35 @@ const user = getUser(interaction.guild.id, interaction.user.id);
 
                     {
                         label: "Multiplicador x1.10",
-                        description: "100 XP",
+                        description: "500 XP",
                         value: "1.1",
                         emoji: "📈"
                     },
 
                     {
                         label: "Multiplicador x1.25",
-                        description: "250 XP",
+                        description: "2000 XP",
                         value: "1.25",
                         emoji: "📈"
                     },
 
                     {
                         label: "Multiplicador x1.50",
-                        description: "600 XP",
+                        description: "5000 XP",
                         value: "1.5",
                         emoji: "📈"
                     },
 
                     {
                         label: "Multiplicador x2",
-                        description: "1500 XP",
+                        description: "10000 XP",
                         value: "2",
                         emoji: "📈"
                     },
 
                     {
                         label: "Multiplicador x3",
-                        description: "4000 XP",
+                        description: "50000 XP",
                         value: "3",
                         emoji: "📈"
                     }
