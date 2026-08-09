@@ -987,6 +987,250 @@ async function handleSlashCommands(interaction, client) {
     switch (interaction.commandName) {
 
         /* ==========================
+                REDIMIR
+        ========================== */
+                        
+case "redeem": {
+
+    const code = interaction.options
+        .getString("codigo")
+        .toUpperCase();
+
+    if (!codes[code]) {
+
+        return interaction.reply({
+
+            content: "❌ Ese código no existe.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+    const promo = codes[code];
+
+    if (promo.uses <= 0) {
+
+        delete codes[code];
+
+        saveCodes();
+
+        return interaction.reply({
+
+            content: "❌ Ese código ya expiró.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+    if (promo.redeemedBy.includes(interaction.user.id)) {
+
+        return interaction.reply({
+
+            content: "❌ Ya canjeaste este código.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+    const user = getUser(interaction.user.id);
+
+    user.money += promo.money;
+
+    user.xp += promo.xp;
+
+    promo.uses--;
+
+    promo.redeemedBy.push(interaction.user.id);
+
+    saveStatus();
+
+    if (promo.uses <= 0) {
+
+        delete codes[code];
+
+    }
+
+    saveCodes();
+
+    const embed = new EmbedBuilder()
+
+        .setColor(0x57F287)
+
+        .setTitle("🎉 Código canjeado")
+
+        .setDescription(`Has canjeado el código **${code}**.`)
+
+        .addFields(
+
+            {
+
+                name: "💰 Monedas",
+
+                value: `+${promo.money.toLocaleString()}`,
+
+                inline: true
+
+            },
+
+            {
+
+                name: "⭐ XP",
+
+                value: `+${promo.xp.toLocaleString()}`,
+
+                inline: true
+
+            },
+
+            {
+
+                name: "🎁 Usos restantes",
+
+                value: promo.uses.toString(),
+
+                inline: true
+
+            }
+
+        )
+
+        .setFooter({
+
+            text: "Belaft • Sistema de códigos"
+
+        });
+
+    return interaction.reply({
+
+        embeds: [embed]
+
+    });
+
+}                        
+    
+        /* ==========================
+                PROMO CODE
+        ========================== */
+                        
+case "generatecode": {
+
+    if (interaction.user.id !== OWNER_ID) {
+
+        return interaction.reply({
+
+            content: "❌ Solo el desarrollador puede usar este comando.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+    const code = interaction.options.getString("codigo").toUpperCase();
+
+    const money = interaction.options.getInteger("monedas");
+
+    const xp = interaction.options.getInteger("xp");
+
+    const uses = interaction.options.getInteger("usos");
+
+    if (codes[code]) {
+
+        return interaction.reply({
+
+            content: "❌ Ese código ya existe.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+    codes[code] = {
+
+        money,
+
+        xp,
+
+        uses,
+
+        redeemedBy: []
+
+    };
+
+    saveCodes();
+
+    const embed = new EmbedBuilder()
+
+        .setColor(0x00ff88)
+
+        .setTitle("🎁 Código creado")
+
+        .addFields(
+
+            {
+
+                name: "Código",
+
+                value: `\`${code}\``,
+
+                inline: true
+
+            },
+
+            {
+
+                name: "Monedas",
+
+                value: money.toLocaleString(),
+
+                inline: true
+
+            },
+
+            {
+
+                name: "XP",
+
+                value: xp.toLocaleString(),
+
+                inline: true
+
+            },
+
+            {
+
+                name: "Usos",
+
+                value: uses.toString(),
+
+                inline: true
+
+            }
+
+        )
+
+        .setFooter({
+
+            text: "Belaft • Sistema de códigos"
+
+        });
+
+    return interaction.reply({
+
+        embeds: [embed]
+
+    });
+
+}
+   
+        /* ==========================
                 PING
         ========================== */
 
