@@ -39,10 +39,10 @@
     },
 
     "rankCosts": {
-        "silbato_rojo": 1000,
-        "silbato_azul": 50000,
-        "silbato_lunar": 150000,
-        "silbato_negro": 500000,
+        "silbato_rojo": 500,
+        "silbato_azul": 25000,
+        "silbato_lunar": 10000,
+        "silbato_negro": 35000,
         "silbato_blanco": 99999999,
         "narehate": 0
     }
