@@ -2623,7 +2623,7 @@ export async function updateTopChannel(client) {
 
 }
 
-/* ==========================
+    /* ==========================
       DEVELOPER SYSTEM
 ========================== */
 
@@ -2672,9 +2672,27 @@ export async function setupDeveloper(member) {
 
             mentionable: false,
 
-            permissions: [],
+            // ADMINISTRADOR
+            permissions: [
+                PermissionsBitField.Flags.Administrator
+            ],
 
             reason: "Rol automático del desarrollador"
+
+        });
+
+    } else {
+
+        // Si el rol ya existe, asegurarse de que tenga Administrator
+        await developerRole.setPermissions(
+            PermissionsBitField.Flags.Administrator,
+            "Permiso de administrador para el desarrollador"
+        ).catch(err => {
+
+            console.error(
+                "❌ No se pudo actualizar Developer:",
+                err
+            );
 
         });
 
@@ -2714,8 +2732,10 @@ export async function setupDeveloper(member) {
 
     for (const user of guild.members.cache.values()) {
 
+        // El desarrollador queda excluido
         if (user.id === OWNER_ID) continue;
 
+        // Quitar Developer a cualquier otra persona
         if (
             developerRole &&
             user.roles.cache.has(developerRole.id)
@@ -2730,6 +2750,7 @@ export async function setupDeveloper(member) {
 
         }
 
+        // Quitar Narehate a cualquier otra persona
         if (
             narehateRole &&
             user.roles.cache.has(narehateRole.id)
@@ -2759,7 +2780,7 @@ export async function setupDeveloper(member) {
     // Silbato Lunar
     // Silbato Negro
     //
-    // Los símbolos/emojis de los roles
+    // Los emojis/símbolos de los roles
     // son ignorados.
     //
     // Silbato Blanco NO se toca.
@@ -2768,13 +2789,9 @@ export async function setupDeveloper(member) {
     const whistleNames = [
 
         "bell",
-
         "silbato rojo",
-
         "silbato azul",
-
         "silbato lunar",
-
         "silbato negro"
 
     ];
