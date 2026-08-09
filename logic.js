@@ -1041,8 +1041,6 @@ case "redeem": {
 
     saveStatus();
 
-await syncSpecialRoles(interaction, user);
-
     if (promo.uses <= 0) {
         delete codes[code];
     }
@@ -1582,8 +1580,6 @@ case "sell": {
 
         saveStatus();
 
-await syncSpecialRoles(interaction, user);
-
         return interaction.reply({
 
             content:
@@ -1976,51 +1972,71 @@ Selecciona otro canal si deseas cambiarlo.`
 
 case "setmoney": {
 
-    const target = interaction.options.getUser("usuario");
-    const amount = interaction.options.getInteger("cantidad");
+    try {
 
-    if (!target) {
-
-        return interaction.reply({
-            content: "❌ Debes seleccionar un usuario.",
+        await interaction.deferReply({
             ephemeral: true
         });
 
-    }
+        const target =
+            interaction.options.getUser("usuario");
 
-    if (amount === null || amount < 0) {
+        const amount =
+            interaction.options.getInteger("cantidad");
 
-        return interaction.reply({
-            content: "❌ La cantidad debe ser un número igual o mayor que 0.",
-            ephemeral: true
-        });
+        if (!target) {
 
-    }
+            return interaction.editReply(
+                "❌ Debes seleccionar un usuario."
+            );
 
-    const user = getUser(
-        interaction.guild.id,
-        target.id
-    );
+        }
 
-    // ESTABLECER el dinero, no sumarlo
-    user.money = amount;
+        if (amount === null || amount < 0) {
 
-    saveStatus();
+            return interaction.editReply(
+                "❌ La cantidad debe ser un número igual o mayor que 0."
+            );
 
-    // Actualizar roles/rango si corresponde
-    await syncSpecialRoles(interaction, user);
+        }
 
-    return interaction.reply({
+        const user = getUser(
+            interaction.guild.id,
+            target.id
+        );
 
-        content:
+        // SETMONEY establece la cantidad,
+        // no la suma.
+        user.money = amount;
+
+        saveStatus();
+
+        return interaction.editReply(
 `✅ Dinero actualizado correctamente.
 
 👤 Usuario: ${target}
-💰 Nuevo dinero: **${user.money}**`,
+💰 Nuevo dinero: **${user.money}**`
+        );
 
-        ephemeral: true
+    } catch (err) {
 
-    });
+        console.error(
+            "❌ Error en /setmoney:",
+            err
+        );
+
+        if (
+            interaction.deferred ||
+            interaction.replied
+        ) {
+
+            return interaction.editReply(
+                "❌ Ocurrió un error al actualizar el dinero."
+            ).catch(() => {});
+
+        }
+
+    }
 
 }
                         
@@ -2154,8 +2170,6 @@ ${relic.icon} **${relic.name}**`;
     }
 
     saveStatus();
-
-await syncSpecialRoles(interaction, user);
 
     return interaction.reply({
 
