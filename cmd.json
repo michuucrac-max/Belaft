@@ -4,16 +4,16 @@
     "description": "Comprueba si el bot responde."
   },
   {
-  "name": "redeem",
-  "description": "Canjea un código promocional.",
-  "options": [
-    {
-      "name": "codigo",
-      "description": "Código promocional",
-      "type": 3,
-      "required": true
-    }
-  ]
+    "name": "redeem",
+    "description": "Canjea un código promocional.",
+    "options": [
+      {
+        "name": "codigo",
+        "description": "Código promocional",
+        "type": 3,
+        "required": true
+      }
+    ]
   },
   {
     "name": "help",
@@ -32,8 +32,8 @@
     "description": "Información del servidor."
   },
   {
-  "name": "shop",
-  "description": "Comprar mejoras usando XP."
+    "name": "shop",
+    "description": "Comprar mejoras usando XP."
   },
   {
     "name": "inventory",
@@ -102,93 +102,86 @@
     ]
   },
   {
-  "name": "setxp",
-  "description": "Establece el XP de un usuario.",
-  "default_member_permissions": "8",
-  "options": [
-    {
-      "name": "usuario",
-      "description": "Usuario",
-      "type": 6,
-      "required": true
-    },
-    {
-      "name": "cantidad",
-      "description": "Cantidad de XP",
-      "type": 4,
-      "required": true
-    }
-  ]
- },
-  {
-  "name": "suggestion",
-  "description": "Enviar una sugerencia al desarrollador.",
-  "options": [
-    {
-      "name": "mensaje",
-      "description": "Escribe tu sugerencia",
-      "type": 3,
-      "required": true,
-      "max_length": 1000
-    }
-  ]
- },
-  {
-  "name": "setchanneltop",
-  "description": "Configurar el canal del ranking.",
-  "default_member_permissions": "8"
+    "name": "setxp",
+    "description": "Establece el XP de un usuario.",
+    "default_member_permissions": "8",
+    "options": [
+      {
+        "name": "usuario",
+        "description": "Usuario",
+        "type": 6,
+        "required": true
+      },
+      {
+        "name": "cantidad",
+        "description": "Cantidad de XP",
+        "type": 4,
+        "required": true
+      }
+    ]
   },
   {
-  "name": "daily",
-  "description": "Reclama tu recompensa diaria."
+    "name": "suggestion",
+    "description": "Enviar una sugerencia al desarrollador.",
+    "options": [
+      {
+        "name": "mensaje",
+        "description": "Escribe tu sugerencia",
+        "type": 3,
+        "required": true,
+        "max_length": 1000
+      }
+    ]
   },
   {
-  "name": "reset",
-  "description": "Reinicia el progreso del servidor.",
-  "default_member_permissions": "8"
-  },
-  {
-  "name": "setchannelrankup",
-  "description": "Configurar el canal de anuncios de ascenso.",
-  "default_member_permissions": "8"
-  },
-  {
-  "name": "generatecode",
-  "description": "Genera un código promocional.",
-  "options": [
-    {
-      "name": "codigo",
-      "description": "Nombre del código",
-      "type": 3,
-      "required": true
-    },
-    {
-      "name": "monedas",
-      "description": "Monedas que entregará",
-      "type": 4,
-      "required": true
-    },
-    {
-      "name": "xp",
-      "description": "XP que entregará",
-      "type": 4,
-      "required": true
-    },
-    {
-      "name": "usos",
-      "description": "Cantidad de usos",
-      "type": 4,
-      "required": true
-    }
-  ]
-  },
-  {
-    "name": "setchannelreliquies",
-    "description": "Configurar el canal de reliquias.",
+    "name": "setchanneltop",
+    "description": "Configurar el canal del ranking.",
     "default_member_permissions": "8"
-  }
-]
-},
+  },
+  {
+    "name": "daily",
+    "description": "Reclama tu recompensa diaria."
+  },
+  {
+    "name": "reset",
+    "description": "Reinicia el progreso del servidor.",
+    "default_member_permissions": "8"
+  },
+  {
+    "name": "setchannelrankup",
+    "description": "Configurar el canal de anuncios de ascenso.",
+    "default_member_permissions": "8"
+  },
+  {
+    "name": "generatecode",
+    "description": "Genera un código promocional.",
+    "options": [
+      {
+        "name": "codigo",
+        "description": "Nombre del código",
+        "type": 3,
+        "required": true
+      },
+      {
+        "name": "monedas",
+        "description": "Monedas que entregará",
+        "type": 4,
+        "required": true
+      },
+      {
+        "name": "xp",
+        "description": "XP que entregará",
+        "type": 4,
+        "required": true
+      },
+      {
+        "name": "usos",
+        "description": "Cantidad de usos",
+        "type": 4,
+        "required": true
+      }
+    ]
+  },
   {
     "name": "setrank",
     "description": "Establece el rango de un usuario.",
