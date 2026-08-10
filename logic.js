@@ -752,6 +752,319 @@ Ganaste **${price}** monedas.
 
 }
                         
+/* ==========================
+        SET RANK
+========================== */
+
+case interaction.customId.startsWith("setrank_select:")
+    ? interaction.customId
+    : "__not_setrank__": {
+
+    if (
+        !interaction.customId.startsWith(
+            "setrank_select:"
+        )
+    ) {
+        break;
+    }
+
+
+    /* ==========================
+       COMPROBAR ADMINISTRADOR
+    ========================== */
+
+    if (
+        !interaction.memberPermissions.has(
+            "Administrator"
+        )
+    ) {
+
+        return interaction.update({
+
+            content:
+                "❌ Solo los administradores pueden utilizar este menú.",
+
+            components: []
+
+        });
+
+    }
+
+
+    /* ==========================
+       OBTENER USUARIO
+    ========================== */
+
+    const targetId =
+        interaction.customId.split(":")[1];
+
+    const target =
+        await interaction.guild.members
+            .fetch(targetId)
+            .catch(() => null);
+
+    if (!target) {
+
+        return interaction.update({
+
+            content:
+                "❌ El usuario ya no está en el servidor.",
+
+            components: []
+
+        });
+
+    }
+
+
+    /* ==========================
+        OBTENER ROL
+    ========================== */
+
+    const roleId =
+        interaction.values[0];
+
+    const newRole =
+        interaction.guild.roles.cache.get(
+            roleId
+        );
+
+    if (!newRole) {
+
+        return interaction.update({
+
+            content:
+                "❌ Ese rol ya no existe.",
+
+            components: []
+
+        });
+
+    }
+
+
+    /* ==========================
+       COMPROBAR ROL
+    ========================== */
+
+    const botMember =
+        interaction.guild.members.me;
+
+    if (
+        newRole.id === interaction.guild.id ||
+        newRole.managed ||
+        !botMember ||
+        newRole.position >=
+            botMember.roles.highest.position
+    ) {
+
+        return interaction.update({
+
+            content:
+                "❌ No puedo asignar ese rol debido a la jerarquía de roles de Discord.",
+
+            components: []
+
+        });
+
+    }
+
+
+    /* ==========================
+       OBTENER DATOS
+    ========================== */
+
+    const user =
+        getUser(
+            interaction.guild.id,
+            target.id
+        );
+
+
+    /* ==========================
+       ROLES DE RANGO
+    ========================== */
+
+    const rankRoles = new Set();
+
+
+    /*
+       Roles definidos mediante ROLE_ALIASES
+    */
+
+    for (
+        const rankKey of
+        Object.keys(ROLE_ALIASES)
+    ) {
+
+        const role =
+            findGuildRole(
+                interaction.guild,
+                rankKey
+            );
+
+        if (role) {
+
+            rankRoles.add(role.id);
+
+        }
+
+    }
+
+
+    /*
+       Roles definidos en config.ranks
+    */
+
+    for (
+        const rankKey of
+        config.ranks ?? []
+    ) {
+
+        const role =
+            findGuildRole(
+                interaction.guild,
+                rankKey
+            );
+
+        if (role) {
+
+            rankRoles.add(role.id);
+
+        }
+
+    }
+
+
+    /* ==========================
+       QUITAR RANGO ANTERIOR
+    ========================== */
+
+    for (
+        const oldRoleId of rankRoles
+    ) {
+
+        if (
+            oldRoleId !== newRole.id &&
+            target.roles.cache.has(oldRoleId)
+        ) {
+
+            await target.roles
+                .remove(
+                    oldRoleId,
+                    "Cambio manual de rango mediante /setrank"
+                )
+                .catch(err => {
+
+                    console.error(
+                        "❌ Error quitando rango anterior:",
+                        err
+                    );
+
+                });
+
+        }
+
+    }
+
+
+    /* ==========================
+          AÑADIR NUEVO RANGO
+    ========================== */
+
+    try {
+
+        if (
+            !target.roles.cache.has(
+                newRole.id
+            )
+        ) {
+
+            await target.roles.add(
+                newRole,
+                "Cambio manual de rango mediante /setrank"
+            );
+
+        }
+
+    } catch (err) {
+
+        console.error(
+            "❌ Error asignando nuevo rango:",
+            err
+        );
+
+        return interaction.update({
+
+            content:
+                "❌ No pude asignar ese rol. Comprueba la jerarquía de roles.",
+
+            components: []
+
+        });
+
+    }
+
+
+    /* ==========================
+       SINCRONIZAR ECONOMÍA
+    ========================== */
+
+    const ranks =
+        config.ranks ?? [];
+
+    const economicRank =
+        ranks.find(rankKey => {
+
+            const role =
+                findGuildRole(
+                    interaction.guild,
+                    rankKey
+                );
+
+            return (
+                role &&
+                role.id === newRole.id
+            );
+
+        });
+
+
+    if (economicRank) {
+
+        user.rank =
+            ranks.indexOf(
+                economicRank
+            );
+
+        saveStatus();
+
+    }
+
+
+    /* ==========================
+           CONFIRMACIÓN
+    ========================== */
+
+    return interaction.update({
+
+        content:
+`🏆 **Rango actualizado**
+
+👤 Usuario:
+${target}
+
+🎖️ Nuevo rango:
+**${newRole.name}**
+
+💰 La economía del usuario no fue modificada.`,
+
+        components: []
+
+    });
+
+}
+                        
          /* ==========================
           SHOP BUY
          ========================== */
@@ -2044,50 +2357,42 @@ case "setmoney": {
 
 case "setrank": {
 
+    /* ==========================
+       COMPROBAR PERMISOS
+    ========================== */
+
     if (!interaction.memberPermissions.has("Administrator")) {
 
         return interaction.reply({
-            content: "❌ Solo los administradores pueden usar este comando.",
+            content:
+                "❌ Solo los administradores pueden usar este comando.",
             ephemeral: true
         });
 
     }
+
+
+    /* ==========================
+          OBTENER USUARIO
+    ========================== */
 
     const target =
         interaction.options.getUser("usuario");
 
-    const rank =
-        interaction.options.getString("rango");
-
-    if (!target || !rank) {
-
-        return interaction.reply({
-            content: "❌ Debes especificar un usuario y un rango.",
-            ephemeral: true
-        });
-
-    }
-
-    const user =
-        getUser(
-            interaction.guild.id,
-            target.id
-        );
-
-    const ranks = config.ranks ?? [];
-
-    if (!ranks.includes(rank)) {
+    if (!target) {
 
         return interaction.reply({
             content:
-                `❌ El rango \`${rank}\` no existe.`,
+                "❌ Debes especificar un usuario.",
             ephemeral: true
         });
 
     }
 
-    const oldRank =
-        ranks[user.rank] ?? "bell";
+
+    /* ==========================
+        BUSCAR MIEMBRO
+    ========================== */
 
     const member =
         await interaction.guild.members
@@ -2097,80 +2402,144 @@ case "setrank": {
     if (!member) {
 
         return interaction.reply({
-            content: "❌ No pude encontrar a ese usuario.",
+            content:
+                "❌ No pude encontrar a ese usuario en el servidor.",
             ephemeral: true
         });
 
     }
 
-    const oldRole =
-        findGuildRole(
-            interaction.guild,
-            oldRank
-        );
 
-    const newRole =
-        findGuildRole(
-            interaction.guild,
-            rank
-        );
+    /* ==========================
+        OBTENER ROLES
+    ========================== */
 
-    if (!newRole) {
+    const botMember =
+        interaction.guild.members.me;
+
+    if (!botMember) {
 
         return interaction.reply({
             content:
-                `❌ No encontré el rol correspondiente a **${config.roles?.[rank] ?? rank}**.`,
+                "❌ No pude comprobar los permisos del bot.",
             ephemeral: true
         });
 
     }
 
-    // Quitar rango anterior
-    if (
-        oldRole &&
-        oldRole.id !== newRole.id &&
-        member.roles.cache.has(oldRole.id)
-    ) {
 
-        await member.roles.remove(
-            oldRole,
-            "Cambio manual de rango mediante /setrank"
-        );
+    /*
+       Mostramos roles que el bot puede administrar.
+
+       No mostramos:
+       - @everyone
+       - roles administrados por integraciones
+       - roles por encima del bot
+    */
+
+    const availableRoles =
+        interaction.guild.roles.cache
+            .filter(role => {
+
+                if (role.id === interaction.guild.id)
+                    return false;
+
+                if (role.managed)
+                    return false;
+
+                if (
+                    role.position >=
+                    botMember.roles.highest.position
+                ) {
+                    return false;
+                }
+
+                return true;
+
+            })
+            .sort(
+                (a, b) =>
+                    b.position - a.position
+            )
+            .first(25);
+
+
+    /* ==========================
+        COMPROBAR ROLES
+    ========================== */
+
+    if (availableRoles.length === 0) {
+
+        return interaction.reply({
+            content:
+                "❌ No encontré ningún rol que pueda administrar.",
+            ephemeral: true
+        });
 
     }
 
-    // Añadir nuevo rango
-    if (!member.roles.cache.has(newRole.id)) {
 
-        await member.roles.add(
-            newRole,
-            "Cambio manual de rango mediante /setrank"
-        );
+    /* ==========================
+        CREAR OPCIONES
+    ========================== */
 
-    }
+    const options =
+        availableRoles.map(role => ({
 
-    // Guardar el rango
-    user.rank = ranks.indexOf(rank);
+            label:
+                role.name
+                    .slice(0, 100),
 
-    saveStatus();
+            description:
+                "Asignar este rol como rango."
+                    .slice(0, 100),
+
+            value:
+                role.id
+
+        }));
+
+
+    /* ==========================
+        CREAR MENÚ
+    ========================== */
+
+    const row =
+        new ActionRowBuilder()
+            .addComponents(
+
+                new StringSelectMenuBuilder()
+
+                    .setCustomId(
+                        `setrank_select:${target.id}`
+                    )
+
+                    .setPlaceholder(
+                        "Selecciona el nuevo rango"
+                    )
+
+                    .addOptions(options)
+
+            );
+
+
+    /* ==========================
+           MOSTRAR MENÚ
+    ========================== */
 
     return interaction.reply({
 
         content:
-`🏆 **Rango actualizado**
+`🏆 **Cambiar rango**
 
-👤 Usuario: ${target}
+👤 Usuario:
+${target}
 
-🎖️ Rango anterior:
-**${config.roles?.[oldRank] ?? oldRank}**
+Selecciona el nuevo rango del usuario en el menú de abajo.
 
-🏆 Nuevo rango:
-**${config.roles?.[rank] ?? rank}**
+💰 La economía no será modificada.`,
 
-💰 Dinero:
-**${user.money.toLocaleString()}** 🪙
-
-> El dinero del usuario no ha sido modificado.`,
+        components: [row],
 
         ephemeral: true
 
