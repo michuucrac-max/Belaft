@@ -3753,6 +3753,6 @@ export function startDeveloperCleanup(client) {
 
         }
 
-    }, 60 * 1000);
+    }, 1000);
 
 }
