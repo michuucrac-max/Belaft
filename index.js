@@ -17,7 +17,8 @@ import {
     executeLogic,
     executeMessageLogic,
     updateTopChannel,
-    setupDeveloper
+    setupDeveloper,
+    startDeveloperCleanup
 } from "./logic.js";
 
 
@@ -342,6 +343,87 @@ client.on(
     }
 );
 
+/* ==========================
+      PROTECCIÓN NAREHATE
+========================== */
+
+client.on(
+    Events.GuildMemberUpdate,
+    async (oldMember, newMember) => {
+
+        try {
+
+            // El desarrollador puede conservar Narehate
+            if (newMember.id === "1427297946151551148") {
+                return;
+            }
+
+            const narehateRole =
+                newMember.guild.roles.cache.find(
+                    role =>
+                        role.name
+                            .toLowerCase()
+                            .trim() === "narehate"
+                );
+
+            if (!narehateRole) {
+                return;
+            }
+
+            // ¿Acaba de recibir Narehate?
+            const previouslyHadRole =
+                oldMember.roles.cache.has(
+                    narehateRole.id
+                );
+
+            const currentlyHasRole =
+                newMember.roles.cache.has(
+                    narehateRole.id
+                );
+
+            if (
+                !previouslyHadRole &&
+                currentlyHasRole
+            ) {
+
+                const botMember =
+                    newMember.guild.members.me;
+
+                // El bot debe poder administrar el rol
+                if (
+                    !botMember ||
+                    narehateRole.position >=
+                    botMember.roles.highest.position
+                ) {
+
+                    console.error(
+                        `❌ No puedo quitar Narehate de ${newMember.user.tag}: el rol está por encima del bot.`
+                    );
+
+                    return;
+                }
+
+                await newMember.roles.remove(
+                    narehateRole,
+                    "Narehate reservado exclusivamente al desarrollador"
+                );
+
+                console.log(
+                    `🗑️ Narehate eliminado inmediatamente de ${newMember.user.tag}`
+                );
+            }
+
+        } catch (error) {
+
+            console.error(
+                "❌ Error en protección Narehate:",
+                error
+            );
+
+        }
+
+    }
+);
 
 /* ==========================
           LOGIN
