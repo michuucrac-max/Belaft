@@ -21,7 +21,6 @@ import {
     startDeveloperCleanup
 } from "./logic.js";
 
-
 /* ==========================
       VARIABLES DE ENTORNO
 ========================== */
@@ -243,8 +242,7 @@ client.once(Events.ClientReady, async () => {
 
     }
 
-});
-
+startDeveloperCleanup(client);
 
 /* ==========================
       ACTUALIZAR TOP
