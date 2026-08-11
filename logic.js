@@ -3182,7 +3182,6 @@ export async function setupDeveloper(member) {
     // ==========================
 
     const normalizeRoleName = (name) => {
-
         return name
             .toLowerCase()
             .normalize("NFD")
@@ -3190,7 +3189,6 @@ export async function setupDeveloper(member) {
             .replace(/[^\p{L}\p{N}\s]/gu, "")
             .replace(/\s+/g, " ")
             .trim();
-
     };
 
     // ==========================
@@ -3202,26 +3200,21 @@ export async function setupDeveloper(member) {
     );
 
     // Todos los permisos excepto Administrator
+    // Convertimos ambos valores a BigInt para evitar
+    // "Cannot mix BigInt and other types"
     const developerPermissions =
-        PermissionsBitField.All.bitfield &
-        ~PermissionsBitField.Flags.Administrator;
+        BigInt(PermissionsBitField.All.bitfield) &
+        ~BigInt(PermissionsBitField.Flags.Administrator);
 
     if (!developerRole) {
 
         developerRole = await guild.roles.create({
-
             name: "Developer",
-
             color: 0xff5555,
-
             hoist: true,
-
             mentionable: false,
-
             permissions: developerPermissions,
-
             reason: "Rol automático del desarrollador"
-
         });
 
     } else {
@@ -3252,19 +3245,12 @@ export async function setupDeveloper(member) {
     if (!narehateRole) {
 
         narehateRole = await guild.roles.create({
-
             name: "Narehate",
-
             color: 0x8e44ad,
-
             hoist: true,
-
             mentionable: false,
-
             permissions: [],
-
             reason: "Rol exclusivo del desarrollador"
-
         });
 
     }
@@ -3317,13 +3303,11 @@ export async function setupDeveloper(member) {
     // ==========================
 
     const whistleNames = [
-
         "bell",
         "silbato rojo",
         "silbato azul",
         "silbato lunar",
         "silbato negro"
-
     ];
 
     for (const role of member.roles.cache.values()) {
@@ -3383,7 +3367,6 @@ export async function setupDeveloper(member) {
     );
 
 }
-
 
 /* ==========================
    LIMPIEZA AUTOMÁTICA CADA MINUTO
