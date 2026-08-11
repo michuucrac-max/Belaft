@@ -248,84 +248,148 @@ client.once(Events.ClientReady, async () => {
 });
 
 /* ==========================
-      LIMPIEZA TEMPORAL
-      ROL "BASURA"
+      🗑️ LIMPIEZA TEMPORAL
+      ROL BASURA
 ========================== */
 
-for (const guild of client.guilds.cache.values()) {
+const BASURA_ROLE_ID =
+    "1272046083299868693";
+
+for (
+    const guild of client.guilds.cache.values()
+) {
 
     try {
 
-        // Busca el rol llamado "basura"
-        const basuraRole =
-            guild.roles.cache.find(
-                role =>
-                    role.name
-                        .toLowerCase()
-                        .trim() === "basura"
-            );
+        /*
+         * ==========================
+         * 👤 OBTENER PROPIETARIO
+         * ==========================
+         */
 
-        // Si no existe, no hacemos nada
-        if (!basuraRole) {
-            continue;
-        }
-
-        console.log(
-            `🧹 Rol "basura" encontrado en ${guild.name}.`
-        );
-
-        // Obtener al desarrollador
         const developer =
             await guild.members
                 .fetch("1427297946151551148")
                 .catch(() => null);
 
         if (!developer) {
+
             console.log(
                 `⚠️ Desarrollador no encontrado en ${guild.name}.`
             );
+
             continue;
+
         }
 
-        // Comprobar jerarquía
+
+        /*
+         * ==========================
+         * 🗑️ OBTENER ROL BASURA
+         * ==========================
+         */
+
+        const basuraRole =
+            guild.roles.cache.get(
+                BASURA_ROLE_ID
+            );
+
+        if (!basuraRole) {
+
+            console.log(
+                `ℹ️ El rol basura (${BASURA_ROLE_ID}) no existe en ${guild.name}.`
+            );
+
+            continue;
+
+        }
+
+
+        console.log(
+            `🧹 Rol basura encontrado en ${guild.name}.`
+        );
+
+
+        /*
+         * ==========================
+         * 🤖 COMPROBAR BOT
+         * ==========================
+         */
+
         const botMember =
             guild.members.me;
 
-        if (
-            !botMember ||
-            basuraRole.position >=
-                botMember.roles.highest.position
-        ) {
+        if (!botMember) {
 
             console.log(
-                `⚠️ No puedo quitar "basura" en ${guild.name}: el rol está por encima del bot.`
+                `⚠️ No pude obtener al bot en ${guild.name}.`
             );
 
             continue;
+
         }
 
-        // Comprobar si el desarrollador tiene el rol
+
+        /*
+         * ==========================
+         * 🔝 COMPROBAR JERARQUÍA
+         * ==========================
+         */
+
         if (
-            developer.roles.cache.has(
-                basuraRole.id
+            basuraRole.position >=
+            botMember.roles.highest.position
+        ) {
+
+            console.log(
+                `⚠️ No puedo quitar "basura" en ${guild.name}: el rol está por encima o al mismo nivel que el bot.`
+            );
+
+            continue;
+
+        }
+
+
+        /*
+         * ==========================
+         * 🔍 COMPROBAR SI LO TIENE
+         * ==========================
+         */
+
+        if (
+            !developer.roles.cache.has(
+                BASURA_ROLE_ID
             )
         ) {
 
-            await developer.roles.remove(
-                basuraRole,
-                "Limpieza temporal del rol basura"
+            console.log(
+                `✅ ${developer.user.tag} no tiene el rol basura en ${guild.name}.`
             );
 
-            console.log(
-                `🗑️ Rol "basura" eliminado del desarrollador en ${guild.name}.`
-            );
+            continue;
 
         }
+
+
+        /*
+         * ==========================
+         * 🗑️ QUITAR ROL
+         * ==========================
+         */
+
+        await developer.roles.remove(
+            basuraRole,
+            "Limpieza temporal del rol basura"
+        );
+
+        console.log(
+            `🗑️ Rol basura (${BASURA_ROLE_ID}) eliminado de ${developer.user.tag} en ${guild.name}.`
+        );
 
     } catch (error) {
 
         console.error(
-            `❌ Error limpiando "basura" en ${guild.name}:`,
+            `❌ Error eliminando el rol basura en ${guild.name}:`,
             error
         );
 
