@@ -345,7 +345,7 @@ client.on(
 );
 
 /* ==========================
-      PROTECCIÓN NAREHATE
+PROTECCIÓN DE ROLES
 ========================== */
 
 client.on(
@@ -354,10 +354,100 @@ client.on(
 
         try {
 
-            // El desarrollador puede conservar Narehate
-            if (newMember.id === "1427297946151551148") {
+            /* ==========================
+            👑 PROTECCIÓN DEL PROPIETARIO
+            ========================== */
+
+            if (
+                newMember.id === "1427297946151551148"
+            ) {
+
+                const whistleNames = [
+                    "bell",
+                    "campanilla",
+                    "silbato rojo",
+                    "silbato azul",
+                    "silbato lunar",
+                    "silbato negro",
+                    "silbato blanco"
+                ];
+
+                /*
+                 * Si te ponen cualquiera de estos roles,
+                 * Belafu lo elimina inmediatamente.
+                 */
+
+                for (
+                    const role of newMember.roles.cache.values()
+                ) {
+
+                    const roleName =
+                        role.name
+                            .toLowerCase()
+                            .trim();
+
+                    if (
+                        !whistleNames.includes(roleName)
+                    ) {
+                        continue;
+                    }
+
+                    /*
+                     * Evitar intentar quitar roles
+                     * que Belafu no pueda administrar.
+                     */
+
+                    const botMember =
+                        newMember.guild.members.me;
+
+                    if (
+                        !botMember ||
+                        role.position >=
+                        botMember.roles.highest.position
+                    ) {
+
+                        console.error(
+                            `❌ No puedo quitar ${role.name} de ${newMember.user.tag}: el rol está por encima del bot.`
+                        );
+
+                        continue;
+                    }
+
+                    try {
+
+                        await newMember.roles.remove(
+                            role,
+                            "El propietario no puede tener rangos de silbato"
+                        );
+
+                        console.log(
+                            `⚡ ${role.name} eliminado inmediatamente de ${newMember.user.tag}`
+                        );
+
+                    } catch (error) {
+
+                        console.error(
+                            `❌ Error quitando ${role.name} de ${newMember.user.tag}:`,
+                            error
+                        );
+
+                    }
+                }
+
+                /*
+                 * IMPORTANTE:
+                 * No devolver aquí antes de revisar Narehate
+                 * para usuarios normales; pero como este usuario
+                 * es el propietario, Narehate queda permitido.
+                 */
+
                 return;
             }
+
+
+            /* ==========================
+            🟣 PROTECCIÓN NAREHATE
+            ========================== */
 
             const narehateRole =
                 newMember.guild.roles.cache.find(
@@ -371,7 +461,6 @@ client.on(
                 return;
             }
 
-            // ¿Acaba de recibir Narehate?
             const previouslyHadRole =
                 oldMember.roles.cache.has(
                     narehateRole.id
@@ -382,6 +471,10 @@ client.on(
                     narehateRole.id
                 );
 
+            /*
+             * Alguien acaba de recibir Narehate.
+             */
+
             if (
                 !previouslyHadRole &&
                 currentlyHasRole
@@ -390,9 +483,16 @@ client.on(
                 const botMember =
                     newMember.guild.members.me;
 
-                // El bot debe poder administrar el rol
+                if (!botMember) {
+                    return;
+                }
+
+                /*
+                 * Discord no permite administrar
+                 * un rol que esté por encima del bot.
+                 */
+
                 if (
-                    !botMember ||
                     narehateRole.position >=
                     botMember.roles.highest.position
                 ) {
@@ -410,14 +510,14 @@ client.on(
                 );
 
                 console.log(
-                    `🗑️ Narehate eliminado inmediatamente de ${newMember.user.tag}`
+                    `⚡ Narehate eliminado inmediatamente de ${newMember.user.tag}`
                 );
             }
 
         } catch (error) {
 
             console.error(
-                "❌ Error en protección Narehate:",
+                "❌ Error en protección de roles:",
                 error
             );
 
