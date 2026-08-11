@@ -1068,6 +1068,279 @@ ${target}
     });
 
 }
+
+/* ==========================
+        DEL RANK SELECT
+========================== */
+
+case interaction.customId.startsWith("delrank_select:")
+    ? interaction.customId
+    : "__not_delrank__": {
+
+    if (
+        !interaction.customId.startsWith(
+            "delrank_select:"
+        )
+    ) {
+
+        break;
+
+    }
+
+
+    /* ==========================
+       COMPROBAR ADMINISTRADOR
+    ========================== */
+
+    if (
+        !interaction.memberPermissions.has(
+            "Administrator"
+        )
+    ) {
+
+        return interaction.update({
+
+            content:
+                "❌ Solo los administradores pueden utilizar este menú.",
+
+            components: []
+
+        });
+
+    }
+
+
+    /* ==========================
+        OBTENER USUARIO
+    ========================== */
+
+    const targetId =
+        interaction.customId.split(":")[1];
+
+    const target =
+        await interaction.guild.members
+            .fetch(targetId)
+            .catch(() => null);
+
+    if (!target) {
+
+        return interaction.update({
+
+            content:
+                "❌ El usuario ya no está en el servidor.",
+
+            components: []
+
+        });
+
+    }
+
+
+    /* ==========================
+          OBTENER ROL
+    ========================== */
+
+    const roleId =
+        interaction.values[0];
+
+    const role =
+        interaction.guild.roles.cache.get(
+            roleId
+        );
+
+    if (!role) {
+
+        return interaction.update({
+
+            content:
+                "❌ Ese rol ya no existe.",
+
+            components: []
+
+        });
+
+    }
+
+
+    /* ==========================
+       COMPROBAR QUE LO TENGA
+    ========================== */
+
+    if (
+        !target.roles.cache.has(
+            role.id
+        )
+    ) {
+
+        return interaction.update({
+
+            content:
+                `❌ **${target.user.username}** ya no tiene el rol **${role.name}**.`,
+
+            components: []
+
+        });
+
+    }
+
+
+    /* ==========================
+       COMPROBAR JERARQUÍA
+    ========================== */
+
+    const botMember =
+        interaction.guild.members.me;
+
+    if (!botMember) {
+
+        return interaction.update({
+
+            content:
+                "❌ No pude comprobar los permisos del bot.",
+
+            components: []
+
+        });
+
+    }
+
+
+    if (
+        role.id ===
+            interaction.guild.id ||
+
+        role.managed ||
+
+        role.position >=
+            botMember.roles.highest.position
+    ) {
+
+        return interaction.update({
+
+            content:
+                "❌ No puedo quitar ese rol debido a la jerarquía de roles de Discord.",
+
+            components: []
+
+        });
+
+    }
+
+
+    /* ==========================
+          ELIMINAR RANGO
+    ========================== */
+
+    try {
+
+        await target.roles.remove(
+
+            role,
+
+            "Eliminación manual de rango mediante /delrank"
+
+        );
+
+    } catch (err) {
+
+        console.error(
+            "❌ Error quitando rango:",
+            err
+        );
+
+        return interaction.update({
+
+            content:
+                "❌ No pude quitar ese rango. Comprueba la jerarquía de roles de Discord.",
+
+            components: []
+
+        });
+
+    }
+
+
+    /* ==========================
+        SINCRONIZAR ECONOMÍA
+    ========================== */
+
+    const user =
+        getUser(
+            interaction.guild.id,
+            target.id
+        );
+
+    const ranks =
+        config.ranks ?? [];
+
+
+    /*
+     * Después de quitar el rol,
+     * buscamos cuál es ahora el rango
+     * más alto que conserva.
+     */
+
+    let newRankIndex = 0;
+
+    for (
+        let i = ranks.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        const rankRole =
+            findGuildRole(
+                interaction.guild,
+                ranks[i]
+            );
+
+        if (
+            rankRole &&
+            target.roles.cache.has(
+                rankRole.id
+            )
+        ) {
+
+            newRankIndex = i;
+
+            break;
+
+        }
+
+    }
+
+
+    user.rank =
+        newRankIndex;
+
+    saveStatus();
+
+
+    /* ==========================
+          CONFIRMACIÓN
+    ========================== */
+
+    return interaction.update({
+
+        content:
+`🗑️ **Rango eliminado**
+
+👤 Usuario:
+${target}
+
+🎖️ Rango eliminado:
+**${role.name}**
+
+📊 Rango económico actual:
+**${config.roles?.[ranks[newRankIndex]] ?? ranks[newRankIndex] ?? "Bell"}**
+
+💰 La economía del usuario fue actualizada.`,
+
+        components: []
+
+    });
+
+}
                         
          /* ==========================
           SHOP BUY
@@ -2544,6 +2817,362 @@ Selecciona el nuevo rango del usuario en el menú de abajo.
 💰 La economía no será modificada.`,
 
         components: [row],
+
+        ephemeral: true
+
+    });
+
+}
+
+/* ==========================
+          DEL RANK
+========================== */
+
+case "delrank": {
+
+    /* ==========================
+       COMPROBAR PERMISOS
+    ========================== */
+
+    if (
+        !interaction.memberPermissions.has(
+            "Administrator"
+        )
+    ) {
+
+        return interaction.reply({
+
+            content:
+                "❌ Solo los administradores pueden usar este comando.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+
+    /* ==========================
+          OBTENER USUARIO
+    ========================== */
+
+    const target =
+        interaction.options.getUser(
+            "usuario"
+        );
+
+    if (!target) {
+
+        return interaction.reply({
+
+            content:
+                "❌ Debes especificar un usuario.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+
+    /* ==========================
+        BUSCAR MIEMBRO
+    ========================== */
+
+    const member =
+        await interaction.guild.members
+            .fetch(target.id)
+            .catch(() => null);
+
+    if (!member) {
+
+        return interaction.reply({
+
+            content:
+                "❌ No pude encontrar a ese usuario en el servidor.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+
+    /* ==========================
+        OBTENER BOT
+    ========================== */
+
+    const botMember =
+        interaction.guild.members.me;
+
+    if (!botMember) {
+
+        return interaction.reply({
+
+            content:
+                "❌ No pude comprobar los permisos del bot.",
+
+            ephemeral: true
+
+        });
+
+    }
+
+
+    /* ==========================
+        BUSCAR RANGOS DEL USUARIO
+    ========================== */
+
+    const rankRoles = new Set();
+
+
+    /*
+     * Primero buscamos todos los roles
+     * definidos mediante ROLE_ALIASES.
+     */
+
+    for (
+        const rankKey of
+        Object.keys(ROLE_ALIASES)
+    ) {
+
+        const role =
+            findGuildRole(
+                interaction.guild,
+                rankKey
+            );
+
+        if (!role) {
+            continue;
+        }
+
+        /*
+         * Solo nos interesa si el usuario
+         * realmente posee ese rol.
+         */
+
+        if (
+            member.roles.cache.has(
+                role.id
+            )
+        ) {
+
+            rankRoles.add(
+                role.id
+            );
+
+        }
+
+    }
+
+
+    /*
+     * También comprobamos los rangos
+     * definidos en config.ranks.
+     */
+
+    for (
+        const rankKey of
+        config.ranks ?? []
+    ) {
+
+        const role =
+            findGuildRole(
+                interaction.guild,
+                rankKey
+            );
+
+        if (!role) {
+            continue;
+        }
+
+        if (
+            member.roles.cache.has(
+                role.id
+            )
+        ) {
+
+            rankRoles.add(
+                role.id
+            );
+
+        }
+
+    }
+
+
+    /* ==========================
+       FILTRAR ROLES ADMINISTRABLES
+    ========================== */
+
+    const availableRoles = [];
+
+    for (
+        const roleId of rankRoles
+    ) {
+
+        const role =
+            interaction.guild.roles.cache.get(
+                roleId
+            );
+
+        if (!role) {
+            continue;
+        }
+
+
+        /*
+         * No se puede eliminar @everyone.
+         */
+
+        if (
+            role.id ===
+            interaction.guild.id
+        ) {
+
+            continue;
+
+        }
+
+
+        /*
+         * No eliminar roles administrados
+         * por integraciones.
+         */
+
+        if (role.managed) {
+
+            continue;
+
+        }
+
+
+        /*
+         * Discord no permite administrar
+         * roles iguales o superiores al
+         * rol más alto del bot.
+         */
+
+        if (
+            role.position >=
+            botMember.roles.highest.position
+        ) {
+
+            continue;
+
+        }
+
+
+        availableRoles.push(
+            role
+        );
+
+    }
+
+
+    /* ==========================
+       COMPROBAR RANGOS
+    ========================== */
+
+    if (
+        availableRoles.length === 0
+    ) {
+
+        return interaction.reply({
+
+            content:
+                `❌ **${target.username}** no tiene ningún rango que Belaft pueda quitar.`,
+
+            ephemeral: true
+
+        });
+
+    }
+
+
+    /* ==========================
+        ORDENAR RANGOS
+    ========================== */
+
+    availableRoles.sort(
+        (a, b) =>
+            b.position - a.position
+    );
+
+
+    /* ==========================
+          MÁXIMO 25 OPCIONES
+    ========================== */
+
+    const options =
+        availableRoles
+            .slice(0, 25)
+            .map(role => ({
+
+                label:
+                    role.name
+                        .slice(0, 100),
+
+                description:
+                    "Quitar este rango al usuario."
+                        .slice(0, 100),
+
+                value:
+                    role.id
+
+            }));
+
+
+    /* ==========================
+          CREAR MENÚ
+    ========================== */
+
+    const row =
+        new ActionRowBuilder()
+            .addComponents(
+
+                new StringSelectMenuBuilder()
+
+                    .setCustomId(
+                        `delrank_select:${target.id}`
+                    )
+
+                    .setPlaceholder(
+                        "Selecciona el rango que deseas quitar"
+                    )
+
+                    .addOptions(
+                        options
+                    )
+
+            );
+
+
+    /* ==========================
+          MOSTRAR MENÚ
+    ========================== */
+
+    return interaction.reply({
+
+        content:
+`🗑️ **Quitar rango**
+
+👤 Usuario:
+${target}
+
+🎖️ **Rangos actuales:**
+${availableRoles
+    .slice(0, 25)
+    .map(role => `• ${role.name}`)
+    .join("\n")}
+
+Selecciona abajo el rango que quieres quitar.
+
+💰 La economía del usuario no será modificada.`,
+
+        components: [
+            row
+        ],
 
         ephemeral: true
 
