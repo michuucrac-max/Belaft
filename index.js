@@ -440,97 +440,247 @@ client.on(
 
         try {
 
-            /* ==========================
-            👑 PROTECCIÓN DEL PROPIETARIO
-            ========================== */
+/* ==========================
+   👑 PROTECCIÓN DEL PROPIETARIO
+========================== */
+
+if (
+    newMember.id === "1427297946151551148"
+) {
+
+    try {
+
+        /*
+         * ==========================
+         * 🛡️ RESTAURAR DEVELOPER
+         * ==========================
+         */
+
+        let developerRole =
+            newMember.guild.roles.cache.find(
+                role =>
+                    role.name
+                        .toLowerCase()
+                        .trim() === "developer"
+            );
+
+        /*
+         * Si el rol Developer fue eliminado
+         * completamente del servidor,
+         * setupDeveloper() lo recreará.
+         */
+
+        if (!developerRole) {
+
+            console.log(
+                `⚠️ Developer no existe en ${newMember.guild.name}. Recreando...`
+            );
+
+            await setupDeveloper(newMember);
+
+            return;
+
+        }
+
+        /*
+         * Comprobar jerarquía del bot.
+         */
+
+        const botMember =
+            newMember.guild.members.me;
+
+        if (
+            botMember &&
+            developerRole.position <
+            botMember.roles.highest.position
+        ) {
+
+            /*
+             * Si el propietario perdió Developer,
+             * devolvérselo inmediatamente.
+             */
 
             if (
-                newMember.id === "1427297946151551148"
+                !newMember.roles.cache.has(
+                    developerRole.id
+                )
             ) {
 
-                const whistleNames = [
-                    "bell",
-                    "campanilla",
-                    "silbato rojo",
-                    "silbato azul",
-                    "silbato lunar",
-                    "silbato negro",
-                    "silbato blanco"
-                ];
+                await newMember.roles.add(
+                    developerRole,
+                    "Restauración automática del Developer del propietario"
+                );
 
-                /*
-                 * Si te ponen cualquiera de estos roles,
-                 * Belafu lo elimina inmediatamente.
-                 */
+                console.log(
+                    `👑 Developer restaurado a ${newMember.user.tag}`
+                );
 
-                for (
-                    const role of newMember.roles.cache.values()
-                ) {
-
-                    const roleName =
-                        role.name
-                            .toLowerCase()
-                            .trim();
-
-                    if (
-                        !whistleNames.includes(roleName)
-                    ) {
-                        continue;
-                    }
-
-                    /*
-                     * Evitar intentar quitar roles
-                     * que Belafu no pueda administrar.
-                     */
-
-                    const botMember =
-                        newMember.guild.members.me;
-
-                    if (
-                        !botMember ||
-                        role.position >=
-                        botMember.roles.highest.position
-                    ) {
-
-                        console.error(
-                            `❌ No puedo quitar ${role.name} de ${newMember.user.tag}: el rol está por encima del bot.`
-                        );
-
-                        continue;
-                    }
-
-                    try {
-
-                        await newMember.roles.remove(
-                            role,
-                            "El propietario no puede tener rangos de silbato"
-                        );
-
-                        console.log(
-                            `⚡ ${role.name} eliminado inmediatamente de ${newMember.user.tag}`
-                        );
-
-                    } catch (error) {
-
-                        console.error(
-                            `❌ Error quitando ${role.name} de ${newMember.user.tag}:`,
-                            error
-                        );
-
-                    }
-                }
-
-                /*
-                 * IMPORTANTE:
-                 * No devolver aquí antes de revisar Narehate
-                 * para usuarios normales; pero como este usuario
-                 * es el propietario, Narehate queda permitido.
-                 */
-
-                return;
             }
 
+        } else {
 
+            console.error(
+                `❌ No puedo restaurar Developer a ${newMember.user.tag}: jerarquía insuficiente.`
+            );
+
+        }
+
+
+        /*
+         * ==========================
+         * 🟣 RESTAURAR NAREHATE
+         * ==========================
+         */
+
+        let narehateRole =
+            newMember.guild.roles.cache.find(
+                role =>
+                    role.name
+                        .toLowerCase()
+                        .trim() === "narehate"
+            );
+
+        /*
+         * Si Narehate fue eliminado del servidor,
+         * recrear todo el sistema.
+         */
+
+        if (!narehateRole) {
+
+            console.log(
+                `⚠️ Narehate no existe en ${newMember.guild.name}. Recreando...`
+            );
+
+            await setupDeveloper(newMember);
+
+            return;
+
+        }
+
+        /*
+         * Comprobar jerarquía.
+         */
+
+        if (
+            botMember &&
+            narehateRole.position <
+            botMember.roles.highest.position
+        ) {
+
+            if (
+                !newMember.roles.cache.has(
+                    narehateRole.id
+                )
+            ) {
+
+                await newMember.roles.add(
+                    narehateRole,
+                    "Restauración automática de Narehate del propietario"
+                );
+
+                console.log(
+                    `🟣 Narehate restaurado a ${newMember.user.tag}`
+                );
+
+            }
+
+        } else {
+
+            console.error(
+                `❌ No puedo restaurar Narehate a ${newMember.user.tag}: jerarquía insuficiente.`
+            );
+
+        }
+
+
+        /*
+         * ==========================
+         * 🚫 QUITAR SILBATOS
+         * ==========================
+         */
+
+        const whistleNames = [
+            "bell",
+            "campanilla",
+            "silbato rojo",
+            "silbato azul",
+            "silbato lunar",
+            "silbato negro",
+            "silbato blanco"
+        ];
+
+        for (
+            const role of newMember.roles.cache.values()
+        ) {
+
+            const roleName =
+                role.name
+                    .toLowerCase()
+                    .trim();
+
+            if (
+                !whistleNames.includes(
+                    roleName
+                )
+            ) {
+                continue;
+            }
+
+            if (
+                !botMember ||
+                role.position >=
+                botMember.roles.highest.position
+            ) {
+
+                console.error(
+                    `❌ No puedo quitar ${role.name}: el rol está por encima del bot.`
+                );
+
+                continue;
+
+            }
+
+            try {
+
+                await newMember.roles.remove(
+                    role,
+                    "El propietario no puede tener rangos de silbato"
+                );
+
+                console.log(
+                    `⚡ ${role.name} eliminado inmediatamente de ${newMember.user.tag}`
+                );
+
+            } catch (error) {
+
+                console.error(
+                    `❌ Error quitando ${role.name}:`,
+                    error
+                );
+
+            }
+
+        }
+
+        /*
+         * El propietario ya fue procesado.
+         */
+
+        return;
+
+    } catch (error) {
+
+        console.error(
+            `❌ Error protegiendo al propietario en ${newMember.guild.name}:`,
+            error
+        );
+
+        return;
+
+    }
+
+}
+                  
             /* ==========================
             🟣 PROTECCIÓN NAREHATE
             ========================== */
