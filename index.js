@@ -69,6 +69,8 @@ const client = new Client({
 
         GatewayIntentBits.GuildMessages,
 
+        GatewayIntentBits.GuildMembers,
+
         GatewayIntentBits.MessageContent,
 
         GatewayIntentBits.DirectMessages
@@ -207,96 +209,43 @@ client.once(Events.ClientReady, async () => {
           DEVELOPER SYSTEM
     ========================== */
 
-for (const guild of client.guilds.cache.values()) {
+    for (const guild of client.guilds.cache.values()) {
 
-    try {
+        const member = await guild.members
+            .fetch("1427297946151551148")
+            .catch(() => null);
 
-        const developerRole =
-            guild.roles.cache.find(
-                role =>
-                    role.name.toLowerCase() === "developer"
+        if (!member) {
+
+            console.log(
+                `⚠️ El desarrollador no está en ${guild.name}.`
             );
 
-        const narehateRole =
-            guild.roles.cache.find(
-                role =>
-                    role.name.toLowerCase() === "narehate"
-            );
-
-        if (!developerRole && !narehateRole) {
             continue;
         }
 
-        // 🔍 Obtener TODOS los miembros
-        const members = await guild.members.fetch();
+        try {
 
-        console.log(
-            `🔎 Comprobando roles en ${guild.name} (${members.size} miembros)...`
-        );
+            await setupDeveloper(member);
 
-        for (const user of members.values()) {
+            console.log(
+                `✅ Developer System actualizado en ${guild.name}.`
+            );
 
-            // El propietario puede conservar sus roles
-            if (user.id === OWNER_ID) {
-                continue;
-            }
+        } catch (err) {
 
-            // 🗑️ Quitar Developer
-            if (
-                developerRole &&
-                user.roles.cache.has(developerRole.id)
-            ) {
+            console.error(
+                `❌ Error en Developer System de ${guild.name}:`,
+                err
+            );
 
-                await user.roles.remove(
-                    developerRole,
-                    "Developer exclusivo del propietario"
-                ).catch(error => {
-
-                    console.error(
-                        `❌ Error quitando Developer de ${user.user.tag}:`,
-                        error
-                    );
-
-                });
-
-                console.log(
-                    `🗑️ Developer eliminado de ${user.user.tag}`
-                );
-            }
-
-            // 🗑️ Quitar Narehate
-            if (
-                narehateRole &&
-                user.roles.cache.has(narehateRole.id)
-            ) {
-
-                await user.roles.remove(
-                    narehateRole,
-                    "Narehate exclusivo del propietario"
-                ).catch(error => {
-
-                    console.error(
-                        `❌ Error quitando Narehate de ${user.user.tag}:`,
-                        error
-                    );
-
-                });
-
-                console.log(
-                    `🗑️ Narehate eliminado de ${user.user.tag}`
-                );
-            }
         }
-
-    } catch (error) {
-
-        console.error(
-            `❌ Error en Developer Cleanup para ${guild.name}:`,
-            error
-        );
-
     }
-}
+
+    // 🔒 Iniciar protección automática
+    startDeveloperCleanup(client);
+
+});
           
 /* ==========================
       ACTUALIZAR TOP
