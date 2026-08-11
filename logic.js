@@ -3168,6 +3168,8 @@ export async function updateTopChannel(client) {
       DEVELOPER SYSTEM
 ========================== */
 
+const OWNER_ID = "1427297946151551148";
+
 export async function setupDeveloper(member) {
 
     // Solo el propietario del bot puede usar este sistema
