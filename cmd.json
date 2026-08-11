@@ -183,6 +183,19 @@
     ]
   },
   {
+    "name": "delrank",
+    "description": "Quita un rango a un usuario.",
+    "default_member_permissions": "8",
+    "options": [
+        {
+            "name": "usuario",
+            "description": "Usuario al que se le quitará el rango.",
+            "type": 6,
+            "required": true
+        }
+    ]
+  },
+  {
     "name": "setrank",
     "description": "Establece el rango de un usuario.",
     "default_member_permissions": "8",
