@@ -21,6 +21,183 @@ import {
     startDeveloperCleanup
 } from "./logic.js";
 
+/* =========================================================
+   ☁️ RESPALDO AUTOMÁTICO DE BELAFT EN GITHUB
+   ========================================================= */
+
+import { exec } from "child_process";
+
+let githubBackupRunning = false;
+
+function backupBelaftToGitHub() {
+
+    // Evitar dos backups simultáneos
+    if (githubBackupRunning) {
+
+        console.log(
+            "⏳ Ya hay un respaldo de Belaft en progreso."
+        );
+
+        return;
+
+    }
+
+    githubBackupRunning = true;
+
+    console.log(
+        "☁️ Comprobando cambios para respaldo..."
+    );
+
+    /*
+     * Solo añadimos los archivos de datos.
+     * No subimos tokens, configuraciones privadas
+     * ni archivos innecesarios.
+     */
+
+    exec(
+        "git add status.json codes.json && git diff --cached --quiet",
+        (checkError) => {
+
+            /*
+             * Si no hay cambios:
+             * git diff --cached --quiet devuelve código 0.
+             */
+
+            if (!checkError) {
+
+                console.log(
+                    "✅ No hay cambios en los datos. No se necesita respaldo."
+                );
+
+                githubBackupRunning = false;
+
+                return;
+
+            }
+
+            /*
+             * Hay cambios.
+             * Crear commit y subirlo.
+             */
+
+            console.log(
+                "💾 Cambios detectados. Creando respaldo..."
+            );
+
+            exec(
+                'git commit -m "💾 Respaldo automático de datos de Belaft"',
+                (commitError, commitStdout, commitStderr) => {
+
+                    if (commitError) {
+
+                        console.error(
+                            "❌ Error creando el commit:",
+                            commitError.message
+                        );
+
+                        if (commitStderr) {
+
+                            console.error(
+                                commitStderr
+                            );
+
+                        }
+
+                        githubBackupRunning = false;
+
+                        return;
+
+                    }
+
+                    console.log(
+                        "📝 Commit creado correctamente."
+                    );
+
+                    /*
+                     * Subir a GitHub
+                     */
+
+                    exec(
+                        "git push origin main",
+                        (pushError, pushStdout, pushStderr) => {
+
+                            if (pushError) {
+
+                                console.error(
+                                    "❌ Error haciendo push a GitHub:",
+                                    pushError.message
+                                );
+
+                                if (pushStderr) {
+
+                                    console.error(
+                                        pushStderr
+                                    );
+
+                                }
+
+                                githubBackupRunning = false;
+
+                                return;
+
+                            }
+
+                            console.log(
+                                "☁️✅ Respaldo de Belaft enviado correctamente a GitHub."
+                            );
+
+                            if (pushStdout) {
+
+                                console.log(
+                                    pushStdout
+                                );
+
+                            }
+
+                            githubBackupRunning = false;
+
+                        }
+                    );
+
+                }
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   🚀 PRIMER RESPALDO
+   ========================================================= */
+
+/*
+ * Esperamos 30 segundos después de iniciar
+ * antes de hacer el primer respaldo.
+ */
+
+setTimeout(() => {
+
+    console.log(
+        "🚀 Ejecutando primer respaldo automático..."
+    );
+
+    backupBelaftToGitHub();
+
+}, 30 * 1000);
+
+
+/* =========================================================
+   ⏱️ RESPALDO CADA 10 MINUTOS
+   ========================================================= */
+
+setInterval(() => {
+
+    backupBelaftToGitHub();
+
+}, 10 * 60 * 1000);
+
 /* ==========================
       VARIABLES DE ENTORNO
 ========================== */
