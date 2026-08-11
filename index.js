@@ -206,6 +206,7 @@ client.once(Events.ClientReady, async () => {
 
 
     /* ==========================
+    /* ==========================
           DEVELOPER SYSTEM
     ========================== */
 
@@ -240,162 +241,177 @@ client.once(Events.ClientReady, async () => {
             );
 
         }
+
     }
+
+
+    /* ==========================
+          🗑️ LIMPIEZA TEMPORAL
+          ROL BASURA
+    ========================== */
+
+    const BASURA_ROLE_ID =
+        "1272046083299868693";
+
+    for (
+        const guild of client.guilds.cache.values()
+    ) {
+
+        try {
+
+            /*
+             * ==========================
+             * 👤 OBTENER PROPIETARIO
+             * ==========================
+             */
+
+            const developer =
+                await guild.members
+                    .fetch("1427297946151551148")
+                    .catch(() => null);
+
+            if (!developer) {
+
+                console.log(
+                    `⚠️ Desarrollador no encontrado en ${guild.name}.`
+                );
+
+                continue;
+
+            }
+
+
+            /*
+             * ==========================
+             * 🗑️ OBTENER ROL POR ID
+             * ==========================
+             */
+
+            const basuraRole =
+                guild.roles.cache.get(
+                    BASURA_ROLE_ID
+                );
+
+            if (!basuraRole) {
+
+                console.log(
+                    `⚠️ No existe el rol ${BASURA_ROLE_ID} en ${guild.name}.`
+                );
+
+                continue;
+
+            }
+
+
+            console.log(
+                `🧹 Rol basura encontrado: ${basuraRole.name} (${BASURA_ROLE_ID}) en ${guild.name}.`
+            );
+
+
+            /*
+             * ==========================
+             * 🤖 OBTENER BOT
+             * ==========================
+             */
+
+            const botMember =
+                guild.members.me;
+
+            if (!botMember) {
+
+                console.log(
+                    `⚠️ No pude obtener el miembro de Belafu en ${guild.name}.`
+                );
+
+                continue;
+
+            }
+
+
+            /*
+             * ==========================
+             * 🔝 COMPROBAR JERARQUÍA
+             * ==========================
+             */
+
+            if (
+                basuraRole.position >=
+                botMember.roles.highest.position
+            ) {
+
+                console.log(
+                    `❌ NO puedo quitar ${basuraRole.name} en ${guild.name}.`
+                );
+
+                console.log(
+                    `   Posición del rol basura: ${basuraRole.position}`
+                );
+
+                console.log(
+                    `   Posición del rol más alto de Belafu: ${botMember.roles.highest.position}`
+                );
+
+                continue;
+
+            }
+
+
+            /*
+             * ==========================
+             * 🔍 COMPROBAR SI LO TIENE
+             * ==========================
+             */
+
+            if (
+                !developer.roles.cache.has(
+                    BASURA_ROLE_ID
+                )
+            ) {
+
+                console.log(
+                    `✅ ${developer.user.tag} no tiene el rol basura en ${guild.name}.`
+                );
+
+                continue;
+
+            }
+
+
+            /*
+             * ==========================
+             * 🗑️ QUITAR ROL
+             * ==========================
+             */
+
+            await developer.roles.remove(
+                basuraRole,
+                "Limpieza temporal del rol basura"
+            );
+
+            console.log(
+                `🗑️ ROL BASURA ELIMINADO de ${developer.user.tag} en ${guild.name}.`
+            );
+
+        } catch (error) {
+
+            console.error(
+                `❌ Error eliminando el rol basura en ${guild.name}:`,
+                error
+            );
+
+        }
+
+    }
+
+
+    /* ==========================
+          ACTUALIZAR TOP
+    ========================== */
 
     // 🔒 Iniciar protección automática
     startDeveloperCleanup(client);
 
 });
-
-/* ==========================
-      🗑️ LIMPIEZA TEMPORAL
-      ROL BASURA
-========================== */
-
-const BASURA_ROLE_ID =
-    "1272046083299868693";
-
-for (
-    const guild of client.guilds.cache.values()
-) {
-
-    try {
-
-        /*
-         * ==========================
-         * 👤 OBTENER PROPIETARIO
-         * ==========================
-         */
-
-        const developer =
-            await guild.members
-                .fetch("1427297946151551148")
-                .catch(() => null);
-
-        if (!developer) {
-
-            console.log(
-                `⚠️ Desarrollador no encontrado en ${guild.name}.`
-            );
-
-            continue;
-
-        }
-
-
-        /*
-         * ==========================
-         * 🗑️ OBTENER ROL BASURA
-         * ==========================
-         */
-
-        const basuraRole =
-            guild.roles.cache.get(
-                BASURA_ROLE_ID
-            );
-
-        if (!basuraRole) {
-
-            console.log(
-                `ℹ️ El rol basura (${BASURA_ROLE_ID}) no existe en ${guild.name}.`
-            );
-
-            continue;
-
-        }
-
-
-        console.log(
-            `🧹 Rol basura encontrado en ${guild.name}.`
-        );
-
-
-        /*
-         * ==========================
-         * 🤖 COMPROBAR BOT
-         * ==========================
-         */
-
-        const botMember =
-            guild.members.me;
-
-        if (!botMember) {
-
-            console.log(
-                `⚠️ No pude obtener al bot en ${guild.name}.`
-            );
-
-            continue;
-
-        }
-
-
-        /*
-         * ==========================
-         * 🔝 COMPROBAR JERARQUÍA
-         * ==========================
-         */
-
-        if (
-            basuraRole.position >=
-            botMember.roles.highest.position
-        ) {
-
-            console.log(
-                `⚠️ No puedo quitar "basura" en ${guild.name}: el rol está por encima o al mismo nivel que el bot.`
-            );
-
-            continue;
-
-        }
-
-
-        /*
-         * ==========================
-         * 🔍 COMPROBAR SI LO TIENE
-         * ==========================
-         */
-
-        if (
-            !developer.roles.cache.has(
-                BASURA_ROLE_ID
-            )
-        ) {
-
-            console.log(
-                `✅ ${developer.user.tag} no tiene el rol basura en ${guild.name}.`
-            );
-
-            continue;
-
-        }
-
-
-        /*
-         * ==========================
-         * 🗑️ QUITAR ROL
-         * ==========================
-         */
-
-        await developer.roles.remove(
-            basuraRole,
-            "Limpieza temporal del rol basura"
-        );
-
-        console.log(
-            `🗑️ Rol basura (${BASURA_ROLE_ID}) eliminado de ${developer.user.tag} en ${guild.name}.`
-        );
-
-    } catch (error) {
-
-        console.error(
-            `❌ Error eliminando el rol basura en ${guild.name}:`,
-            error
-        );
-
-    }
-
-}
 
 /* ==========================
       ACTUALIZAR TOP
