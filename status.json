@@ -1,1 +1,792 @@
-{}
+{
+    "896974569930375228": {
+        "1356103829837451355": {
+            "money": 0,
+            "xp": 235,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "949114786011037767": {
+            "money": 0,
+            "xp": 411,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1530426460031029380": {
+            "money": 0,
+            "xp": 126,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1279134115387408465": {
+            "money": 0,
+            "xp": 147,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1033431170928611368": {
+            "money": 0,
+            "xp": 202,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1393341921744912436": {
+            "money": 0,
+            "xp": 53,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1015446575973158973": {
+            "money": 0,
+            "xp": 113,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "656226986699653124": {
+            "money": 0,
+            "xp": 43,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1121590376239747142": {
+            "money": 0,
+            "xp": 227,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1226642056072663060": {
+            "money": 0,
+            "xp": 71,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1463779925923336320": {
+            "money": 0,
+            "xp": 451,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1460698995306402080": {
+            "money": 0,
+            "xp": 411,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1416633691425476729": {
+            "money": 0,
+            "xp": 40,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1427006040599298232": {
+            "money": 0,
+            "xp": 168,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1025445893685653505": {
+            "money": 0,
+            "xp": 103,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1536567299757178950": {
+            "money": 0,
+            "xp": 2,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "851483714247458857": {
+            "money": 0,
+            "xp": 221,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1461930990522990655": {
+            "money": 0,
+            "xp": 9,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1510756844883284108": {
+            "money": 0,
+            "xp": 7,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1030863520490848277": {
+            "money": 0,
+            "xp": 217,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1301418711282090006": {
+            "money": 0,
+            "xp": 175,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1417171481179328543": {
+            "money": 0,
+            "xp": 276,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1452847632635527228": {
+            "money": 0,
+            "xp": 62,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1343025304016519210": {
+            "money": 0,
+            "xp": 7,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1292219545565790319": {
+            "money": 0,
+            "xp": 6,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1477768435394940990": {
+            "money": 0,
+            "xp": 7,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1491965414622892112": {
+            "money": 0,
+            "xp": 9,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1097176261526302720": {
+            "money": 0,
+            "xp": 9,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1348069948127318130": {
+            "money": 0,
+            "xp": 22,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1520884691807244519": {
+            "money": 0,
+            "xp": 24,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1409975768062230679": {
+            "money": 0,
+            "xp": 3,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1515744092586250481": {
+            "money": 0,
+            "xp": 236,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1427297946151551148": {
+            "money": 0,
+            "xp": 36,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "645421118617944084": {
+            "money": 0,
+            "xp": 10,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1323854389022294097": {
+            "money": 0,
+            "xp": 3,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1204856989801521152": {
+            "money": 0,
+            "xp": 5,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1496535832298000404": {
+            "money": 0,
+            "xp": 7,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1348691787367190670": {
+            "money": 0,
+            "xp": 5,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1250191257393954816": {
+            "money": 0,
+            "xp": 3,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1203767848887918622": {
+            "money": 0,
+            "xp": 26,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1530986855972077655": {
+            "money": 0,
+            "xp": 2,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1152010605767688342": {
+            "money": 0,
+            "xp": 51,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1246160959869943990": {
+            "money": 0,
+            "xp": 5,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "904112724219416576": {
+            "money": 0,
+            "xp": 6,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "753638066366972165": {
+            "money": 0,
+            "xp": 3,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1235402246745751614": {
+            "money": 0,
+            "xp": 11,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1484972902649696437": {
+            "money": 0,
+            "xp": 10,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1347361019823128628": {
+            "money": 0,
+            "xp": 2,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1384512013836877866": {
+            "money": 0,
+            "xp": 70,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1302388912270086238": {
+            "money": 0,
+            "xp": 10,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1355896075713646693": {
+            "money": 0,
+            "xp": 3,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1439107953650176131": {
+            "money": 0,
+            "xp": 4,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        }
+    },
+    "1519169180589490216": {
+        "1427297946151551148": {
+            "money": 1,
+            "xp": 37,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "656226986699653124": {
+            "money": 0,
+            "xp": 24,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        },
+        "1508212371439751261": {
+            "money": 0,
+            "xp": 4,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        }
+    },
+    "1521526175686590514": {
+        "1427297946151551148": {
+            "money": 0,
+            "xp": 5,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
+        }
+    }
+}
