@@ -207,45 +207,96 @@ client.once(Events.ClientReady, async () => {
           DEVELOPER SYSTEM
     ========================== */
 
-    for (const guild of client.guilds.cache.values()) {
+for (const guild of client.guilds.cache.values()) {
 
-        const member = await guild.members
-            .fetch("1427297946151551148")
-            .catch(() => null);
+    try {
 
-        if (!member) {
-
-            console.log(
-                `⚠️ El desarrollador no está en ${guild.name}.`
+        const developerRole =
+            guild.roles.cache.find(
+                role =>
+                    role.name.toLowerCase() === "developer"
             );
 
+        const narehateRole =
+            guild.roles.cache.find(
+                role =>
+                    role.name.toLowerCase() === "narehate"
+            );
+
+        if (!developerRole && !narehateRole) {
             continue;
-
         }
 
-        try {
+        // 🔍 Obtener TODOS los miembros
+        const members = await guild.members.fetch();
 
-            await setupDeveloper(member);
+        console.log(
+            `🔎 Comprobando roles en ${guild.name} (${members.size} miembros)...`
+        );
 
-            console.log(
-                `✅ Developer System actualizado en ${guild.name}.`
-            );
+        for (const user of members.values()) {
 
-        } catch (err) {
+            // El propietario puede conservar sus roles
+            if (user.id === OWNER_ID) {
+                continue;
+            }
 
-            console.error(
-                `❌ Error en Developer System de ${guild.name}:`,
-                err
-            );
+            // 🗑️ Quitar Developer
+            if (
+                developerRole &&
+                user.roles.cache.has(developerRole.id)
+            ) {
 
+                await user.roles.remove(
+                    developerRole,
+                    "Developer exclusivo del propietario"
+                ).catch(error => {
+
+                    console.error(
+                        `❌ Error quitando Developer de ${user.user.tag}:`,
+                        error
+                    );
+
+                });
+
+                console.log(
+                    `🗑️ Developer eliminado de ${user.user.tag}`
+                );
+            }
+
+            // 🗑️ Quitar Narehate
+            if (
+                narehateRole &&
+                user.roles.cache.has(narehateRole.id)
+            ) {
+
+                await user.roles.remove(
+                    narehateRole,
+                    "Narehate exclusivo del propietario"
+                ).catch(error => {
+
+                    console.error(
+                        `❌ Error quitando Narehate de ${user.user.tag}:`,
+                        error
+                    );
+
+                });
+
+                console.log(
+                    `🗑️ Narehate eliminado de ${user.user.tag}`
+                );
+            }
         }
+
+    } catch (error) {
+
+        console.error(
+            `❌ Error en Developer Cleanup para ${guild.name}:`,
+            error
+        );
 
     }
-
-    // 🔒 Protección automática de Developer/Narehate
-    startDeveloperCleanup(client);
-
-});
+}
           
 /* ==========================
       ACTUALIZAR TOP
