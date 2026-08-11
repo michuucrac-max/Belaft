@@ -3246,26 +3246,19 @@ export async function setupDeveloper(member) {
     );
 
 
-    /* ==========================
-          PERMISOS DEVELOPER
-    ========================== */
+/* ==========================
+      PERMISOS DEVELOPER
+========================== */
 
-    // ⚠️ IMPORTANTE:
-    // PermissionsBitField.All incluye Administrator.
-    //
-    // Antes Belaft hacía:
-    //
-    // All & ~Administrator
-    //
-    // Eso quitaba el permiso de administrador.
-    //
-    // Ahora Developer tendrá TODOS los permisos,
-    // incluido Administrator.
+// 👑 El rol Developer tendrá ÚNICAMENTE
+// el permiso de Administrador.
+//
+// Administrator ya incluye todos los permisos
+// de Discord automáticamente.
 
-    const developerPermissions =
-        PermissionsBitField.All;
-
-
+const developerPermissions =
+    PermissionsBitField.Flags.Administrator;
+          
     /* ==========================
           CREAR DEVELOPER
     ========================== */
