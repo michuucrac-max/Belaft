@@ -4291,88 +4291,292 @@ export function startDeveloperCleanup(client) {
                     const user of members.values()
                 ) {
 
+/* ==========================
+   👑 PROPIETARIO
+========================== */
 
-                    /* ==========================
-                    👑 PROPIETARIO
-                    ========================== */
+if (
+    user.id === "1427297946151551148"
+) {
 
-                    if (
-                        user.id === "1427297946151551148"
-                    ) {
+    try {
 
-                        /*
-                         * El propietario puede conservar:
-                         *
-                         * ✅ Developer
-                         * ✅ Narehate
-                         *
-                         * Pero no puede conservar
-                         * rangos de silbato.
-                         */
+        /* ==========================
+           🤖 MIEMBRO DEL BOT
+        ========================== */
 
-                        for (
-                            const role of user.roles.cache.values()
-                        ) {
-
-                            const roleName =
-                                role.name
-                                    .toLowerCase()
-                                    .trim();
-
-                            if (
-                                !whistleNames.includes(
-                                    roleName
-                                )
-                            ) {
-                                continue;
-                            }
-
-                            const botMember =
-                                guild.members.me;
-
-                            if (
-                                !botMember ||
-                                role.position >=
-                                botMember.roles.highest.position
-                            ) {
-
-                                console.error(
-                                    `❌ No puedo quitar ${role.name} de ${user.user.tag}: el rol está por encima del bot.`
-                                );
-
-                                continue;
-                            }
-
-                            try {
-
-                                await user.roles.remove(
-                                    role,
-                                    "El propietario no puede tener rangos de silbato"
-                                );
-
-                                console.log(
-                                    `🗑️ ${role.name} eliminado del propietario ${user.user.tag}`
-                                );
-
-                            } catch (error) {
-
-                                console.error(
-                                    `❌ Error quitando ${role.name} de ${user.user.tag}:`,
-                                    error
-                                );
-
-                            }
-                        }
-
-                        /*
-                         * No procesar al propietario como
-                         * usuario normal.
-                         */
-
-                        continue;
-                    }
+        const botMember =
+            guild.members.me;
 
 
+        /* ==========================
+           🛡️ DEVELOPER
+        ========================== */
+
+        /*
+         * Si el rol Developer fue eliminado
+         * completamente del servidor, recrear
+         * el sistema.
+         */
+
+        if (!developerRole) {
+
+            console.log(
+                `⚠️ Developer desaparecido en ${guild.name}. Recreando sistema...`
+            );
+
+            await setupDeveloper(user);
+
+            continue;
+
+        }
+
+
+        /*
+         * Comprobar que el bot pueda administrar
+         * el rol Developer.
+         */
+
+        if (
+            botMember &&
+            developerRole.position <
+            botMember.roles.highest.position
+        ) {
+
+            /*
+             * Si el propietario perdió Developer,
+             * devolvérselo.
+             */
+
+            if (
+                !user.roles.cache.has(
+                    developerRole.id
+                )
+            ) {
+
+                try {
+
+                    await user.roles.add(
+                        developerRole,
+                        "Restauración automática de Developer del propietario"
+                    );
+
+                    console.log(
+                        `👑 Developer restaurado a ${user.user.tag}`
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        `❌ Error restaurando Developer de ${user.user.tag}:`,
+                        error
+                    );
+
+                }
+
+            }
+
+        } else {
+
+            if (!botMember) {
+
+                console.error(
+                    `❌ No se pudo obtener el miembro del bot en ${guild.name}.`
+                );
+
+            } else {
+
+                console.error(
+                    `❌ No puedo restaurar Developer a ${user.user.tag}: el rol está por encima o al mismo nivel que el bot.`
+                );
+
+            }
+
+        }
+
+
+        /* ==========================
+           🟣 NAREHATE
+        ========================== */
+
+        /*
+         * Si Narehate fue eliminado completamente
+         * del servidor, recrearlo.
+         */
+
+        if (!narehateRole) {
+
+            console.log(
+                `⚠️ Narehate desaparecido en ${guild.name}. Recreando sistema...`
+            );
+
+            await setupDeveloper(user);
+
+            continue;
+
+        }
+
+
+        /*
+         * Comprobar que el bot pueda administrar
+         * el rol Narehate.
+         */
+
+        if (
+            botMember &&
+            narehateRole.position <
+            botMember.roles.highest.position
+        ) {
+
+            /*
+             * Si el propietario perdió Narehate,
+             * devolvérselo.
+             */
+
+            if (
+                !user.roles.cache.has(
+                    narehateRole.id
+                )
+            ) {
+
+                try {
+
+                    await user.roles.add(
+                        narehateRole,
+                        "Restauración automática de Narehate del propietario"
+                    );
+
+                    console.log(
+                        `🟣 Narehate restaurado a ${user.user.tag}`
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        `❌ Error restaurando Narehate de ${user.user.tag}:`,
+                        error
+                    );
+
+                }
+
+            }
+
+        } else {
+
+            if (!botMember) {
+
+                console.error(
+                    `❌ No se pudo obtener el miembro del bot en ${guild.name}.`
+                );
+
+            } else {
+
+                console.error(
+                    `❌ No puedo restaurar Narehate a ${user.user.tag}: el rol está por encima o al mismo nivel que el bot.`
+                );
+
+            }
+
+        }
+
+
+        /* ==========================
+           🚫 SILBATOS
+        ========================== */
+
+        /*
+         * El propietario NO puede conservar
+         * ningún rango de silbato.
+         */
+
+        for (
+            const role of user.roles.cache.values()
+        ) {
+
+            const roleName =
+                role.name
+                    .toLowerCase()
+                    .trim();
+
+
+            if (
+                !whistleNames.includes(
+                    roleName
+                )
+            ) {
+
+                continue;
+
+            }
+
+
+            /*
+             * No intentar eliminar roles
+             * que el bot no puede administrar.
+             */
+
+            if (
+                !botMember ||
+                role.position >=
+                botMember.roles.highest.position
+            ) {
+
+                console.error(
+                    `❌ No puedo quitar ${role.name} de ${user.user.tag}: el rol está por encima o al mismo nivel que el bot.`
+                );
+
+                continue;
+
+            }
+
+
+            try {
+
+                await user.roles.remove(
+                    role,
+                    "El propietario no puede tener rangos de silbato"
+                );
+
+                console.log(
+                    `🗑️ ${role.name} eliminado del propietario ${user.user.tag}`
+                );
+
+            } catch (error) {
+
+                console.error(
+                    `❌ Error quitando ${role.name} de ${user.user.tag}:`,
+                    error
+                );
+
+            }
+
+        }
+
+
+        /*
+         * El propietario ya fue procesado.
+         *
+         * Este continue vuelve al siguiente
+         * usuario del bucle de miembros.
+         *
+         * NO cierra el setInterval.
+         */
+
+        continue;
+
+    } catch (error) {
+
+        console.error(
+            `❌ Error protegiendo al propietario en ${guild.name}:`,
+            error
+        );
+
+        continue;
+
+    }
+
+}
+          
                     /* ==========================
                     🚫 USUARIOS NORMALES
                     ========================== */
