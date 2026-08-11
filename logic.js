@@ -3,6 +3,8 @@
 ========================== */
 
 import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import objects from "./objects.json" with { type: "json" };
 import {
     ActionRowBuilder,
@@ -19,8 +21,12 @@ import {
            RUTAS
 ========================== */
 
-const CONFIG_PATH = "./config.json";
-const STATUS_PATH = "./status.json";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const CONFIG_PATH = path.join(__dirname, "config.json");
+const STATUS_PATH = path.join(__dirname, "status.json");
+const CODES_FILE = path.join(__dirname, "codes.json");
 
 let relicChance = 0.10; // 10% inicial
 
@@ -114,8 +120,6 @@ function saveStatus() {
 /* ==========================
         PROMO CODES
 ========================== */
-
-const CODES_FILE = "./codes.json";
 
 let codes = JSON.parse(
     fs.readFileSync(CODES_FILE, "utf8")
