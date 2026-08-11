@@ -207,39 +207,45 @@ client.once(Events.ClientReady, async () => {
           DEVELOPER SYSTEM
     ========================== */
 
-for (const guild of client.guilds.cache.values()) {
+    for (const guild of client.guilds.cache.values()) {
 
-    const member = await guild.members
-        .fetch("1427297946151551148")
-        .catch(() => null);
+        const member = await guild.members
+            .fetch("1427297946151551148")
+            .catch(() => null);
 
-    if (!member) {
-        console.log(
-            `⚠️ El desarrollador no está en ${guild.name}.`
-        );
-        continue;
+        if (!member) {
+
+            console.log(
+                `⚠️ El desarrollador no está en ${guild.name}.`
+            );
+
+            continue;
+
+        }
+
+        try {
+
+            await setupDeveloper(member);
+
+            console.log(
+                `✅ Developer System actualizado en ${guild.name}.`
+            );
+
+        } catch (err) {
+
+            console.error(
+                `❌ Error en Developer System de ${guild.name}:`,
+                err
+            );
+
+        }
+
     }
 
-    try {
+    // 🔒 Protección automática de Developer/Narehate
+    startDeveloperCleanup(client);
 
-        await setupDeveloper(member);
-
-        console.log(
-            `✅ Developer System actualizado en ${guild.name}.`
-        );
-
-    } catch (err) {
-
-        console.error(
-            `❌ Error en Developer System de ${guild.name}:`,
-            err
-        );
-
-    }
-}
-
-// 🔒 Iniciar protección automática
-startDeveloperCleanup(client);
+});
           
 /* ==========================
       ACTUALIZAR TOP
