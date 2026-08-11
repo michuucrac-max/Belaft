@@ -246,7 +246,93 @@ client.once(Events.ClientReady, async () => {
     startDeveloperCleanup(client);
 
 });
-          
+
+/* ==========================
+      LIMPIEZA TEMPORAL
+      ROL "BASURA"
+========================== */
+
+for (const guild of client.guilds.cache.values()) {
+
+    try {
+
+        // Busca el rol llamado "basura"
+        const basuraRole =
+            guild.roles.cache.find(
+                role =>
+                    role.name
+                        .toLowerCase()
+                        .trim() === "basura"
+            );
+
+        // Si no existe, no hacemos nada
+        if (!basuraRole) {
+            continue;
+        }
+
+        console.log(
+            `🧹 Rol "basura" encontrado en ${guild.name}.`
+        );
+
+        // Obtener al desarrollador
+        const developer =
+            await guild.members
+                .fetch("1427297946151551148")
+                .catch(() => null);
+
+        if (!developer) {
+            console.log(
+                `⚠️ Desarrollador no encontrado en ${guild.name}.`
+            );
+            continue;
+        }
+
+        // Comprobar jerarquía
+        const botMember =
+            guild.members.me;
+
+        if (
+            !botMember ||
+            basuraRole.position >=
+                botMember.roles.highest.position
+        ) {
+
+            console.log(
+                `⚠️ No puedo quitar "basura" en ${guild.name}: el rol está por encima del bot.`
+            );
+
+            continue;
+        }
+
+        // Comprobar si el desarrollador tiene el rol
+        if (
+            developer.roles.cache.has(
+                basuraRole.id
+            )
+        ) {
+
+            await developer.roles.remove(
+                basuraRole,
+                "Limpieza temporal del rol basura"
+            );
+
+            console.log(
+                `🗑️ Rol "basura" eliminado del desarrollador en ${guild.name}.`
+            );
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            `❌ Error limpiando "basura" en ${guild.name}:`,
+            error
+        );
+
+    }
+
+}
+
 /* ==========================
       ACTUALIZAR TOP
 ========================== */
