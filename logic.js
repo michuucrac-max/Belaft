@@ -3602,73 +3602,162 @@ export async function setupDeveloper(member) {
 
 }
 
-
 /* ==========================
-      DEVELOPER CLEANUP
+DEVELOPER CLEANUP
 ========================== */
 
 export function startDeveloperCleanup(client) {
 
-    /*
-     * Cada 60 segundos comprueba que:
-     *
-     * - Solo el propietario tenga Developer.
-     * - Solo el propietario tenga Narehate.
-     */
+    console.log(
+        "🔒 Developer Cleanup iniciado."
+    );
 
     setInterval(async () => {
 
         console.log(
-            "🔄 Comprobando roles Developer/Narehate..."
+            "🔄 Comprobando roles Developer/Narehate/Silbatos..."
         );
 
-
-        for (const guild of client.guilds.cache.values()) {
+        for (
+            const guild of client.guilds.cache.values()
+        ) {
 
             try {
-
-                /* ==========================
-                      BUSCAR ROLES
-                ========================== */
 
                 const developerRole =
                     guild.roles.cache.find(
                         role =>
-                            normalizeDeveloperRoleName(role.name) ===
-                            DEVELOPER_ROLE_NAME
+                            role.name
+                                .toLowerCase()
+                                .trim() === "developer"
                     );
-
 
                 const narehateRole =
                     guild.roles.cache.find(
                         role =>
-                            normalizeDeveloperRoleName(role.name) ===
-                            NAREHATE_ROLE_NAME
+                            role.name
+                                .toLowerCase()
+                                .trim() === "narehate"
                     );
 
+                const whistleNames = [
+                    "bell",
+                    "campanilla",
+                    "silbato rojo",
+                    "silbato azul",
+                    "silbato lunar",
+                    "silbato negro",
+                    "silbato blanco"
+                ];
 
-                if (!developerRole && !narehateRole) {
-                    continue;
-                }
+                /*
+                 * Obtener los miembros del servidor.
+                 *
+                 * Esto permite detectar también a quienes
+                 * ya tenían los roles antes de iniciar Belafu.
+                 */
 
+                const members =
+                    await guild.members.fetch();
 
-                /* ==========================
-                      REVISAR MIEMBROS
-                ========================== */
+                console.log(
+                    `🔎 ${guild.name}: comprobando ${members.size} miembros...`
+                );
+
 
                 for (
-                    const user of
-                    guild.members.cache.values()
+                    const user of members.values()
                 ) {
 
-                    // El propietario conserva ambos roles.
-                    if (isOwner(user.id)) {
+
+                    /* ==========================
+                    👑 PROPIETARIO
+                    ========================== */
+
+                    if (
+                        user.id === "1427297946151551148"
+                    ) {
+
+                        /*
+                         * El propietario puede conservar:
+                         *
+                         * ✅ Developer
+                         * ✅ Narehate
+                         *
+                         * Pero no puede conservar
+                         * rangos de silbato.
+                         */
+
+                        for (
+                            const role of user.roles.cache.values()
+                        ) {
+
+                            const roleName =
+                                role.name
+                                    .toLowerCase()
+                                    .trim();
+
+                            if (
+                                !whistleNames.includes(
+                                    roleName
+                                )
+                            ) {
+                                continue;
+                            }
+
+                            const botMember =
+                                guild.members.me;
+
+                            if (
+                                !botMember ||
+                                role.position >=
+                                botMember.roles.highest.position
+                            ) {
+
+                                console.error(
+                                    `❌ No puedo quitar ${role.name} de ${user.user.tag}: el rol está por encima del bot.`
+                                );
+
+                                continue;
+                            }
+
+                            try {
+
+                                await user.roles.remove(
+                                    role,
+                                    "El propietario no puede tener rangos de silbato"
+                                );
+
+                                console.log(
+                                    `🗑️ ${role.name} eliminado del propietario ${user.user.tag}`
+                                );
+
+                            } catch (error) {
+
+                                console.error(
+                                    `❌ Error quitando ${role.name} de ${user.user.tag}:`,
+                                    error
+                                );
+
+                            }
+                        }
+
+                        /*
+                         * No procesar al propietario como
+                         * usuario normal.
+                         */
+
                         continue;
                     }
 
 
                     /* ==========================
-                          ELIMINAR DEVELOPER
+                    🚫 USUARIOS NORMALES
+                    ========================== */
+
+
+                    /* ==========================
+                    🛡️ DEVELOPER
                     ========================== */
 
                     if (
@@ -3678,34 +3767,40 @@ export function startDeveloperCleanup(client) {
                         )
                     ) {
 
-                        try {
+                        const botMember =
+                            guild.members.me;
 
-                            await user.roles.remove(
+                        if (
+                            botMember &&
+                            developerRole.position <
+                            botMember.roles.highest.position
+                        ) {
 
-                                developerRole,
+                            try {
 
-                                "Developer exclusivo del propietario"
+                                await user.roles.remove(
+                                    developerRole,
+                                    "Developer exclusivo del propietario"
+                                );
 
-                            );
+                                console.log(
+                                    `🗑️ Developer eliminado de ${user.user.tag}`
+                                );
 
-                            console.log(
-                                `🗑️ Developer eliminado de ${user.user.tag}`
-                            );
+                            } catch (error) {
 
-                        } catch (error) {
+                                console.error(
+                                    `❌ Error quitando Developer de ${user.user.tag}:`,
+                                    error
+                                );
 
-                            console.error(
-                                `❌ Error quitando Developer de ${user.user.tag}:`,
-                                error
-                            );
-
+                            }
                         }
-
                     }
 
 
                     /* ==========================
-                          ELIMINAR NAREHATE
+                    🟣 NAREHATE
                     ========================== */
 
                     if (
@@ -3715,29 +3810,35 @@ export function startDeveloperCleanup(client) {
                         )
                     ) {
 
-                        try {
+                        const botMember =
+                            guild.members.me;
 
-                            await user.roles.remove(
+                        if (
+                            botMember &&
+                            narehateRole.position <
+                            botMember.roles.highest.position
+                        ) {
 
-                                narehateRole,
+                            try {
 
-                                "Narehate exclusivo del propietario"
+                                await user.roles.remove(
+                                    narehateRole,
+                                    "Narehate exclusivo del propietario"
+                                );
 
-                            );
+                                console.log(
+                                    `🗑️ Narehate eliminado de ${user.user.tag}`
+                                );
 
-                            console.log(
-                                `🗑️ Narehate eliminado de ${user.user.tag}`
-                            );
+                            } catch (error) {
 
-                        } catch (error) {
+                                console.error(
+                                    `❌ Error quitando Narehate de ${user.user.tag}:`,
+                                    error
+                                );
 
-                            console.error(
-                                `❌ Error quitando Narehate de ${user.user.tag}:`,
-                                error
-                            );
-
+                            }
                         }
-
                     }
 
                 }
@@ -3753,6 +3854,6 @@ export function startDeveloperCleanup(client) {
 
         }
 
-    }, 30 * 1000);
+    },30 * 1000);
 
-}
+                            }
