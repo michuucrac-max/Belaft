@@ -291,7 +291,7 @@ client.once(Events.ClientReady, async () => {
 
         { name: "🐉 Belafu observa en silencio.", type: 3 },
 
-        { name: "🕳️ Descendiendo a la siguiente capa.", type: 0 },
+        { name: "🕳️ Bot oficial de papus del abismo sobre economia", type: 0 },
 
         { name: "🕯️ La codicia transforma el alma.", type: 2 },
 
