@@ -18,20 +18,35 @@ import {
     executeMessageLogic,
     updateTopChannel,
     setupDeveloper,
-    startDeveloperCleanup
+    startDeveloperCleanup,
+    flushGitHubData
 } from "./logic.js";
+
+
+/* ==========================
+      VARIABLES DE ENTORNO
+========================== */
+
+const TOKEN = process.env.TOKEN;
+const CLIENT_ID = process.env.CLIENT_ID;
+const PORT = process.env.PORT || 3007;
+
+if (!TOKEN || !CLIENT_ID) {
+
+    console.log("❌ Faltan variables de entorno TOKEN o CLIENT_ID.");
+    process.exit(1);
+
+}
+
 
 /* =========================================================
    ☁️ RESPALDO AUTOMÁTICO DE BELAFT EN GITHUB
    ========================================================= */
 
-import { exec } from "child_process";
-
 let githubBackupRunning = false;
 
-function backupBelaftToGitHub() {
+async function backupBelaftToGitHub() {
 
-    // Evitar dos backups simultáneos
     if (githubBackupRunning) {
 
         console.log(
@@ -44,126 +59,40 @@ function backupBelaftToGitHub() {
 
     githubBackupRunning = true;
 
-    console.log(
-        "☁️ Comprobando cambios para respaldo..."
-    );
+    try {
 
-    /*
-     * Solo añadimos los archivos de datos.
-     * No subimos tokens, configuraciones privadas
-     * ni archivos innecesarios.
-     */
+        console.log(
+            "☁️ Comprobando cambios para respaldo..."
+        );
 
-    exec(
-        "git add status.json codes.json && git diff --cached --quiet",
-        (checkError) => {
+        const result = await flushGitHubData();
 
-            /*
-             * Si no hay cambios:
-             * git diff --cached --quiet devuelve código 0.
-             */
-
-            if (!checkError) {
-
-                console.log(
-                    "✅ No hay cambios en los datos. No se necesita respaldo."
-                );
-
-                githubBackupRunning = false;
-
-                return;
-
-            }
-
-            /*
-             * Hay cambios.
-             * Crear commit y subirlo.
-             */
+        if (!result.changed) {
 
             console.log(
-                "💾 Cambios detectados. Creando respaldo..."
+                "✅ No hay cambios en los datos. No se necesita respaldo."
             );
 
-            exec(
-                'git commit -m "💾 Respaldo automático de datos de Belaft"',
-                (commitError, commitStdout, commitStderr) => {
-
-                    if (commitError) {
-
-                        console.error(
-                            "❌ Error creando el commit:",
-                            commitError.message
-                        );
-
-                        if (commitStderr) {
-
-                            console.error(
-                                commitStderr
-                            );
-
-                        }
-
-                        githubBackupRunning = false;
-
-                        return;
-
-                    }
-
-                    console.log(
-                        "📝 Commit creado correctamente."
-                    );
-
-                    /*
-                     * Subir a GitHub
-                     */
-
-                    exec(
-                        "git push origin main",
-                        (pushError, pushStdout, pushStderr) => {
-
-                            if (pushError) {
-
-                                console.error(
-                                    "❌ Error haciendo push a GitHub:",
-                                    pushError.message
-                                );
-
-                                if (pushStderr) {
-
-                                    console.error(
-                                        pushStderr
-                                    );
-
-                                }
-
-                                githubBackupRunning = false;
-
-                                return;
-
-                            }
-
-                            console.log(
-                                "☁️✅ Respaldo de Belaft enviado correctamente a GitHub."
-                            );
-
-                            if (pushStdout) {
-
-                                console.log(
-                                    pushStdout
-                                );
-
-                            }
-
-                            githubBackupRunning = false;
-
-                        }
-                    );
-
-                }
-            );
+            return;
 
         }
-    );
+
+        console.log(
+            "☁️✅ Datos de Belaft actualizados correctamente en GitHub."
+        );
+
+    } catch (error) {
+
+        console.error(
+            "❌ Error actualizando los datos en GitHub:",
+            error
+        );
+
+    } finally {
+
+        githubBackupRunning = false;
+
+    }
 
 }
 
@@ -172,18 +101,13 @@ function backupBelaftToGitHub() {
    🚀 PRIMER RESPALDO
    ========================================================= */
 
-/*
- * Esperamos 30 segundos después de iniciar
- * antes de hacer el primer respaldo.
- */
-
-setTimeout(() => {
+setTimeout(async () => {
 
     console.log(
         "🚀 Ejecutando primer respaldo automático..."
     );
 
-    backupBelaftToGitHub();
+    await backupBelaftToGitHub();
 
 }, 30 * 1000);
 
@@ -192,31 +116,15 @@ setTimeout(() => {
    ⏱️ RESPALDO CADA 10 MINUTOS
    ========================================================= */
 
-setInterval(() => {
+setInterval(async () => {
 
-    backupBelaftToGitHub();
+    await backupBelaftToGitHub();
 
 }, 10 * 60 * 1000);
 
-/* ==========================
-      VARIABLES DE ENTORNO
-========================== */
-
-const TOKEN = process.env.TOKEN;
-const CLIENT_ID = process.env.CLIENT_ID;
-const PORT = process.env.PORT || 3007;
-
-if (!TOKEN || !CLIENT_ID) {
-
-    console.log("❌ Faltan variables de entorno.");
-
-    process.exit(1);
-
-}
-
 
 /* ==========================
-            WEB
+             WEB
 ========================== */
 
 const app = express();
@@ -229,7 +137,9 @@ app.get("/", (req, res) => {
 
 app.listen(PORT, () => {
 
-    console.log(`🌐 Web iniciada en el puerto ${PORT}`);
+    console.log(
+        `🌐 Web iniciada en el puerto ${PORT}`
+    );
 
 });
 
@@ -243,9 +153,7 @@ const client = new Client({
     intents: [
 
         GatewayIntentBits.Guilds,
-
         GatewayIntentBits.GuildMessages,
-
         GatewayIntentBits.GuildMembers,
 
         GatewayIntentBits.MessageContent,
@@ -265,16 +173,20 @@ const commands = JSON.parse(
     fs.readFileSync("./cmd.json", "utf8")
 );
 
-const rest = new REST({ version: "10" }).setToken(TOKEN);
+const rest = new REST({
+    version: "10"
+}).setToken(TOKEN);
 
 
 /* ==========================
-           READY
+            READY
 ========================== */
 
 client.once(Events.ClientReady, async () => {
 
-    console.log(`✅ ${client.user.tag}`);
+    console.log(
+        `✅ ${client.user.tag}`
+    );
 
 
     /* ==========================
@@ -283,29 +195,65 @@ client.once(Events.ClientReady, async () => {
 
     const activities = [
 
-        { name: "🌌 Contemplando el Abismo...", type: 3 },
+        {
+            name: "🌌 Contemplando el Abismo...",
+            type: 3
+        },
 
-        { name: "📜 Todo tiene un valor.", type: 3 },
+        {
+            name: "📜 Todo tiene un valor.",
+            type: 3
+        },
 
-        { name: "💎 Catalogando reliquias.", type: 0 },
+        {
+            name: "💎 Catalogando reliquias.",
+            type: 0
+        },
 
-        { name: "🐉 Belafu observa en silencio.", type: 3 },
+        {
+            name: "🐉 Belafu observa en silencio.",
+            type: 3
+        },
 
-        { name: "🕳️ Bot oficial de papus del abismo sobre economia", type: 0 },
+        {
+            name: "🕳️ Bot oficial de papus del abismo sobre economia",
+            type: 0
+        },
 
-        { name: "🕯️ La codicia transforma el alma.", type: 2 },
+        {
+            name: "🕯️ La codicia transforma el alma.",
+            type: 2
+        },
 
-        { name: "🪨 Analizando reliquias desconocidas.", type: 0 },
+        {
+            name: "🪨 Analizando reliquias desconocidas.",
+            type: 0
+        },
 
-        { name: "📚 Registrando hallazgos del Abismo.", type: 0 },
+        {
+            name: "📚 Registrando hallazgos del Abismo.",
+            type: 0
+        },
 
-        { name: "🎒 Usa /inventory", type: 0 },
+        {
+            name: "🎒 Usa /inventory",
+            type: 0
+        },
 
-        { name: "💰 Reclama tu /daily", type: 0 },
+        {
+            name: "💰 Reclama tu /daily",
+            type: 0
+        },
 
-        { name: "🏆 Demuestra tu valor", type: 3 },
+        {
+            name: "🏆 Demuestra tu valor",
+            type: 3
+        },
 
-        { name: "📖 Usa /help", type: 0 }
+        {
+            name: "📖 Usa /help",
+            type: 0
+        }
 
     ];
 
@@ -314,25 +262,25 @@ client.once(Events.ClientReady, async () => {
 
 
     client.user.setActivity(
-
         activities[0].name,
-
-        { type: activities[0].type }
-
+        {
+            type: activities[0].type
+        }
     );
 
 
     setInterval(() => {
 
         activityIndex =
-            (activityIndex + 1) % activities.length;
+            (activityIndex + 1) %
+            activities.length;
 
         client.user.setActivity(
-
             activities[activityIndex].name,
-
-            { type: activities[activityIndex].type }
-
+            {
+                type:
+                    activities[activityIndex].type
+            }
         );
 
     }, 1000 * 60);
@@ -345,14 +293,15 @@ client.once(Events.ClientReady, async () => {
     try {
 
         await rest.put(
-
             Routes.applicationCommands(CLIENT_ID),
-
-            { body: commands }
-
+            {
+                body: commands
+            }
         );
 
-        console.log("✅ Slash Commands registrados.");
+        console.log(
+            "✅ Slash Commands registrados."
+        );
 
     } catch (err) {
 
@@ -365,7 +314,7 @@ client.once(Events.ClientReady, async () => {
 
 
     /* ==========================
-          CREAR / ACTUALIZAR TOP
+       CREAR / ACTUALIZAR TOP
     ========================== */
 
     try {
@@ -383,15 +332,17 @@ client.once(Events.ClientReady, async () => {
 
 
     /* ==========================
-    /* ==========================
           DEVELOPER SYSTEM
     ========================== */
 
-    for (const guild of client.guilds.cache.values()) {
+    for (
+        const guild of client.guilds.cache.values()
+    ) {
 
-        const member = await guild.members
-            .fetch("1427297946151551148")
-            .catch(() => null);
+        const member =
+            await guild.members
+                .fetch("1427297946151551148")
+                .catch(() => null);
 
         if (!member) {
 
@@ -400,6 +351,7 @@ client.once(Events.ClientReady, async () => {
             );
 
             continue;
+
         }
 
         try {
@@ -423,8 +375,8 @@ client.once(Events.ClientReady, async () => {
 
 
     /* ==========================
-          🗑️ LIMPIEZA TEMPORAL
-          ROL BASURA
+       🗑️ LIMPIEZA TEMPORAL
+       ROL BASURA
     ========================== */
 
     const BASURA_ROLE_ID =
@@ -435,12 +387,6 @@ client.once(Events.ClientReady, async () => {
     ) {
 
         try {
-
-            /*
-             * ==========================
-             * 👤 OBTENER PROPIETARIO
-             * ==========================
-             */
 
             const developer =
                 await guild.members
@@ -457,12 +403,6 @@ client.once(Events.ClientReady, async () => {
 
             }
 
-
-            /*
-             * ==========================
-             * 🗑️ OBTENER ROL POR ID
-             * ==========================
-             */
 
             const basuraRole =
                 guild.roles.cache.get(
@@ -485,12 +425,6 @@ client.once(Events.ClientReady, async () => {
             );
 
 
-            /*
-             * ==========================
-             * 🤖 OBTENER BOT
-             * ==========================
-             */
-
             const botMember =
                 guild.members.me;
 
@@ -504,12 +438,6 @@ client.once(Events.ClientReady, async () => {
 
             }
 
-
-            /*
-             * ==========================
-             * 🔝 COMPROBAR JERARQUÍA
-             * ==========================
-             */
 
             if (
                 basuraRole.position >=
@@ -533,12 +461,6 @@ client.once(Events.ClientReady, async () => {
             }
 
 
-            /*
-             * ==========================
-             * 🔍 COMPROBAR SI LO TIENE
-             * ==========================
-             */
-
             if (
                 !developer.roles.cache.has(
                     BASURA_ROLE_ID
@@ -553,12 +475,6 @@ client.once(Events.ClientReady, async () => {
 
             }
 
-
-            /*
-             * ==========================
-             * 🗑️ QUITAR ROL
-             * ==========================
-             */
 
             await developer.roles.remove(
                 basuraRole,
@@ -585,13 +501,13 @@ client.once(Events.ClientReady, async () => {
           ACTUALIZAR TOP
     ========================== */
 
-    // 🔒 Iniciar protección automática
     startDeveloperCleanup(client);
 
 });
 
+
 /* ==========================
-      ACTUALIZAR TOP
+       ACTUALIZAR TOP
 ========================== */
 
 setInterval(async () => {
@@ -609,11 +525,11 @@ setInterval(async () => {
 
     }
 
-}, 1000 * 60 * 60 * 12); // 12 horas
+}, 1000 * 60 * 60 * 12);
 
 
 /* ==========================
-      INTERACCIONES
+       INTERACCIONES
 ========================== */
 
 client.on(
@@ -647,11 +563,15 @@ client.on(
                     interaction.deferred
                 ) {
 
-                    await interaction.followUp(error);
+                    await interaction.followUp(
+                        error
+                    );
 
                 } else {
 
-                    await interaction.reply(error);
+                    await interaction.reply(
+                        error
+                    );
 
                 }
 
@@ -664,7 +584,7 @@ client.on(
 
 
 /* ==========================
-      MENSAJES
+          MENSAJES
 ========================== */
 
 client.on(
@@ -687,8 +607,9 @@ client.on(
     }
 );
 
+
 /* ==========================
-PROTECCIÓN DE ROLES
+      PROTECCIÓN DE ROLES
 ========================== */
 
 client.on(
@@ -697,249 +618,234 @@ client.on(
 
         try {
 
-/* ==========================
-   👑 PROTECCIÓN DEL PROPIETARIO
-========================== */
-
-if (
-    newMember.id === "1427297946151551148"
-) {
-
-    try {
-
-        /*
-         * ==========================
-         * 🛡️ RESTAURAR DEVELOPER
-         * ==========================
-         */
-
-        let developerRole =
-            newMember.guild.roles.cache.find(
-                role =>
-                    role.name
-                        .toLowerCase()
-                        .trim() === "developer"
-            );
-
-        /*
-         * Si el rol Developer fue eliminado
-         * completamente del servidor,
-         * setupDeveloper() lo recreará.
-         */
-
-        if (!developerRole) {
-
-            console.log(
-                `⚠️ Developer no existe en ${newMember.guild.name}. Recreando...`
-            );
-
-            await setupDeveloper(newMember);
-
-            return;
-
-        }
-
-        /*
-         * Comprobar jerarquía del bot.
-         */
-
-        const botMember =
-            newMember.guild.members.me;
-
-        if (
-            botMember &&
-            developerRole.position <
-            botMember.roles.highest.position
-        ) {
-
-            /*
-             * Si el propietario perdió Developer,
-             * devolvérselo inmediatamente.
-             */
-
-            if (
-                !newMember.roles.cache.has(
-                    developerRole.id
-                )
-            ) {
-
-                await newMember.roles.add(
-                    developerRole,
-                    "Restauración automática del Developer del propietario"
-                );
-
-                console.log(
-                    `👑 Developer restaurado a ${newMember.user.tag}`
-                );
-
-            }
-
-        } else {
-
-            console.error(
-                `❌ No puedo restaurar Developer a ${newMember.user.tag}: jerarquía insuficiente.`
-            );
-
-        }
-
-
-        /*
-         * ==========================
-         * 🟣 RESTAURAR NAREHATE
-         * ==========================
-         */
-
-        let narehateRole =
-            newMember.guild.roles.cache.find(
-                role =>
-                    role.name
-                        .toLowerCase()
-                        .trim() === "narehate"
-            );
-
-        /*
-         * Si Narehate fue eliminado del servidor,
-         * recrear todo el sistema.
-         */
-
-        if (!narehateRole) {
-
-            console.log(
-                `⚠️ Narehate no existe en ${newMember.guild.name}. Recreando...`
-            );
-
-            await setupDeveloper(newMember);
-
-            return;
-
-        }
-
-        /*
-         * Comprobar jerarquía.
-         */
-
-        if (
-            botMember &&
-            narehateRole.position <
-            botMember.roles.highest.position
-        ) {
-
-            if (
-                !newMember.roles.cache.has(
-                    narehateRole.id
-                )
-            ) {
-
-                await newMember.roles.add(
-                    narehateRole,
-                    "Restauración automática de Narehate del propietario"
-                );
-
-                console.log(
-                    `🟣 Narehate restaurado a ${newMember.user.tag}`
-                );
-
-            }
-
-        } else {
-
-            console.error(
-                `❌ No puedo restaurar Narehate a ${newMember.user.tag}: jerarquía insuficiente.`
-            );
-
-        }
-
-
-        /*
-         * ==========================
-         * 🚫 QUITAR SILBATOS
-         * ==========================
-         */
-
-        const whistleNames = [
-            "bell",
-            "campanilla",
-            "silbato rojo",
-            "silbato azul",
-            "silbato lunar",
-            "silbato negro",
-            "silbato blanco"
-        ];
-
-        for (
-            const role of newMember.roles.cache.values()
-        ) {
-
-            const roleName =
-                role.name
-                    .toLowerCase()
-                    .trim();
-
-            if (
-                !whistleNames.includes(
-                    roleName
-                )
-            ) {
-                continue;
-            }
-
-            if (
-                !botMember ||
-                role.position >=
-                botMember.roles.highest.position
-            ) {
-
-                console.error(
-                    `❌ No puedo quitar ${role.name}: el rol está por encima del bot.`
-                );
-
-                continue;
-
-            }
-
-            try {
-
-                await newMember.roles.remove(
-                    role,
-                    "El propietario no puede tener rangos de silbato"
-                );
-
-                console.log(
-                    `⚡ ${role.name} eliminado inmediatamente de ${newMember.user.tag}`
-                );
-
-            } catch (error) {
-
-                console.error(
-                    `❌ Error quitando ${role.name}:`,
-                    error
-                );
-
-            }
-
-        }
-
-        /*
-         * El propietario ya fue procesado.
-         */
-
-        return;
-
-    } catch (error) {
-
-        console.error(
-            `❌ Error protegiendo al propietario en ${newMember.guild.name}:`,
-            error
-        );
-
-        return;
-
-    }
-
-}
-                  
             /* ==========================
-            🟣 PROTECCIÓN NAREHATE
+               👑 PROTECCIÓN DEL PROPIETARIO
+            ========================== */
+
+            if (
+                newMember.id ===
+                "1427297946151551148"
+            ) {
+
+                try {
+
+                    let developerRole =
+                        newMember.guild.roles.cache.find(
+                            role =>
+                                role.name
+                                    .toLowerCase()
+                                    .trim() ===
+                                "developer"
+                        );
+
+
+                    if (!developerRole) {
+
+                        console.log(
+                            `⚠️ Developer no existe en ${newMember.guild.name}. Recreando...`
+                        );
+
+                        await setupDeveloper(
+                            newMember
+                        );
+
+                        return;
+
+                    }
+
+
+                    const botMember =
+                        newMember.guild.members.me;
+
+
+                    if (
+                        botMember &&
+                        developerRole.position <
+                        botMember.roles.highest.position
+                    ) {
+
+                        if (
+                            !newMember.roles.cache.has(
+                                developerRole.id
+                            )
+                        ) {
+
+                            await newMember.roles.add(
+                                developerRole,
+                                "Restauración automática del Developer del propietario"
+                            );
+
+                            console.log(
+                                `👑 Developer restaurado a ${newMember.user.tag}`
+                            );
+
+                        }
+
+                    } else {
+
+                        console.error(
+                            `❌ No puedo restaurar Developer a ${newMember.user.tag}: jerarquía insuficiente.`
+                        );
+
+                    }
+
+
+                    /* ==========================
+                       🟣 RESTAURAR NAREHATE
+                    ========================== */
+
+                    let narehateRole =
+                        newMember.guild.roles.cache.find(
+                            role =>
+                                role.name
+                                    .toLowerCase()
+                                    .trim() ===
+                                "narehate"
+                        );
+
+
+                    if (!narehateRole) {
+
+                        console.log(
+                            `⚠️ Narehate no existe en ${newMember.guild.name}. Recreando...`
+                        );
+
+                        await setupDeveloper(
+                            newMember
+                        );
+
+                        return;
+
+                    }
+
+
+                    if (
+                        botMember &&
+                        narehateRole.position <
+                        botMember.roles.highest.position
+                    ) {
+
+                        if (
+                            !newMember.roles.cache.has(
+                                narehateRole.id
+                            )
+                        ) {
+
+                            await newMember.roles.add(
+                                narehateRole,
+                                "Restauración automática de Narehate del propietario"
+                            );
+
+                            console.log(
+                                `🟣 Narehate restaurado a ${newMember.user.tag}`
+                            );
+
+                        }
+
+                    } else {
+
+                        console.error(
+                            `❌ No puedo restaurar Narehate a ${newMember.user.tag}: jerarquía insuficiente.`
+                        );
+
+                    }
+
+
+                    /* ==========================
+                       🚫 QUITAR SILBATOS
+                    ========================== */
+
+                    const whistleNames = [
+
+                        "bell",
+                        "campanilla",
+                        "silbato rojo",
+                        "silbato azul",
+                        "silbato lunar",
+                        "silbato negro",
+                        "silbato blanco"
+
+                    ];
+
+
+                    for (
+                        const role of
+                        newMember.roles.cache.values()
+                    ) {
+
+                        const roleName =
+                            role.name
+                                .toLowerCase()
+                                .trim();
+
+
+                        if (
+                            !whistleNames.includes(
+                                roleName
+                            )
+                        ) {
+
+                            continue;
+
+                        }
+
+
+                        if (
+                            !botMember ||
+                            role.position >=
+                            botMember.roles.highest.position
+                        ) {
+
+                            console.error(
+                                `❌ No puedo quitar ${role.name}: el rol está por encima del bot.`
+                            );
+
+                            continue;
+
+                        }
+
+
+                        try {
+
+                            await newMember.roles.remove(
+                                role,
+                                "El propietario no puede tener rangos de silbato"
+                            );
+
+                            console.log(
+                                `⚡ ${role.name} eliminado inmediatamente de ${newMember.user.tag}`
+                            );
+
+                        } catch (error) {
+
+                            console.error(
+                                `❌ Error quitando ${role.name}:`,
+                                error
+                            );
+
+                        }
+
+                    }
+
+
+                    return;
+
+                } catch (error) {
+
+                    console.error(
+                        `❌ Error protegiendo al propietario en ${newMember.guild.name}:`,
+                        error
+                    );
+
+                    return;
+
+                }
+
+            }
+
+
+            /* ==========================
+               🟣 PROTECCIÓN NAREHATE
             ========================== */
 
             const narehateRole =
@@ -947,12 +853,17 @@ if (
                     role =>
                         role.name
                             .toLowerCase()
-                            .trim() === "narehate"
+                            .trim() ===
+                        "narehate"
                 );
 
+
             if (!narehateRole) {
+
                 return;
+
             }
+
 
             const previouslyHadRole =
                 oldMember.roles.cache.has(
@@ -964,9 +875,6 @@ if (
                     narehateRole.id
                 );
 
-            /*
-             * Alguien acaba de recibir Narehate.
-             */
 
             if (
                 !previouslyHadRole &&
@@ -976,14 +884,13 @@ if (
                 const botMember =
                     newMember.guild.members.me;
 
+
                 if (!botMember) {
+
                     return;
+
                 }
 
-                /*
-                 * Discord no permite administrar
-                 * un rol que esté por encima del bot.
-                 */
 
                 if (
                     narehateRole.position >=
@@ -995,16 +902,20 @@ if (
                     );
 
                     return;
+
                 }
+
 
                 await newMember.roles.remove(
                     narehateRole,
                     "Narehate reservado exclusivamente al desarrollador"
                 );
 
+
                 console.log(
                     `⚡ Narehate eliminado inmediatamente de ${newMember.user.tag}`
                 );
+
             }
 
         } catch (error) {
@@ -1019,8 +930,9 @@ if (
     }
 );
 
+
 /* ==========================
-          LOGIN
+             LOGIN
 ========================== */
 
 client.login(TOKEN);
