@@ -18,119 +18,607 @@ import {
 } from "discord.js";
 
 /* ==========================
+           GITHUB API
+========================== */
+
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const GITHUB_OWNER =
+    process.env.GITHUB_OWNER || "michuucrac-max";
+const GITHUB_REPO =
+    process.env.GITHUB_REPO || "Belaft";
+const GITHUB_BRANCH =
+    process.env.GITHUB_BRANCH || "main";
+
+const GITHUB_API =
+    "https://api.github.com";
+
+const GITHUB_HEADERS = {
+
+    "Accept":
+        "application/vnd.github+json",
+
+    "Authorization":
+        `Bearer ${GITHUB_TOKEN}`,
+
+    "X-GitHub-Api-Version":
+        "2022-11-28",
+
+    "Content-Type":
+        "application/json"
+
+};
+
+
+/* ==========================
            RUTAS
 ========================== */
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename =
+    fileURLToPath(import.meta.url);
 
-const CONFIG_PATH = path.join(__dirname, "config.json");
-const STATUS_PATH = path.join(__dirname, "status.json");
-const CODES_FILE = path.join(__dirname, "codes.json");
+const __dirname =
+    path.dirname(__filename);
 
-let relicChance = 0.10; // 10% inicial
+const CONFIG_PATH =
+    path.join(__dirname, "config.json");
+
+const STATUS_PATH =
+    path.join(__dirname, "status.json");
+
+const CODES_FILE =
+    path.join(__dirname, "codes.json");
+
 
 /* ==========================
-        SISTEMA XP
+       ARCHIVOS GITHUB
 ========================== */
 
-const XP_COOLDOWN = new Map();
-const LAST_DM = new Map();
+const githubFiles = {
+
+    "config.json": {
+        path: CONFIG_PATH,
+        dirty: false
+    },
+
+    "status.json": {
+        path: STATUS_PATH,
+        dirty: false
+    },
+
+    "codes.json": {
+        path: CODES_FILE,
+        dirty: false
+    }
+
+};
+
 
 /* ==========================
-           CONFIG
+       COMPROBAR TOKEN
+========================== */
+
+if (!GITHUB_TOKEN) {
+
+    console.warn(
+        "⚠️ GITHUB_TOKEN no está configurado."
+    );
+
+    console.warn(
+        "⚠️ Los datos no podrán guardarse en GitHub."
+    );
+
+}
+
+
+/* ==========================
+       OBTENER ARCHIVO
+========================== */
+
+async function getGitHubFile(fileName) {
+
+    if (!GITHUB_TOKEN) {
+        return null;
+    }
+
+    const url =
+        `${GITHUB_API}/repos/` +
+        `${GITHUB_OWNER}/` +
+        `${GITHUB_REPO}/contents/` +
+        `${fileName}?ref=${encodeURIComponent(GITHUB_BRANCH)}`;
+
+    const response =
+        await fetch(
+            url,
+            {
+                headers:
+                    GITHUB_HEADERS
+            }
+        );
+
+
+    if (response.status === 404) {
+
+        return null;
+
+    }
+
+
+    if (!response.ok) {
+
+        const text =
+            await response.text();
+
+        throw new Error(
+            `GitHub GET ${fileName} ` +
+            `${response.status}: ${text}`
+        );
+
+    }
+
+
+    const data =
+        await response.json();
+
+
+    const content =
+        Buffer.from(
+            data.content,
+            "base64"
+        ).toString("utf8");
+
+
+    return {
+
+        content,
+
+        sha: data.sha
+
+    };
+
+}
+
+
+/* ==========================
+       ACTUALIZAR ARCHIVO
+========================== */
+
+async function updateGitHubFile(
+    fileName,
+    content,
+    sha
+) {
+
+    if (!GITHUB_TOKEN) {
+
+        throw new Error(
+            "GITHUB_TOKEN no está configurado."
+        );
+
+    }
+
+
+    const url =
+        `${GITHUB_API}/repos/` +
+        `${GITHUB_OWNER}/` +
+        `${GITHUB_REPO}/contents/` +
+        `${fileName}`;
+
+
+    const body = {
+
+        message:
+            `💾 Actualización automática de ${fileName}`,
+
+        content:
+            Buffer.from(
+                content,
+                "utf8"
+            ).toString("base64"),
+
+        branch:
+            GITHUB_BRANCH
+
+    };
+
+
+    if (sha) {
+
+        body.sha = sha;
+
+    }
+
+
+    const response =
+        await fetch(
+            url,
+            {
+
+                method: "PUT",
+
+                headers:
+                    GITHUB_HEADERS,
+
+                body:
+                    JSON.stringify(body)
+
+            }
+        );
+
+
+    if (!response.ok) {
+
+        const text =
+            await response.text();
+
+        throw new Error(
+            `GitHub PUT ${fileName} ` +
+            `${response.status}: ${text}`
+        );
+
+    }
+
+
+    return await response.json();
+
+}
+
+
+/* ==========================
+       CARGAR JSON
+========================== */
+
+async function loadJSONFromGitHub(
+    fileName,
+    localPath,
+    fallback
+) {
+
+    try {
+
+        const remote =
+            await getGitHubFile(
+                fileName
+            );
+
+
+        if (remote) {
+
+            fs.writeFileSync(
+                localPath,
+                remote.content,
+                "utf8"
+            );
+
+            return JSON.parse(
+                remote.content
+            );
+
+        }
+
+
+        /* ==========================
+           SI NO EXISTE EN GITHUB
+        ========================== */
+
+        if (
+            fs.existsSync(localPath)
+        ) {
+
+            return JSON.parse(
+                fs.readFileSync(
+                    localPath,
+                    "utf8"
+                )
+            );
+
+        }
+
+
+        return fallback;
+
+    } catch (error) {
+
+        console.error(
+            `❌ Error leyendo ${fileName} desde GitHub:`,
+            error
+        );
+
+
+        /* ==========================
+           FALLBACK LOCAL
+        ========================== */
+
+        try {
+
+            if (
+                fs.existsSync(localPath)
+            ) {
+
+                return JSON.parse(
+                    fs.readFileSync(
+                        localPath,
+                        "utf8"
+                    )
+                );
+
+            }
+
+        } catch (localError) {
+
+            console.error(
+                `❌ Error leyendo ${fileName} localmente:`,
+                localError
+            );
+
+        }
+
+
+        return fallback;
+
+    }
+
+}
+
+
+/* ==========================
+          CONFIG
 ========================== */
 
 let config = {
+
     channels: {
+
         reliquies: null
+
     }
+
 };
+
+async function loadConfig() {
+
+    config =
+        await loadJSONFromGitHub(
+            "config.json",
+            CONFIG_PATH,
+            {
+                channels: {}
+            }
+        );
+
+
+    if (!config.channels) {
+
+        config.channels = {};
+
+    }
+
+}
+
+
+function saveConfig() {
+
+    try {
+
+        fs.writeFileSync(
+            CONFIG_PATH,
+            JSON.stringify(
+                config,
+                null,
+                4
+            ),
+            "utf8"
+        );
+
+        githubFiles[
+            "config.json"
+        ].dirty = true;
+
+    } catch (err) {
+
+        console.error(
+            "❌ Error guardando config.json:",
+            err
+        );
+
+    }
+
+}
+
+
+/* ==========================
+         STATUS.JSON
+========================== */
 
 let status = {};
 
-/* ==========================
-      INICIALIZACIÓN
-========================== */
 
-loadConfig();
-loadStatus();
+async function loadStatus() {
 
-/* ==========================
-        CONFIG.JSON
-========================== */
+    status =
+        await loadJSONFromGitHub(
+            "status.json",
+            STATUS_PATH,
+            {}
+        );
 
-function loadConfig() {
-    if (!fs.existsSync(CONFIG_PATH)) {
-        saveConfig();
-        return;
-    }
-
-    try {
-        config = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
-    } catch {
-        console.log("⚠️ config.json corrupto. Restaurando...");
-        config = { channels: {} };
-        saveConfig();
-    }
-
-    if (!config.channels) config.channels = {};
 }
 
-function saveConfig() {
-    try {
-        fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 4), "utf8");
-        console.log("✅ config.json guardado correctamente");
-    } catch (err) {
-        console.error("❌ Error guardando config.json:", err);
-    }
-}
-
-/* ==========================
-        STATUS.JSON
-========================== */
-
-function loadStatus() {
-    if (!fs.existsSync(STATUS_PATH)) {
-        status = {};
-        saveStatus();
-        return;
-    }
-
-    try {
-        const data = fs.readFileSync(STATUS_PATH, "utf8");
-        status = data.trim() ? JSON.parse(data) : {};
-    } catch (err) {
-        console.log("⚠️ status.json corrupto. Restaurando...");
-        console.error(err);
-        status = {};
-        saveStatus();
-    }
-}
 
 function saveStatus() {
+
     try {
-        fs.writeFileSync(STATUS_PATH, JSON.stringify(status, null, 4), "utf8");
-        console.log("✅ status.json guardado correctamente");
+
+        fs.writeFileSync(
+            STATUS_PATH,
+            JSON.stringify(
+                status,
+                null,
+                4
+            ),
+            "utf8"
+        );
+
+        githubFiles[
+            "status.json"
+        ].dirty = true;
+
     } catch (err) {
-        console.error("❌ Error guardando status.json:", err);
+
+        console.error(
+            "❌ Error guardando status.json:",
+            err
+        );
+
     }
+
 }
 
+
 /* ==========================
-        PROMO CODES
+         PROMO CODES
 ========================== */
 
-let codes = JSON.parse(
-    fs.readFileSync(CODES_FILE, "utf8")
-);
+let codes = {};
+
+
+async function loadCodes() {
+
+    codes =
+        await loadJSONFromGitHub(
+            "codes.json",
+            CODES_FILE,
+            {}
+        );
+
+}
+
 
 function saveCodes() {
 
-    fs.writeFileSync(
-        CODES_FILE,
-        JSON.stringify(codes, null, 2)
-    );
+    try {
+
+        fs.writeFileSync(
+            CODES_FILE,
+            JSON.stringify(
+                codes,
+                null,
+                2
+            ),
+            "utf8"
+        );
+
+        githubFiles[
+            "codes.json"
+        ].dirty = true;
+
+    } catch (err) {
+
+        console.error(
+            "❌ Error guardando codes.json:",
+            err
+        );
+
+    }
+
+}
+
+
+/* ==========================
+       INICIALIZACIÓN
+========================== */
+
+await loadConfig();
+await loadStatus();
+await loadCodes();
+
+
+/* ==========================
+      SUBIR CAMBIOS A GITHUB
+========================== */
+
+export async function flushGitHubData() {
+
+    if (!GITHUB_TOKEN) {
+
+        return {
+            changed: false
+        };
+
+    }
+
+
+    let changed = false;
+
+
+    for (
+        const fileName of
+        Object.keys(githubFiles)
+    ) {
+
+        const file =
+            githubFiles[fileName];
+
+
+        if (!file.dirty) {
+
+            continue;
+
+        }
+
+
+        try {
+
+            const content =
+                fs.readFileSync(
+                    file.path,
+                    "utf8"
+                );
+
+
+            /*
+             * Obtener SHA actual.
+             * Esto evita depender de un git clone
+             * o de git push.
+             */
+
+            const remote =
+                await getGitHubFile(
+                    fileName
+                );
+
+
+            await updateGitHubFile(
+                fileName,
+                content,
+                remote?.sha
+            );
+
+
+            file.dirty = false;
+
+            changed = true;
+
+
+            console.log(
+                `☁️ ${fileName} actualizado en GitHub.`
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                `❌ Error subiendo ${fileName} a GitHub:`,
+                error
+            );
+
+        }
+
+    }
+
+
+    return {
+        changed
+    };
 
 }
 
