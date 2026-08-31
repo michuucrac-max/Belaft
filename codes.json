@@ -2,8 +2,10 @@
   "PAPU": {
     "money": 57,
     "xp": 53,
-    "uses": 5753,
-    "redeemedBy": []
+    "uses": 5752,
+    "redeemedBy": [
+      "1427297946151551148"
+    ]
   },
   "XXX": {
     "money": 1,
