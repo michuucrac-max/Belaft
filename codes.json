@@ -4,5 +4,11 @@
     "xp": 53,
     "uses": 5753,
     "redeemedBy": []
+  },
+  "XXX": {
+    "money": 1,
+    "xp": 1,
+    "uses": 1,
+    "redeemedBy": []
   }
 }
