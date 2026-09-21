@@ -803,6 +803,20 @@
                 "reliquies": 0,
                 "sold": 0
             }
+        },
+        "1381254756206645310": {
+            "money": 0,
+            "xp": 0,
+            "rank": 0,
+            "multiplier": 1,
+            "tempMultiplier": 1,
+            "tempMultiplierEnd": 0,
+            "daily": 0,
+            "inventory": {},
+            "stats": {
+                "reliquies": 0,
+                "sold": 0
+            }
         }
     }
 }
